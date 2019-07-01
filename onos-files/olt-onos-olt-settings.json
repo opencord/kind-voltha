@@ -1,0 +1,4 @@
+{
+ "enableDhcpOnProvisioning" : true,
+ "defaultVlan" : 65535
+}
