@@ -34,3 +34,6 @@ onos_env:
     fieldPath: metadata.namespace
 - name: ONOS_APPS
   value: "drivers,openflow-base,hostprovider"
+
+# Customization for BBSIM
+kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'

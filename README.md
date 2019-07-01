@@ -334,3 +334,22 @@ To remove the cluster simply use the `kind` command:
 ```
 kind delete cluster
 ```
+
+## WIP
+
+### Create BBSIM Device
+
+#### Install BBSIM Helm Chart
+```bash
+helm install -f $TYPE-values.yaml --namespace voltha --name bbsim onf/bbsim
+```
+
+#### Create BBSIM Device
+```bash
+voltctl device create -t openolt -H $(kubectl get -n voltha service/bbsim -o go-template='{{.spec.clusterIP}}'):50060
+```
+
+#### Enable BBSIM Device
+```bash
+voltctl device enable $(voltctl device list --filter Type~openolt -q)
+```
