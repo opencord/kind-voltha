@@ -1,5 +1,5 @@
 # Kubernetes Kind VOLTHA Test Environment
-This repository describes how to deploy a 4 node (one control plane and 
+This repository describes how to deploy a 4 node (one control plane and
 
 ## Prerequisites
 You must have both Docker and the Go programming language install for this
@@ -32,7 +32,7 @@ table:
 | EtcdCluster             | 1 Member      | 3 Members                 |
 
 Throughout this `README.md` file deployment and configuration files are
-referenced in the form **$TYPE-cluster.cfg** and **$TYPE-values.yaml**. 
+referenced in the form **$TYPE-cluster.cfg** and **$TYPE-values.yaml**.
 Depending on which type of deloyment you wish to install replace **$TYPE**
 with either **minimal** or **full**. If you set the environment variable to the
 desired deployment type, example below, then the commands can be executed via
@@ -49,14 +49,15 @@ execute `./voltha up` and the minimal cluster should start.
 To remove voltha use `./voltha down`
 
 ![Demo @ Speed](./resources/kind-voltha.gif "Demo @ Speed")
+_NOTE: Shown significantly sped up (20x), actual install was about 8 minutes._
 
 ## Create Kubernetes Cluster
 Kind provides a command line control tool to easily create Kubernetes clusters
 using just a basic Docker envionrment. The following commands will create
-the desired deployment of Kubernetes and then configure your local copy of 
+the desired deployment of Kubernetes and then configure your local copy of
 `kubectl` to connect to this cluster.
 ```bash
-kind create cluster --name=voltha-$TYPE --config $TYPE-cluster.cfg 
+kind create cluster --name=voltha-$TYPE --config $TYPE-cluster.cfg
 export KUBECONFIG="$(kind get kubeconfig-path --name="voltha-$TYPE")"
 kubectl cluster-info
 ```
@@ -82,16 +83,16 @@ kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"templat
 
 ## Install EtcdOperator
 ETCD Operator is a utility that allows applications to create and manage ETCD
-key/value clusters as Kubernetes resources. VOLTHA utilizes this utility to 
+key/value clusters as Kubernetes resources. VOLTHA utilizes this utility to
 create its key/value store. _NOTE: it is not required that VOLTHA create its
-own datastore as VOLTHA can utilize and existing datastore, but for this 
+own datastore as VOLTHA can utilize and existing datastore, but for this
 example VOLTHA will creates its own datastore_
 ```bash
 helm install -f $TYPE-values.yaml --namespace voltha --name etcd-operator stable/etcd-operator
 ```
 
 ### Wait for operator pods
-Before continuing the Kubernetes pods associated with ETCD Operator must be in 
+Before continuing the Kubernetes pods associated with ETCD Operator must be in
 the `Running` state.
 ```bash
 kubectl get -n voltha pod
@@ -189,7 +190,7 @@ helm install -f $TYPE-values.yaml --namespace voltha --name open-onu onf/voltha-
 ## Exposing VOLTHA Services
 At this point VOLTHA is deployed and from within the Kubernetes cluster the
 VOLTHA services can be reached. However, from outside the Kubernetes cluster the
-services cannot be reached. 
+services cannot be reached.
 ```bash
 screen -dmS voltha-api kubectl port-forward -n voltha service/voltha-api 55555:55555
 screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022
@@ -289,7 +290,7 @@ voltctl device enable 1d5382581e2198ded3b9bcd8
 ```
 
 When a device is enabled VOLTHA communicates with the device to discover the
-ONUs associated with the devices. Using the device and logicaldevice 
+ONUs associated with the devices. Using the device and logicaldevice
 sub-commands, `list` and `ports` the information VOLTHA discovered can be
 displayed.
 
