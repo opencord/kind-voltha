@@ -34,7 +34,7 @@ if [ $# -ne 1 -o $(echo ":up:down:" | grep -c ":$1:") -ne 1 ]; then
 fi
 
 if [ "$1" == "down" ]; then
-    exec kind delete cluster --name voltha-$TYPE
+    exec ./bin/kind delete cluster --name voltha-$TYPE
     exit 
 fi
 
@@ -42,34 +42,52 @@ LOG="install.log"
 date > $LOG
 
 spin() {
-    START=14852225
-    END=14852287
-    IDX=$START
+    PARTS="\
+        \xe2\xa2\x8e\xe2\xa1\xb0 \
+        \xe2\xa2\x8e\xe2\xa1\xa1 \
+        \xe2\xa2\x8e\xe2\xa1\x91 \
+        \xe2\xa2\x8e\xe2\xa0\xb1 \
+        \xe2\xa0\x8e\xe2\xa1\xb1 \
+        \xe2\xa2\x8a\xe2\xa1\xb1 \
+        \xe2\xa2\x8c\xe2\xa1\xb1 \
+        \xe2\xa2\x86\xe2\xa1\xb1 \
+        "
+    IDX=1
     tput civis
     while true; do
-       printf '%02x' $IDX | xxd -r -p
-       echo -en "  $IDX"
+       C=$(echo $PARTS | cut '-d ' -f $IDX)
+       echo -en "$C"
        IDX=$(expr $IDX + 1)
-       if [ $IDX -gt $END ]; then
-           IDX=$START
+       if [ $IDX -gt 8 ]; then
+           IDX=1
        fi
        sleep .15 
        echo -en "\r"
     done
 }
 
-IDX=14852225
-NOT_VERIFIED="\xe2\x9c\x97"
-VERIFIED="\xe2\x9c\x93"
+SPIN_PARTS="\
+        \xe2\xa2\x8e\xe2\xa1\xb0 \
+        \xe2\xa2\x8e\xe2\xa1\xa1 \
+        \xe2\xa2\x8e\xe2\xa1\x91 \
+        \xe2\xa2\x8e\xe2\xa0\xb1 \
+        \xe2\xa0\x8e\xe2\xa1\xb1 \
+        \xe2\xa2\x8a\xe2\xa1\xb1 \
+        \xe2\xa2\x8c\xe2\xa1\xb1 \
+        \xe2\xa2\x86\xe2\xa1\xb1 \
+        "
+IDX=1
+NOT_VERIFIED="\xe2\x9c\x97\x20"
+VERIFIED="\xe2\x9c\x93\x20"
 bspin() {
     tput civis
-    IDX=14852225
+    IDX=1
     local INDENT=
     if [ "$1" == "-" ]; then
         INDENT="  "
         shift
     fi
-    echo -en "$INDENT  $*"
+    echo -en "$INDENT   $*"
 }
 
 sspin() {
@@ -78,12 +96,11 @@ sspin() {
         INDENT="  "
         shift
     fi
-    echo -en "\r$INDENT"
-    printf " %02x" $IDX | xxd -r -p
-    echo -en " $*"
+    C=$(echo $SPIN_PARTS | cut '-d ' -f $IDX)
+    echo -en "\r$INDENT$C $*"
     IDX=$(expr $IDX + 1)
-    if [ $IDX -gt 14852287 ]; then
-        IDX=14852225
+    if [ $IDX -gt 8 ]; then
+        IDX=1
     fi
 }
 
@@ -249,7 +266,7 @@ COUNT=$(count_pods "kube-system" "tiller-deploy-.*")
 bspin "Verify Helm"
 if [ $(count_pods "kube-system" "tiller-deploy-.*") -ne 1 ]; then
     espin $NOT_VERIFIED
-    echo Configuring" Helm ..."
+    echo "Configuring Helm ..."
     bspin - "Initialize Helm"
     (set -x; helm init --upgrade >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
@@ -315,7 +332,7 @@ espin - $VERIFIED
 bspin "Verify VOLTHA installed"
 if [ $(helm list voltha | grep -c DEPLOYED) -ne 1 ]; then
     espin $NOT_VERIFIED
-    helm_install - voltha voltha onf/voltha "Install VOLTHA"
+    helm_install - voltha voltha onf/voltha "Install VOLTHA Core"
 else
     espin $VERIFIED
 fi
@@ -327,7 +344,7 @@ VOLTHA="ofagent-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
-wait_for_pods - "voltha" 9 -1 "Waiting for VOLTHA CORE top start..." $VOLTHA
+wait_for_pods - "voltha" 9 -1 "Waiting for VOLTHA Core to start..." $VOLTHA
 
 echo "Verify Adapters"
 bspin - "Verify Simulated Adapters installed"
