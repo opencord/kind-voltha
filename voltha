@@ -221,7 +221,6 @@ fi
 bspin "Verify command PATH"
 export PATH=$(go env GOPATH)/bin:$PATH
 espin $VERIFIED
-exit
 
 HAVE=$(kind get clusters | grep -c voltha-$TYPE)
 bspin "Verify Kubernetes/Kind Cluster"
