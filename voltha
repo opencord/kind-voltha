@@ -24,6 +24,10 @@ function ctrl_c() {
     exit
 }
 
+TYPE=${TYPE:-minimal}
+# Only minimal cluster works in this script currently
+TYPE=minimal
+
 if [ $# -ne 1 -o $(echo ":up:down:" | grep -c ":$1:") -ne 1 ]; then 
     >&2 echo "up or down?"
     exit 1
@@ -175,29 +179,26 @@ helm_install() {
     espin $INDENT $VERIFIED
 }
 
-TYPE=${TYPE:-minimal}
-
-# Only minimal cluster works in this script currently
-TYPE=minimal
 echo "INSTALL TYPE: $TYPE" >> $LOG
 
 bspin "Verify GOPATH"
 export GOPATH=$(pwd)
+mkdir -p $GOPATH/bin
 espin $VERIFIED
 
 bspin "Verify Kubernetes/Kind"
-if [ -x ./bin/kind ]; then
+if [ -x $GOPATH/bin/kind ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
     bspin - "Download and build Kubernetes/Kind"
     (set -x; rm -rf $GOPATH/go.mod $GOPATH/go.sum >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; GO111MODULE="on" go get sigs.k8s.io/kind@v0.4.0 >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
 
 bspin "Verify Helm"
-if [ -x ./bin/helm ]; then
+if [ -x $GOPATH/bin/helm ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
@@ -208,7 +209,7 @@ else
 fi
 
 bspin "Verify voltctl"
-if [ -x ./bin/voltctl ]; then
+if [ -x $GOPATH/bin/voltctl ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
@@ -368,4 +369,9 @@ espin - $VERIFIED
 bspin - "Forward VOLTHA SSH port"
 (set -x; screen -p 0 -X -S voltha-ssh  stuff $'\003' 2>/dev/null >/dev/null >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022 >>$LOG 2>&1) >>$LOG 2>&1
+espin - $VERIFIED
+
+bspin - "Create voltctl configuration file"
+(set -x; mkdir -p $HOME/.volt >>$LOG 2>&1) >>$LOG 2>&1
+(set -x; voltctl -a v2 -s localhost:55555 config > $HOME/.volt/config 2>>$LOG) >>$LOG 2>&1
 espin - $VERIFIED
