@@ -48,6 +48,8 @@ execute `./voltha up` and the minimal cluster should start.
 
 To remove voltha use `./voltha down`
 
+![Demo @ Speed](./resources/kind-voltha.gif "Demo @ Speed")
+
 ## Create Kubernetes Cluster
 Kind provides a command line control tool to easily create Kubernetes clusters
 using just a basic Docker envionrment. The following commands will create
