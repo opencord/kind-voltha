@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Copyright 2019 Ciena Corporation
 #
@@ -13,6 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+TYPE=${TYPE:-minimal}
+if [ "$TYPE" == "full" ]; then
+    VOLTHA_API_PORT=${VOLTHA_API_PORT:-55556}
+    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5023}
+else
+    VOLTHA_API_PORT=${VOLTHA_API_PORT:-55555}
+    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5022}
+fi
 
 echo "Scaling down voltha-api-server and ofagent"
 (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent)
@@ -31,10 +40,8 @@ until [ $(kubectl -n voltha get pods | grep ofagent | grep -c "1/1") -eq 1 ]; do
 echo " Running"
 
 echo "Forward VOLTHA API port"
-(set -x; screen -p 0 -X -S voltha-api  stuff $'\003')
-(set -x; screen -dmS voltha-api kubectl port-forward -n voltha service/voltha-api 55555:55555)
+(set -x; screen -p 0 -X -S voltha-api-$TYPE  stuff $'\003')
+(set -x; screen -dmS voltha-api-$TYPE kubectl port-forward -n voltha service/voltha-api $VOLTHA_API_PORT:55555)
 echo "Forward VOLTHA SSH port"
-(set -x; screen -p 0 -X -S voltha-ssh  stuff $'\003')
-(set -x; screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022)
-
-
+(set -x; screen -p 0 -X -S voltha-ssh-$TYPE  stuff $'\003')
+(set -x; screen -dmS voltha-ssh-$TYPE kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022)
