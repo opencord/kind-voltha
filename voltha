@@ -102,6 +102,18 @@ SPIN_PARTS="\
 IDX=1
 NOT_VERIFIED="\xe2\x9c\x97\x20"
 VERIFIED="\xe2\x9c\x93\x20"
+HELM="\xE2\x8E\x88"
+OLD_KEY="\xF0\x9F\x97\x9D"
+BIRD="\xF0\x9F\x90\xA6"
+HIGH_VOLTAGE="\xE2\x9A\xA1"
+PLUG="\xF0\x9F\xa7\xa9"
+RESTART="\xf0\x9f\x94\x84"
+FORWARD="\xE2\x87\xA8"
+INSTALL="\xF0\x9F\x8F\x97"
+STOP="\xf0\x9f\x9b\x91"
+GO="\xf0\x9f\x9a\x80"
+DOWNLOAD="\xf0\x9f\x93\xa5"
+GEAR="\xe2\x9a\x99"
 bspin() {
     tput civis
     IDX=1
@@ -226,12 +238,12 @@ export GOPATH=$(pwd)
 mkdir -p $GOPATH/bin
 espin $VERIFIED
 
-bspin "Verify kubectl"
+bspin "Verify kubectl $HELM"
 if [ -x $GOPATH/bin/kubectl ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
-    bspin - "Download and install Kubernetes/kubectl"
+    bspin - "Download and install Kubernetes/kubectl $DOWNLOAD"
     (set -x; curl -o $GOPATH/bin/kubectl -sSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(go env GOHOSTOS)/$(go env GOARCH)/kubectl >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/kubectl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
@@ -243,39 +255,39 @@ fi
 #    espin $VERIFIED
 #else
 #    espin $NOT_VERIFIED
-#    bspin - "Download and install Kubernetes/kubectl"
+#    bspin - "Download and install Kubernetes/kubectl $DOWNLOAD"
 #    (set -x; curl -o $GOPATH/bin/kubeadm -sSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(go env GOHOSTOS)/$(go env GOARCH)/kubeadm >>$LOG 2>&1) >>$LOG 2>&1
 #    (set -x; chmod 755 $GOPATH/bin/kubeadm >>$LOG 2>&1) >>$LOG 2>&1
 #    espin - $VERIFIED
 #fi
 
-bspin "Verify Kubernetes/Kind"
+bspin "Verify Kubernetes/Kind $HELM"
 if [ -x $GOPATH/bin/kind ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
-    bspin - "Download and install Kubernetes/kind"
+    bspin - "Download and install Kubernetes/kind $DOWNLOAD"
     (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/kind >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
 
-bspin "Verify Helm"
+bspin "Verify Helm $HELM"
 if [ -x $GOPATH/bin/helm ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
-    bspin - "Download and install Helm"
+    bspin - "Download and install Helm $DOWNLOAD"
     (set -x; curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$(go env GOPATH)/bin bash >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
 
-bspin "Verify voltctl"
+bspin "Verify voltctl $HIGH_VOLTAGE"
 if [ -x $GOPATH/bin/voltctl ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
-    bspin - "Download and build voltctl"
+    bspin - "Download and build voltctl $DOWNLOAD"
     (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/ciena/voltctl/releases/download/$VOLTCTL_VERSION/voltctl-$_VOLTCTL_VERSION-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/voltctl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
@@ -305,46 +317,46 @@ P="coredns-.* \
     kube-scheduler-voltha-$TYPE-control-plane"
 
 EXPECT=$(test "$TYPE" == "minimal" && echo "12" || echo "14")
-wait_for_pods - "kube-system" $EXPECT -1 "Waiting for system PODs to start..." $P
+wait_for_pods - "kube-system" $EXPECT -1 "Waiting for system PODs to start" $P
 
 COUNT=$(count_pods "kube-system" "tiller-deploy-.*")
 bspin "Verify Helm"
 if [ $(count_pods "kube-system" "tiller-deploy-.*") -ne 1 ]; then
     espin $NOT_VERIFIED
-    echo "Configuring Helm ..."
+    echo -e "Configuring Helm $GEAR"
     bspin - "Initialize Helm"
     (set -x; helm init --upgrade >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    bspin - "Add Google Incubator repository to Helm ..."
+    bspin - "Add Google Incubator repository to Helm"
     (set -x; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 
-    bspin - "Add Google Stable repository to Helm ..."
+    bspin - "Add Google Stable repository to Helm"
     (set -x; helm repo add stable https://kubernetes-charts.storage.googleapis.com >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    bspin - "Add ONF repository to Helm ..."
+    bspin - "Add ONF repository to Helm"
     (set -x; helm repo add onf https://charts.opencord.org >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    bspin - "Update Helm repository cache ..."
+    bspin - "Update Helm repository cache"
     (set -x; helm repo update >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     
     # Create and k8s service account so that Helm can create pods
-    bspin - "Create Tiller ServiceAccount ..."
+    bspin - "Create Tiller ServiceAccount"
     (set -x; kubectl create serviceaccount --namespace kube-system tiller >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    bspin - "Create Tiller ClusterRoleBinding ..."
+    bspin - "Create Tiller ClusterRoleBinding"
     (set -x; kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    bspin - "Update Tiller Manifest ..."
+    bspin - "Update Tiller Manifest"
     (set -x; kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}' >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 else
     espin $VERIFIED
 fi
-wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start..." "tiller-deploy-.*"
+wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
 
-bspin "Verify ETCD Operator"
+bspin "Verify ETCD Operator $OLD_KEY"
 if [ $(helm list etcd-operator | grep -c DEPLOYED) -ne 1 ]; then
     espin $NOT_VERIFIED 
     helm_install - voltha etcd-operator stable/etcd-operator "Install ETCD Operator"
@@ -352,30 +364,30 @@ else
     espin $VERIFIED
 fi
 EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
-wait_for_pods - "voltha" $EXPECT -1 "Waiting for ETCD Operator to start..." "etcd-operator-.*"
+wait_for_pods - "voltha" $EXPECT -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
 
-bspin "Verify ONOS installed"
+bspin "Verify ONOS installed $BIRD"
 if [ $(helm list onos | grep -c DEPLOYED) -ne 1 ]; then
     espin $NOT_VERIFIED
     helm_install - default onos onf/onos "Install ONOS"
 else
     espin $VERIFIED
 fi
-wait_for_pods - "default" 1 -1 "Waiting for ONOS to start..." "onos-.*"
+wait_for_pods - "default" 1 -1 "Waiting for ONOS to start" "onos-.*"
 
-bspin - "Forward ONOS API port"
+bspin - "Forward ONOS API port $FORWARD"
 (set -x; screen -p 0 -X -S onos-ui-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; screen -dmS onos-ui-$TYPE kubectl port-forward service/onos-ui $ONOS_API_PORT:8181 >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
-bspin - "Forward ONOS SSH port"
+bspin - "Forward ONOS SSH port $FORWARD"
 (set -x; screen -p 0 -X -S onos-ssh-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; screen -dmS onos-ssh-$TYPE kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101 >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
-bspin - "Install required ONOS applications"
+bspin - "Install required ONOS applications $INSTALL"
 (set -x; ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 
-bspin "Verify VOLTHA installed"
+bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list voltha | grep -c DEPLOYED) -ne 1 ]; then
     espin $NOT_VERIFIED
     helm_install - voltha voltha onf/voltha "Install VOLTHA Core"
@@ -391,9 +403,9 @@ VOLTHA="ofagent-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
 EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
-wait_for_pods - "voltha" $EXPECT -1 "Waiting for VOLTHA Core to start..." $VOLTHA
+wait_for_pods - "voltha" $EXPECT -1 "Waiting for VOLTHA Core to start" $VOLTHA
 
-echo "Verify Adapters"
+echo -e "Verify Adapters $PLUG"
 bspin - "Verify Simulated Adapters installed"
 if [ $(helm list sim | grep -c DEPLOYED) -ne 1 ]; then
     espin - $NOT_VERIFIED
@@ -418,20 +430,20 @@ else
 fi
 
 ADAPTERS="adapter-.*"
-wait_for_pods - "voltha" 4 -1 "Waiting for adapters to start..." $ADAPTERS
+wait_for_pods - "voltha" 4 -1 "Waiting for adapters to start" $ADAPTERS
 
-echo "Restart VOLTHA API"
+echo -e "Restart VOLTHA API $RESTART"
 API="voltha-api-server-.* ofagent-.*"
 (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
-wait_for_pods - "voltha" 0 -1 "Wait for API to stop" $API
+wait_for_pods - "voltha" 0 -1 "Wait for API to stop $STOP" $API
 (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
-wait_for_pods - "voltha" 2 -1 "Wait for API to re-start ..." $API
+wait_for_pods - "voltha" 2 -1 "Wait for API to re-start $GO" $API
 
-bspin - "Forward VOLTHA API port"
+bspin - "Forward VOLTHA API port $FORWARD"
 (set -x; screen -p 0 -X -S voltha-api-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; screen -dmS voltha-api-$TYPE kubectl port-forward -n voltha service/voltha-api $VOLTHA_API_PORT:55555 >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
-bspin - "Forward VOLTHA SSH port"
+bspin - "Forward VOLTHA SSH port $FORWARD"
 (set -x; screen -p 0 -X -S voltha-ssh-$TYPE stuff $'\003' 2>/dev/null >/dev/null >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; screen -dmS voltha-ssh-$TYPE kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022 >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
