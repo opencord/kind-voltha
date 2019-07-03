@@ -24,6 +24,10 @@ function ctrl_c() {
     exit
 }
 
+VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
+KIND_VERSION=${KIND_VERSION:-v0.4.0}
+_VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
+
 TYPE=${TYPE:-minimal}
 # Only minimal cluster works in this script currently
 TYPE=minimal
@@ -34,7 +38,11 @@ if [ $# -ne 1 -o $(echo ":up:down:" | grep -c ":$1:") -ne 1 ]; then
 fi
 
 if [ "$1" == "down" ]; then
-    exec ./bin/kind delete cluster --name voltha-$TYPE
+    if [ -x ./bin/kind ]; then
+        exec ./bin/kind delete cluster --name voltha-$TYPE
+    else
+       >&2 echo "Kind doesn't seem to be installed, so nothing to do. Bye."
+    fi
     exit 
 fi
 
@@ -209,8 +217,7 @@ if [ -x $GOPATH/bin/kind ]; then
 else
     espin $NOT_VERIFIED
     bspin - "Download and build Kubernetes/Kind"
-    (set -x; rm -rf $GOPATH/go.mod $GOPATH/go.sum >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/kind >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
@@ -221,8 +228,7 @@ if [ -x $GOPATH/bin/helm ]; then
 else
     espin $NOT_VERIFIED
     bspin - "Download and install Helm"
-    (set -x; rm -rf $GOPATH/go.mod $GOPATH/go.sum >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; curl -L https://git.io/get_helm.sh | HELM_INSTALL_DIR=$(go env GOPATH)/bin bash >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$(go env GOPATH)/bin bash >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
 
@@ -232,8 +238,8 @@ if [ -x $GOPATH/bin/voltctl ]; then
 else
     espin $NOT_VERIFIED
     bspin - "Download and build voltctl"
-    (set -x; rm -rf $GOPATH/go.mod $GOPATH/go.sum >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; go get github.com/ciena/voltctl/cmd/voltctl >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/ciena/voltctl/releases/download/$VOLTCTL_VERSION/voltctl-$_VOLTCTL_VERSION-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; chmod 755 $GOPATH/bin/voltctl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
 
@@ -393,3 +399,13 @@ bspin - "Create voltctl configuration file"
 (set -x; mkdir -p $HOME/.volt >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; voltctl -a v2 -s localhost:55555 config > $HOME/.volt/config 2>>$LOG) >>$LOG 2>&1
 espin - $VERIFIED
+
+echo "Please issue the following commands in your terminal to ensure that you" | tee -a $LOG
+echo "are accessing the correct Kubernetes/Kind cluster as well as have the  " | tee -a $LOG
+echo "tools required by VOLTHA in your command path.                         " | tee -a $LOG
+echo "" | tee -a $LOG
+echo "export KUBECONFIG=\"\$(./bin/kind get kubeconfig-path --name=\"voltha-$TYPE\")\"" | tee -a $LOG
+echo 'export PATH=$GOPATH/bin:$PATH' | tee -a $LOG
+echo "" | tee -a $LOG
+echo "Thank you for choosing kind-voltha for you quick cluster needs." | tee -a $LOG
+

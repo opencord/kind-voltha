@@ -9,9 +9,13 @@ of this document.
 ## Fetch Tools
 ```bash
 export GOPATH=$(pwd)
-GO111MODULE="on" go get sigs.k8s.io/kind@v0.4.0
-curl -L https://git.io/get_helm.sh | HELM_INSTALL_DIR=$(go env GOPATH)/bin bash
-go get github.com/ciena/voltctl/cmd/voltctl
+mkdir -p $GOPATH/bin
+curl -o $GOPATH/bin/kind \
+	-sSL https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-$(go env GOHOSTOS)-$(go env GOARCH)
+curl -o $GOPATH/bin/voltctl \
+	-sSL https://github.com/ciena/voltctl/releases/download/0.0.5-dev/voltctl-0.0.5_dev-$(go env GOHOSTOS)-$(go env GOARCH)
+chmod 755 $GOPATH/bin/kind $GOPATH/bin/voltctl
+curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$(go env GOPATH)/bin bash
 export PATH=$(go env GOPATH)/bin:$PATH
 ```
 
