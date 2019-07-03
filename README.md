@@ -10,12 +10,13 @@ of this document.
 ```bash
 export GOPATH=$(pwd)
 mkdir -p $GOPATH/bin
+curl -o $GOPATH/bin/kubectl -sSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(go env GOHOSTOS)/$(go env GOARCH)/kubectl
 curl -o $GOPATH/bin/kind \
 	-sSL https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-$(go env GOHOSTOS)-$(go env GOARCH)
 curl -o $GOPATH/bin/voltctl \
 	-sSL https://github.com/ciena/voltctl/releases/download/0.0.5-dev/voltctl-0.0.5_dev-$(go env GOHOSTOS)-$(go env GOARCH)
-chmod 755 $GOPATH/bin/kind $GOPATH/bin/voltctl
 curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$(go env GOPATH)/bin bash
+chmod 755 $GOPATH/bin/kind $GOPATH/bin/voltctl $GOPATH/bin/kubectl
 export PATH=$(go env GOPATH)/bin:$PATH
 ```
 
