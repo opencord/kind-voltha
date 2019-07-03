@@ -423,7 +423,7 @@ echo "are accessing the correct Kubernetes/Kind cluster as well as have the  " |
 echo "tools required by VOLTHA in your command path.                         " | tee -a $LOG
 echo "" | tee -a $LOG
 echo "export KUBECONFIG=\"\$(./bin/kind get kubeconfig-path --name=\"voltha-$TYPE\")\"" | tee -a $LOG
-echo "export VOLTCONFIG=\"$HOME/.volt/config-$TYPE\""
+echo "export VOLTCONFIG=\"$HOME/.volt/config-$TYPE\"" | tee -a $LOG
 echo 'export PATH=$GOPATH/bin:$PATH' | tee -a $LOG
 echo "" | tee -a $LOG
 echo "Thank you for choosing kind-voltha for you quick cluster needs." | tee -a $LOG
