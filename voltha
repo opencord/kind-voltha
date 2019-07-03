@@ -194,6 +194,7 @@ else
     bspin - "Download and build Kubernetes/Kind"
     (set -x; rm -rf $GOPATH/go.mod $GOPATH/go.sum >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-$(go env GOHOSTOS)-$(go env GOARCH) >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; chmod 755 $GOPATH/bin/kind >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
 
