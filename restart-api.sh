@@ -24,5 +24,17 @@ echo " Terminated"
 
 echo "Scaling up voltha-api-server and ofagent"
 (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent)
+echo "Waiting for PODS to be running"
+echo -n "Waiting "
+until [ $(kubectl -n voltha get pods | grep voltha-api-server | grep -c "2/2") -eq 1 ]; do echo -n "."; sleep 3; done
+until [ $(kubectl -n voltha get pods | grep ofagent | grep -c "1/1") -eq 1 ]; do echo -n "."; sleep 3; done
+echo " Running"
+
+echo "Forward VOLTHA API port"
+(set -x; screen -p 0 -X -S voltha-api  stuff $'\003')
+(set -x; screen -dmS voltha-api kubectl port-forward -n voltha service/voltha-api 55555:55555)
+echo "Forward VOLTHA SSH port"
+(set -x; screen -p 0 -X -S voltha-ssh  stuff $'\003')
+(set -x; screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022)
 
 
