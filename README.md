@@ -36,14 +36,21 @@ a simply copy and paste to your command line.
 export TYPE=minimal
 ```
 
+## TL;DR
+OK, if you really don't care how it starts and you just wanted started. After
+cloning the repository and making sure you have Go and Docker available, just
+execute `./voltha up` and the minimal cluster should start.
+
+To remove voltha use `./voltha down`
+
 ## Create Kubernetes Cluster
 Kind provides a command line control tool to easily create Kubernetes clusters
 using just a basic Docker envionrment. The following commands will create
 the desired deployment of Kubernetes and then configure your local copy of 
 `kubectl` to connect to this cluster.
 ```bash
-kind create cluster --config $TYPE-cluster.cfg
-export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+kind create cluster --name=voltha-$TYPE --config $TYPE-cluster.cfg 
+export KUBECONFIG="$(kind get kubeconfig-path --name="voltha-$TYPE")"
 kubectl cluster-info
 ```
 
@@ -92,6 +99,37 @@ NAME                                                              READY     STAT
 etcd-operator-etcd-operator-etcd-backup-operator-7897665cfq75w2   1/1       Running   0          2m
 etcd-operator-etcd-operator-etcd-operator-7d579799f7-bjdnj        1/1       Running   0          2m
 etcd-operator-etcd-operator-etcd-restore-operator-7d77d878wwcn7   1/1       Running   0          2m
+```
+
+## It is not just VOLTHA
+To demonstrate the capability of VOLTHA other _partner_ applications are
+required, such as ONOS. The followins sections describe how to install and
+configure these _partner_ applications.
+
+_NOTE: It is important to start ONOS before VOLTHA as if they are started in
+the reverse order ofagent sometimes does not connect to the SDN controller
+[VOL-1764](https://jira.opencord.org/browse/VOL-1764)_.
+
+### ONOS (OpenFlow Controller)
+VOLTHA exposes an OLT and its connected ONUs as an OpenFlow switch. To control
+that virtual OpenFlow switch an OpenFlow controller is required. For most VOLTHA
+deployments that controller is ONOS with a set of ONOS applications installed.
+To install ONOS use the following Helm command:
+```bash
+helm install -f $TYPE-values.yaml --name onos onf/onos
+```
+
+#### Exposing ONOS Services
+```bash
+screen -dmS onos-ui kubectl port-forward service/onos-ui 8181:8181
+screen -dmS onos-ssh kubectl port-forward service/onos-ssh 8101:8101
+```
+
+#### Installing and Configuring ONOS Applications
+A script has been included, `install-onos-applications.sh`, that can be used
+to download and install the required applications into ONOS.
+```bash
+./onos-files/install-onos-applications.sh
 ```
 
 ## Install VOLTHA Core
@@ -147,6 +185,7 @@ VOLTHA services can be reached. However, from outside the Kubernetes cluster the
 services cannot be reached. 
 ```bash
 screen -dmS voltha-api kubectl port-forward -n voltha service/voltha-api 55555:55555
+screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022
 ```
 
 ## It is not just VOLTHA
@@ -220,7 +259,8 @@ voltctl device create
 ```
 
 _NOTE: If the device fails to create and an error message is displayed you may
-have hit an existing bug in onos. To work around this, use the
+have hit an existing bug in onos
+[VOL-1661](https://jira.opencord.org/browse/VOL-1661) . To work around this, use the
 `restart-api.sh` included in the repository. After running this script you will
 have to quit and restart the screen sesssion associated with the voltha-api._
 
@@ -331,8 +371,8 @@ dd6707b7a6ff74cf    0          40000       ~deb05c25    0x888e     CONTROLLER   
 
 ## Teardown
 To remove the cluster simply use the `kind` command:
-```
-kind delete cluster
+```bash
+kind delete cluster --name=voltha-$TYPE
 ```
 
 ## WIP
