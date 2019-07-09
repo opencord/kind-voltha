@@ -196,34 +196,6 @@ screen -dmS voltha-api kubectl port-forward -n voltha service/voltha-api 55555:5
 screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022
 ```
 
-## It is not just VOLTHA
-At this point the VOLTHA application is deployed but alone the VOLTHA
-application can do little. To demonstrate the capability of VOLTHA other
-_partner_ applications are required, such as ONOS. The followins sections
-describe how to install and configure these _partner_ applications.
-
-### ONOS (OpenFlow Controller)
-VOLTHA exposes an OLT and its connected ONUs as an OpenFlow switch. To control
-that virtual OpenFlow switch an OpenFlow controller is required. For most VOLTHA
-deployments that controller is ONOS with a set of ONOS applications installed.
-To install ONOS use the following Helm command:
-```bash
-helm install -f $TYPE-values.yaml --name onos onf/onos
-```
-
-#### Exposing ONOS Services
-```bash
-screen -dmS onos-ui kubectl port-forward service/onos-ui 8181:8181
-screen -dmS onos-ssh kubectl port-forward service/onos-ssh 8101:8101
-```
-
-#### Installing and Configuring ONOS Applications
-A script has been included, `install-onos-applications.sh`, that can be used
-to download and install the required applications into ONOS.
-```bash
-./onos-files/install-onos-applications.sh
-```
-
 ## Configure `voltctl` to Connect to VOLTHA
 In order for `voltctl` to connect to the VOLTHA instance deplpoyed in the
 Kubernetes cluster it must know which IP address and port to use. This

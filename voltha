@@ -28,7 +28,40 @@ VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
 KIND_VERSION=${KIND_VERSION:-v0.4.0}
 _VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
 
+NOCOLOR="\u001b[0m"
+BLACK=$(tput setaf 0)
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+MAGENTA=$(tput setaf 5)
+CYAN=$(tput setaf 6)
+WHITE=$(tput setaf 7)
+BOLD=$(tput bold)
+NORMAL=$(tput sgr0)
+ERROR="\xe2\x9c\x97\x20"
+
 TYPE=${TYPE:-minimal}
+WITH_BBSIM=${WITH_BBSIM:-no}
+
+# Verify TYPE setting
+if [ $(echo ":minimal:full:" | grep -ic ":$TYPE:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$TYPE value of '$TYPE'. Should be 'minimal' or 'full'${NOCOLOR}"
+    exit 1
+fi
+
+# Verify WITH_BBSIM settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_BBSIM:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_BBSIM value of '$WITH_BBSIM'. Should be 'yes' or 'no'${NOCOLOR}"
+    exit 1
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_BBSIM:") -eq 1 ]; then
+    WITH_BBSIM=yes
+else
+    WITH_BBSIM=no
+fi
+
+echo $WITH_BBSIM
 
 if [ "$TYPE" == "full" ]; then
    ONOS_API_PORT=${ONOS_API_PORT:-8182}
@@ -357,7 +390,7 @@ fi
 wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
 
 bspin "Verify ETCD Operator $OLD_KEY"
-if [ $(helm list etcd-operator | grep -c DEPLOYED) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace voltha "^etcd-operator\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED 
     helm_install - voltha etcd-operator stable/etcd-operator "Install ETCD Operator"
 else
@@ -367,7 +400,7 @@ EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
 wait_for_pods - "voltha" $EXPECT -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
 
 bspin "Verify ONOS installed $BIRD"
-if [ $(helm list onos | grep -c DEPLOYED) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
     helm_install - default onos onf/onos "Install ONOS"
 else
@@ -388,7 +421,7 @@ bspin - "Install required ONOS applications $INSTALL"
 espin - $VERIFIED
 
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
-if [ $(helm list voltha | grep -c DEPLOYED) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
     helm_install - voltha voltha onf/voltha "Install VOLTHA Core"
 else
@@ -407,7 +440,7 @@ wait_for_pods - "voltha" $EXPECT -1 "Waiting for VOLTHA Core to start" $VOLTHA
 
 echo -e "Verify Adapters $PLUG"
 bspin - "Verify Simulated Adapters installed"
-if [ $(helm list sim | grep -c DEPLOYED) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace voltha "^sim\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
     helm_install - voltha sim onf/voltha-adapter-simulated "Install Simulated Adapters"
 else
@@ -415,14 +448,14 @@ else
 fi
 
 bspin - "Verify OpenOLT Adapter installed"
-if [ $(helm list open-olt | grep -c DEPLOYED) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
     helm_install - voltha open-olt onf/voltha-adapter-openolt "Install OpenOLT Adapter"
 else
     espin - $VERIFIED
 fi
 bspin - "Verify OpenONU Adapter installed"
-if [ $(helm list open-onu | grep -c DEPLOYED) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace voltha "^open-onu\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
     helm_install - voltha open-onu onf/voltha-adapter-openonu "Install OpenONU Adapter"
 else
@@ -431,6 +464,18 @@ fi
 
 ADAPTERS="adapter-.*"
 wait_for_pods - "voltha" 4 -1 "Waiting for adapters to start" $ADAPTERS
+
+if [ $WITH_BBSIM == "yes" ]; then
+    echo -e "Verify BBSIM $PLUG"
+    bspin - "Verify BBSIM Insalled"
+    if [ $(helm list --deployed --short --namespace voltha "^bbsim\$" | wc -l) -ne 1 ]; then
+        espin - $NOT_VERIFIED
+        helm_install - voltha bbsim onf/bbsim "Install BBSIM"
+    else
+        espin - $VERIFIED
+    fi
+    wait_for_pods - "voltha" 1 -1 "Waiting for BBSIM to start" "bbsim-.*"
+fi
 
 echo -e "Restart VOLTHA API $RESTART"
 API="voltha-api-server-.* ofagent-.*"
@@ -453,13 +498,16 @@ bspin - "Create voltctl configuration file"
 (set -x; voltctl -a v2 -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$TYPE 2>>$LOG) >>$LOG 2>&1
 espin - $VERIFIED
 
+echo ""
 echo "Please issue the following commands in your terminal to ensure that you" | tee -a $LOG
 echo "are accessing the correct Kubernetes/Kind cluster as well as have the  " | tee -a $LOG
 echo "tools required by VOLTHA in your command path.                         " | tee -a $LOG
 echo "" | tee -a $LOG
+echo -en $BOLD
 echo "export KUBECONFIG=\"\$(./bin/kind get kubeconfig-path --name=\"voltha-$TYPE\")\"" | tee -a $LOG
 echo "export VOLTCONFIG=\"$HOME/.volt/config-$TYPE\"" | tee -a $LOG
 echo 'export PATH=$GOPATH/bin:$PATH' | tee -a $LOG
+echo -en $NORMAL
 echo "" | tee -a $LOG
 echo "Thank you for choosing kind-voltha for you quick cluster needs." | tee -a $LOG
 
