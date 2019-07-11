@@ -330,7 +330,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     else
         espin $NOT_VERIFIED
         bspin - "Download and install Kubernetes/kind $DOWNLOAD"
-        (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$HOSTOS-HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
         (set -x; chmod 755 $GOPATH/bin/kind >>$LOG 2>&1) >>$LOG 2>&1
         espin - $VERIFIED
     fi
