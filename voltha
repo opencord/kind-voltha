@@ -28,7 +28,6 @@ VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
 KIND_VERSION=${KIND_VERSION:-v0.4.0}
 _VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
 
-NOCOLOR="\u001b[0m"
 BLACK=$(tput setaf 0)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
@@ -45,6 +44,8 @@ TYPE=${TYPE:-minimal}
 WITH_BBSIM=${WITH_BBSIM:-no}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
+INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
+INSTALL_HELM=${INSTALL_HELM:-yes}
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -55,13 +56,13 @@ fi
 
 # Verify TYPE setting
 if [ $(echo ":minimal:full:" | grep -ic ":$TYPE:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$TYPE value of '$TYPE'. Should be 'minimal' or 'full'${NOCOLOR}"
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$TYPE value of '$TYPE'. Should be 'minimal' or 'full'${NORMAL}"
     exit 1
 fi
 
 # Verify WITH_BBSIM settting and convert uniform value of yes or no
 if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_BBSIM:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_BBSIM value of '$WITH_BBSIM'. Should be 'yes' or 'no'${NOCOLOR}"
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_BBSIM value of '$WITH_BBSIM'. Should be 'yes' or 'no'${NORMAL}"
     exit 1
 fi
 if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_BBSIM:") -eq 1 ]; then
@@ -72,7 +73,7 @@ fi
 
 # Verify JUST_K8S settting and convert uniform value of yes or no
 if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$JUST_K8S:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$JUST_K8S value of '$JUST_K8S'. Should be 'yes' or 'no'${NOCOLOR}"
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$JUST_K8S value of '$JUST_K8S'. Should be 'yes' or 'no'${NORMAL}"
     exit 1
 fi
 if [ $(echo ":y:yes:true:1:" | grep -ic ":$JUST_K8S:") -eq 1 ]; then
@@ -83,13 +84,37 @@ fi
 
 # Verify DEPLOY_K8S settting and convert uniform value of yes or no
 if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$DEPLOY_K8S:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$DEPLOY_K8S value of '$DEPLOY_K8S'. Should be 'yes' or 'no'${NOCOLOR}"
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$DEPLOY_K8S value of '$DEPLOY_K8S'. Should be 'yes' or 'no'${NORMAL}"
     exit 1
 fi
 if [ $(echo ":y:yes:true:1:" | grep -ic ":$DEPLOY_K8S:") -eq 1 ]; then
     DEPLOY_K8S=yes
 else
     DEPLOY_K8S=no
+fi
+
+# Verify INSTALL_KUBECTL settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_KUBECTL:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_KUBECTL value of '$INSTALL_KUBECTL'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_KUBECTL:") -eq 1 ]; then
+    INSTALL_KUBECTL=yes
+else
+    INSTALL_KUBECTL=no
+fi
+
+# Verify INSTALL_HELM settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_HELM:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_HELM value of '$INSTALL_HELM'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_HELM:") -eq 1 ]; then
+    INSTALL_HELM=yes
+else
+    INSTALL_HELM=no
 fi
 
 if [ "$TYPE" == "full" ]; then
@@ -188,6 +213,8 @@ STOP="\xf0\x9f\x9b\x91"
 GO="\xf0\x9f\x9a\x80"
 DOWNLOAD="\xf0\x9f\x93\xa5"
 GEAR="\xe2\x9a\x99"
+NO_ENTRY="\xe2\x9b\x94"
+
 bspin() {
     tput civis
     IDX=1
@@ -312,18 +339,26 @@ export GOPATH=$(pwd)
 mkdir -p $GOPATH/bin
 espin $VERIFIED
 
-bspin "Verify kubectl $HELM"
-if [ -x $GOPATH/bin/kubectl ]; then
-    espin $VERIFIED
+if [ "$INSTALL_KUBECTL" == "no" ]; then
+    bspin "Skip kubectl install"
+    espin $NO_ENTRY
 else
-    espin $NOT_VERIFIED
-    bspin - "Download and install Kubernetes/kubectl $DOWNLOAD"
-    (set -x; curl -o $GOPATH/bin/kubectl -sSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$HOSTOS/$HOSTARCH/kubectl >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; chmod 755 $GOPATH/bin/kubectl >>$LOG 2>&1) >>$LOG 2>&1
-    espin - $VERIFIED
+    bspin "Verify kubectl $HELM"
+    if [ -x $GOPATH/bin/kubectl ]; then
+        espin $VERIFIED
+    else
+        espin $NOT_VERIFIED
+        bspin - "Download and install Kubernetes/kubectl $DOWNLOAD"
+        (set -x; curl -o $GOPATH/bin/kubectl -sSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$HOSTOS/$HOSTARCH/kubectl >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; chmod 755 $GOPATH/bin/kubectl >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    fi
 fi
 
-if [ "$DEPLOY_K8S" == "yes" ]; then
+if [ "$DEPLOY_K8S" == "no" ]; then
+    bspin "Skip Kubernetes/Kind Deployment"
+    espin $NO_ENTRY
+else
     bspin "Verify Kubernetes/Kind $HELM"
     if [ -x $GOPATH/bin/kind ]; then
         espin $VERIFIED
@@ -336,14 +371,19 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     fi
 fi
 
-bspin "Verify Helm $HELM"
-if [ -x $GOPATH/bin/helm ]; then
-    espin $VERIFIED
+if [ "$INSTALL_HELM" == "no" ]; then
+    bspin "Skip Helm Install"
+    espin $NO_ENTRY
 else
-    espin $NOT_VERIFIED
-    bspin - "Download and install Helm $DOWNLOAD"
-    (set -x; curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>$LOG 2>&1) >>$LOG 2>&1
-    espin - $VERIFIED
+    bspin "Verify Helm $HELM"
+    if [ -x $GOPATH/bin/helm ]; then
+        espin $VERIFIED
+    else
+        espin $NOT_VERIFIED
+        bspin - "Download and install Helm $DOWNLOAD"
+        (set -x; curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    fi
 fi
 
 bspin "Verify voltctl $HIGH_VOLTAGE"
@@ -370,12 +410,12 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         bspin - "Verify cluster configuration"
         if [ ! -r ./$TYPE-cluster.cfg ]; then
             espin - $NOT_VERIFIED
-	    bspin - "Download cluster configuration: $TYPE-cluster.cfg $DOWNLOAD"
+	        bspin - "Download cluster configuration: $TYPE-cluster.cfg $DOWNLOAD"
             (set -x; curl -o ./$TYPE-cluster.cfg -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/$TYPE-cluster.cfg >>$LOG 2>&1) >>$LOG 2>&1
-	    espin - $VERIFIED
-	else
-	    espin - $VERFIED
-	fi
+	        espin - $VERIFIED
+	    else
+	        espin - $VERIFIED
+	    fi
         kind create cluster --name voltha-$TYPE --config $TYPE-cluster.cfg
      else
         espin $VERIFIED
@@ -399,10 +439,15 @@ bspin "Verify Helm"
 if [ $COUNT -ne 1 ]; then
     espin $NOT_VERIFIED
     echo -e "Configuring Helm $GEAR"
-    bspin - "Initialize Helm"
-    (set -x; helm init --upgrade >>$LOG 2>&1) >>$LOG 2>&1
-    espin - $VERIFIED
-    wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
+    if [ "$INSTALL_HELM" == "no" ]; then
+        bspin - "Skip Helm/Tiller Initialization"
+        espin - $NO_ENTRY
+    else
+        bspin - "Initialize Helm"
+        (set -x; helm init --upgrade >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+        wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
+    fi
     bspin - "Add Google Incubator repository to Helm"
     (set -x; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
