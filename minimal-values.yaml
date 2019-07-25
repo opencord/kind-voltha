@@ -15,6 +15,10 @@
 defaults:
   image_tag: master
 
+images:
+  adapter_open_olt:
+    tag_go: master-go
+
 deployments:
   etcdOperator: true
   backupOperator: false

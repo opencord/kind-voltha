@@ -44,8 +44,14 @@ TYPE=${TYPE:-minimal}
 WITH_BBSIM=${WITH_BBSIM:-no}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
+SKIP_RESTART_API=${SKIP_RESTART_API:-no}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
+VOLTHA_CHART=${VOLTHA_CHART:=onf/voltha}
+VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
+VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
+VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
+VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -103,6 +109,17 @@ if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_KUBECTL:") -eq 1 ]; then
     INSTALL_KUBECTL=yes
 else
     INSTALL_KUBECTL=no
+fi
+
+# Verify SKIP_RESTART_API settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$SKIP_RESTART_API:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$SKIP_RESTART_API value of '$SKIP_RESTART_API'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$SKIP_RESTART_API:") -eq 1 ]; then
+    SKIP_RESTART_API=yes
+else
+    SKIP_RESTART_API=no
 fi
 
 # Verify INSTALL_HELM settting and convert uniform value of yes or no
@@ -318,13 +335,13 @@ helm_install() {
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $TYPE-values.yaml --namespace $NAMESPACE --name $NAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $TYPE-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $NAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
-            (set -x; helm install -f $TYPE-values.yaml --namespace $NAMESPACE --name $NAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; helm install -f $TYPE-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $NAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
             COUNT=$(expr 300 / 15)
         fi
         sleep .15
@@ -563,7 +580,7 @@ espin - $VERIFIED
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
-    helm_install - voltha voltha onf/voltha "Install VOLTHA Core"
+    helm_install - voltha voltha $VOLTHA_CHART "Install VOLTHA Core"
 else
     espin $VERIFIED
 fi
@@ -583,7 +600,7 @@ echo -e "Verify Adapters $PLUG"
 bspin - "Verify Simulated Adapters installed"
 if [ $(helm list --deployed --short --namespace voltha "^sim\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
-    helm_install - voltha sim onf/voltha-adapter-simulated "Install Simulated Adapters"
+    helm_install - voltha sim $VOLTHA_ADAPTER_SIM_CHART "Install Simulated Adapters"
 else
     espin - $VERIFIED
 fi
@@ -591,14 +608,14 @@ fi
 bspin - "Verify OpenOLT Adapter installed"
 if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
-    helm_install - voltha open-olt onf/voltha-adapter-openolt "Install OpenOLT Adapter"
+    helm_install - voltha open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART "Install OpenOLT Adapter"
 else
     espin - $VERIFIED
 fi
 bspin - "Verify OpenONU Adapter installed"
 if [ $(helm list --deployed --short --namespace voltha "^open-onu\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
-    helm_install - voltha open-onu onf/voltha-adapter-openonu "Install OpenONU Adapter"
+    helm_install - voltha open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART "Install OpenONU Adapter"
 else
     espin - $VERIFIED
 fi
@@ -618,12 +635,17 @@ if [ $WITH_BBSIM == "yes" ]; then
     wait_for_pods - "voltha" 1 -1 "Waiting for BBSIM to start" "bbsim-.*"
 fi
 
-echo -e "Restart VOLTHA API $RESTART"
-API="voltha-api-server-.* ofagent-.*"
-(set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
-wait_for_pods - "voltha" 0 -1 "Wait for API to stop $STOP" $API
-(set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
-wait_for_pods - "voltha" 2 -1 "Wait for API to re-start $GO" $API
+if [ $SKIP_RESTART_API == "no" ]; then
+    echo -e "Restart VOLTHA API $RESTART"
+    API="voltha-api-server-.* ofagent-.*"
+    (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
+    wait_for_pods - "voltha" 0 -1 "Wait for API to stop $STOP" $API
+    (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
+    wait_for_pods - "voltha" 2 -1 "Wait for API to re-start $GO" $API
+else
+    bspin "Skip VOLTHA API Restart"
+    espin $NO_ENTRY
+fi
 
 bspin - "Forward VOLTHA API port $FORWARD"
 (set -x; screen -p 0 -X -S voltha-api-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
