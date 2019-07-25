@@ -52,6 +52,7 @@ VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulate
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
 VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
 VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
+USE_GO=${USE_GO:-yes}
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -122,6 +123,17 @@ else
     SKIP_RESTART_API=no
 fi
 
+# Verify USE_GO settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$USE_GO:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$USE_GO value of '$USE_GO'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$USE_GO:") -eq 1 ]; then
+    USE_GO=true
+else
+    USE_GO=false
+fi
+
 # Verify INSTALL_HELM settting and convert uniform value of yes or no
 if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_HELM:") -eq 0 ]; then
     >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_HELM value of '$INSTALL_HELM'. Should be 'yes' or 'no'${NORMAL}"
@@ -179,6 +191,22 @@ fi
 
 LOG="install-$TYPE.log"
 date > $LOG
+
+# Output install options to log
+echo "OPTIONS" >> $LOG
+echo "    TYPE                          = $TYPE" >> $LOG
+echo "    WITH_BBSIM                    = $WITH_BBSIM" >> $LOG
+echo "    JUST_K8S                      = $JUST_K8S" >> $LOG
+echo "    DEPLOY_K8S                    = $DEPLOY_K8S" >> $LOG
+echo "    SKIP_RESTART_API              = $SKIP_RESTART_API" >> $LOG
+echo "    INSTALL_KUBECTL               = $INSTALL_KUBECTL" >> $LOG
+echo "    INSTALL_HELM                  = $INSTALL_HELM" >> $LOG
+echo "    VOLTHA_CHART                  = $VOLTHA_CHART" >> $LOG
+echo "    VOLTHA_ADAPTER_SIM_CHART      = $VOLTHA_ADAPTER_SIM_CHART" >> $LOG
+echo "    VOLTHA_ADAPTER_OPEN_OLT_CHART = $VOLTHA_ADAPTER_OPEN_OLT_CHART" >> $LOG
+echo "    VOLTHA_ADAPTER_OPEN_ONU_CHART = $VOLTHA_ADAPTER_OPEN_ONU_CHART" >> $LOG
+echo "    VOLTHA_LOG_LEVEL              = $VOLTHA_LOG_LEVEL" >> $LOG
+echo "    USE_GO                        = $(echo $USE_GO | test $(grep -c true) -eq 1 && echo yes || echo no)" >> $LOG
 
 spin() {
     PARTS="\
@@ -335,7 +363,7 @@ helm_install() {
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $TYPE-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $NAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $TYPE-values.yaml --set use_go=$USE_GO --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $NAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT

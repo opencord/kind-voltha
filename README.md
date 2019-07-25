@@ -51,6 +51,29 @@ To remove voltha use `./voltha down`
 ![Demo @ Speed](./resources/kind-voltha.gif "Demo @ Speed")
 _NOTE: Shown significantly sped up (20x), actual install was about 8 minutes._
 
+### `voltha up` Configuration Options
+This options should be set using environment variables, thus to start VOLTHA
+with the BBSIM POD you could use the following command:
+```
+WITH_BBSIM=yes voltha up
+```
+
+| OPTION                        | DEFAULT                      | DESCRIPTION                                                                         |
+| ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `TYPE`                          | minimal                      | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
+| `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
+| `JUST_K8S`                      | no                           | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA)                |
+| `DEPLOY_K8S`                    | yes                          | Should the KinD Kubernetes cluster be deployed?                                     |
+| `SKIP_RESTART_API`              | no                           | Should the VOLTHA API service be restarted after install to avoid known bug?        |
+| `INSTALL_KUBECTL`               | yes                          | Should a copy of `kubectl` be installed locally?                                    |
+| `INSTALL_HELM`                  | yes                          | Should a copy of `helm` be installed locallly?                                      |
+| `USE_GO`                        | yes                          | Should the Go[lang] version of the OpenOLT adapter be used?                         |
+| `VOLTHA_LOG_LEVEL`              | WARN                         | Log level to set for VOLTHA core processes                                          |
+| `VOLTHA_CHART`                  | onf/voltha                   | Helm chart to used to install voltha                                                |
+| `VOLTHA_ADAPTER_SIM_CHART`      | onf/voltha-adapter-simulated | Helm chart to use to install simulated device adapter                               |
+| `VOLTHA_ADAPTER_OPEN_OLT_CHART` | onf/voltha-adapter-openolt   | Helm chart to use to install OpenOlt adapter                                        |
+| `VOLTHA_ADAPTER_OPEN_ONU_CHART` | onf/voltha-adapter-openonu   | Helm chart to use to install OpenOnu adapter                                        |
+
 ## Create Kubernetes Cluster
 Kind provides a command line control tool to easily create Kubernetes clusters
 using just a basic Docker envionrment. The following commands will create
