@@ -177,14 +177,16 @@ if [ "$1" == "down" ]; then
         fi
     else
         EXISTS=$(helm list -q)
-        EXPECT="etcd-operator onos open-olt open-onu sim voltha"
+        EXPECT="etcd-operator onos open-olt open-onu sim voltha bbsim"
         INTERSECT=
         for i in $EXISTS; do
             if [ $(echo $EXPECT | grep -c $i) -eq 1 ]; then
                 HAVE="$HAVE $i"
             fi
         done
-        ./bin/helm delete --purge $HAVE
+        if [ "$HAVE X" != " X" ]; then
+            ./bin/helm delete --purge $HAVE
+        fi
 fi
     exit 
 fi
