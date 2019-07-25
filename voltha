@@ -42,17 +42,18 @@ ERROR="\xe2\x9c\x97\x20"
 
 TYPE=${TYPE:-minimal}
 WITH_BBSIM=${WITH_BBSIM:-no}
+WITH_RADIUS=${WITH_RADIUS:-no}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
 SKIP_RESTART_API=${SKIP_RESTART_API:-no}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
+USE_GO=${USE_GO:-yes}
+VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:=onf/voltha}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
 VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
-VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
-USE_GO=${USE_GO:-yes}
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -76,6 +77,17 @@ if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_BBSIM:") -eq 1 ]; then
     WITH_BBSIM=yes
 else
     WITH_BBSIM=no
+fi
+
+# Verify WITH_RADIUS settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_RADIUS:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_RADIUS value of '$WITH_RADIUS'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
+    WITH_RADIUS=yes
+else
+    WITH_RADIUS=no
 fi
 
 # Verify JUST_K8S settting and convert uniform value of yes or no
@@ -177,7 +189,7 @@ if [ "$1" == "down" ]; then
         fi
     else
         EXISTS=$(helm list -q)
-        EXPECT="etcd-operator onos open-olt open-onu sim voltha bbsim"
+        EXPECT="etcd-operator onos open-olt open-onu sim voltha bbsim radius"
         INTERSECT=
         for i in $EXISTS; do
             if [ $(echo $EXPECT | grep -c $i) -eq 1 ]; then
@@ -198,17 +210,18 @@ date > $LOG
 echo "OPTIONS" >> $LOG
 echo "    TYPE                          = $TYPE" >> $LOG
 echo "    WITH_BBSIM                    = $WITH_BBSIM" >> $LOG
+echo "    WITH_RADIUS                   = $WITH_RADIUS" >> $LOG
 echo "    JUST_K8S                      = $JUST_K8S" >> $LOG
 echo "    DEPLOY_K8S                    = $DEPLOY_K8S" >> $LOG
 echo "    SKIP_RESTART_API              = $SKIP_RESTART_API" >> $LOG
 echo "    INSTALL_KUBECTL               = $INSTALL_KUBECTL" >> $LOG
 echo "    INSTALL_HELM                  = $INSTALL_HELM" >> $LOG
+echo "    USE_GO                        = $(echo $USE_GO | test $(grep -c true) -eq 1 && echo yes || echo no)" >> $LOG
+echo "    VOLTHA_LOG_LEVEL              = $VOLTHA_LOG_LEVEL" >> $LOG
 echo "    VOLTHA_CHART                  = $VOLTHA_CHART" >> $LOG
 echo "    VOLTHA_ADAPTER_SIM_CHART      = $VOLTHA_ADAPTER_SIM_CHART" >> $LOG
 echo "    VOLTHA_ADAPTER_OPEN_OLT_CHART = $VOLTHA_ADAPTER_OPEN_OLT_CHART" >> $LOG
 echo "    VOLTHA_ADAPTER_OPEN_ONU_CHART = $VOLTHA_ADAPTER_OPEN_ONU_CHART" >> $LOG
-echo "    VOLTHA_LOG_LEVEL              = $VOLTHA_LOG_LEVEL" >> $LOG
-echo "    USE_GO                        = $(echo $USE_GO | test $(grep -c true) -eq 1 && echo yes || echo no)" >> $LOG
 
 spin() {
     PARTS="\
@@ -261,6 +274,7 @@ GO="\xf0\x9f\x9a\x80"
 DOWNLOAD="\xf0\x9f\x93\xa5"
 GEAR="\xe2\x9a\x99"
 NO_ENTRY="\xe2\x9b\x94"
+LOCK="\xf0\x9f\x94\x92"
 
 bspin() {
     tput civis
@@ -594,7 +608,7 @@ espin - $VERIFIED
 if [ ! -x ./onos-files/install-onos-applications.sh ]; then
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
-    for i in dhcp-to-controller-flow.json install-onos-applications.sh olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json; do
+    for i in dhcp-to-controller-flow.json install-onos-applications.sh olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
         if [ ! -r ./onos-files/$i ]; then
             (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
         fi
@@ -655,7 +669,7 @@ wait_for_pods - "voltha" 4 -1 "Waiting for adapters to start" $ADAPTERS
 
 if [ $WITH_BBSIM == "yes" ]; then
     echo -e "Verify BBSIM $PLUG"
-    bspin - "Verify BBSIM Insalled"
+    bspin - "Verify BBSIM Installed"
     if [ $(helm list --deployed --short --namespace voltha "^bbsim\$" | wc -l) -ne 1 ]; then
         espin - $NOT_VERIFIED
         helm_install - voltha bbsim onf/bbsim "Install BBSIM"
@@ -663,6 +677,18 @@ if [ $WITH_BBSIM == "yes" ]; then
         espin - $VERIFIED
     fi
     wait_for_pods - "voltha" 1 -1 "Waiting for BBSIM to start" "bbsim-.*"
+fi
+
+if [ $WITH_RADIUS == "yes" ]; then
+    echo -e "Verify RADIUS $LOCK"
+    bspin - "Verify RADIUS Installed"
+    if [ $(helm list --deployed --short --namespace voltha "^radius\$" | wc -l) -ne 1 ]; then
+        espin - $NOT_VERIFIED
+        helm_install - voltha radius onf/freeradius "Install RADIUS"
+    else
+        espin - $VERIFIED
+    fi
+    wait_for_pods - "voltha" 1 -1 "Waiting for RADIUS to start" "radius-.*"
 fi
 
 if [ $SKIP_RESTART_API == "no" ]; then
@@ -686,10 +712,16 @@ bspin - "Forward VOLTHA SSH port $FORWARD"
 (set -x; screen -dmS voltha-ssh-$TYPE kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022 >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 
-bspin - "Create voltctl configuration file"
+if [ $WITH_RADIUS == "yes" ]; then
+    bspin "Configure ONOS RADIUS Connection $GEAR"
+    (set -x; cat onos-files/radius-config.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl -XPOST -sSL http://karaf:karaf@localhost:8181/onos/v1/network/configuration -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
+    espin $VERIFIED
+fi
+
+bspin "Create voltctl configuration file"
 (set -x; mkdir -p $HOME/.volt >>$LOG 2>&1) >>$LOG 2>&1
 (set -x; voltctl -a v2 -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$TYPE 2>>$LOG) >>$LOG 2>&1
-espin - $VERIFIED
+espin $VERIFIED
 
 echo ""
 echo "Please issue the following commands in your terminal to ensure that you" | tee -a $LOG

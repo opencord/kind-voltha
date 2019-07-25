@@ -58,10 +58,11 @@ with the BBSIM POD you could use the following command:
 WITH_BBSIM=yes voltha up
 ```
 
-| OPTION                        | DEFAULT                      | DESCRIPTION                                                                         |
-| ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| OPTION                          | DEFAULT                      | DESCRIPTION                                                                         |
+| ------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
 | `TYPE`                          | minimal                      | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
 | `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
+| `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
 | `JUST_K8S`                      | no                           | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA)                |
 | `DEPLOY_K8S`                    | yes                          | Should the KinD Kubernetes cluster be deployed?                                     |
 | `SKIP_RESTART_API`              | no                           | Should the VOLTHA API service be restarted after install to avoid known bug?        |
