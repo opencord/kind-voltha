@@ -43,6 +43,7 @@ ERROR="\xe2\x9c\x97\x20"
 TYPE=${TYPE:-minimal}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
+WITH_ONOS=${WITH_ONOS:-yes}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
 SKIP_RESTART_API=${SKIP_RESTART_API:-no}
@@ -88,6 +89,17 @@ if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
     WITH_RADIUS=yes
 else
     WITH_RADIUS=no
+fi
+
+# Verify WITH_ONOS settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_ONOS:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_ONOS value of '$WITH_ONOS'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_ONOS:") -eq 1 ]; then
+    WITH_ONOS=yes
+else
+    WITH_ONOS=no
 fi
 
 # Verify JUST_K8S settting and convert uniform value of yes or no
@@ -211,6 +223,7 @@ echo "OPTIONS" >> $LOG
 echo "    TYPE                          = $TYPE" >> $LOG
 echo "    WITH_BBSIM                    = $WITH_BBSIM" >> $LOG
 echo "    WITH_RADIUS                   = $WITH_RADIUS" >> $LOG
+echo "    WITH_ONOS                     = $WITH_ONOS" >> $LOG
 echo "    JUST_K8S                      = $JUST_K8S" >> $LOG
 echo "    DEPLOY_K8S                    = $DEPLOY_K8S" >> $LOG
 echo "    SKIP_RESTART_API              = $SKIP_RESTART_API" >> $LOG
@@ -588,38 +601,40 @@ fi
 EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
 wait_for_pods - "voltha" $EXPECT -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
 
-bspin "Verify ONOS installed $BIRD"
-if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
-    espin $NOT_VERIFIED
-    helm_install - default onos onf/onos "Install ONOS"
-else
-    espin $VERIFIED
-fi
-wait_for_pods - "default" 1 -1 "Waiting for ONOS to start" "onos-.*"
-
-bspin - "Forward ONOS API port $FORWARD"
-(set -x; screen -p 0 -X -S onos-ui-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
-(set -x; screen -dmS onos-ui-$TYPE kubectl port-forward service/onos-ui $ONOS_API_PORT:8181 >>$LOG 2>&1) >>$LOG 2>&1
-espin - $VERIFIED
-bspin - "Forward ONOS SSH port $FORWARD"
-(set -x; screen -p 0 -X -S onos-ssh-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
-(set -x; screen -dmS onos-ssh-$TYPE kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101 >>$LOG 2>&1) >>$LOG 2>&1
-espin - $VERIFIED
-if [ ! -x ./onos-files/install-onos-applications.sh ]; then
-    bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
-    (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
-    for i in dhcp-to-controller-flow.json install-onos-applications.sh olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
-        if [ ! -r ./onos-files/$i ]; then
-            (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
-        fi
-    done
-    (set -x; chmod 755 ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
+if [ $WITH_ONOS == "yes" ]; then
+    bspin "Verify ONOS installed $BIRD"
+    if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
+        espin $NOT_VERIFIED
+        helm_install - default onos onf/onos "Install ONOS"
+    else
+        espin $VERIFIED
+    fi
+    wait_for_pods - "default" 1 -1 "Waiting for ONOS to start" "onos-.*"
+    
+    bspin - "Forward ONOS API port $FORWARD"
+    (set -x; screen -p 0 -X -S onos-ui-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; screen -dmS onos-ui-$TYPE kubectl port-forward service/onos-ui $ONOS_API_PORT:8181 >>$LOG 2>&1) >>$LOG 2>&1
+    espin - $VERIFIED
+    bspin - "Forward ONOS SSH port $FORWARD"
+    (set -x; screen -p 0 -X -S onos-ssh-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; screen -dmS onos-ssh-$TYPE kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101 >>$LOG 2>&1) >>$LOG 2>&1
+    espin - $VERIFIED
+    if [ ! -x ./onos-files/install-onos-applications.sh ]; then
+        bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
+        (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
+        for i in dhcp-to-controller-flow.json install-onos-applications.sh olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
+            if [ ! -r ./onos-files/$i ]; then
+                (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
+            fi
+        done
+        (set -x; chmod 755 ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    fi
+    
+    bspin - "Install required ONOS applications $INSTALL"
+    (set -x; ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
-
-bspin - "Install required ONOS applications $INSTALL"
-(set -x; ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
-espin - $VERIFIED
 
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
@@ -712,7 +727,7 @@ bspin - "Forward VOLTHA SSH port $FORWARD"
 (set -x; screen -dmS voltha-ssh-$TYPE kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022 >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 
-if [ $WITH_RADIUS == "yes" ]; then
+if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
     bspin "Configure ONOS RADIUS Connection $GEAR"
     (set -x; cat onos-files/radius-config.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl -XPOST -sSL http://karaf:karaf@localhost:8181/onos/v1/network/configuration -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
     espin $VERIFIED
