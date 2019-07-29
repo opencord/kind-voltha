@@ -612,12 +612,16 @@ if [ $WITH_ONOS == "yes" ]; then
     wait_for_pods - "default" 1 -1 "Waiting for ONOS to start" "onos-.*"
     
     bspin - "Forward ONOS API port $FORWARD"
-    (set -x; screen -p 0 -X -S onos-ui-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; screen -dmS onos-ui-$TYPE kubectl port-forward service/onos-ui $ONOS_API_PORT:8181 >>$LOG 2>&1) >>$LOG 2>&1
+    for i in $(screen -ls | grep onos-ui-$TYPE | awk '{print $1}'); do
+        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
+    done
+    (set -x; screen -dmS onos-ui-$TYPE bash -c "while true; do kubectl port-forward service/onos-ui $ONOS_API_PORT:8181; done" >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     bspin - "Forward ONOS SSH port $FORWARD"
-    (set -x; screen -p 0 -X -S onos-ssh-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; screen -dmS onos-ssh-$TYPE kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101 >>$LOG 2>&1) >>$LOG 2>&1
+    for i in $(screen -ls | grep onos-ssh-$TYPE | awk '{print $1}'); do
+        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
+    done
+    (set -x; screen -dmS onos-ssh-$TYPE bash -c "while true; do kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101; done" >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     if [ ! -x ./onos-files/install-onos-applications.sh ]; then
         bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
@@ -719,12 +723,16 @@ else
 fi
 
 bspin - "Forward VOLTHA API port $FORWARD"
-(set -x; screen -p 0 -X -S voltha-api-$TYPE  stuff $'\003' >>$LOG 2>&1) >>$LOG 2>&1
-(set -x; screen -dmS voltha-api-$TYPE kubectl port-forward -n voltha service/voltha-api $VOLTHA_API_PORT:55555 >>$LOG 2>&1) >>$LOG 2>&1
+for i in $(screen -ls | grep voltha-api-$TYPE | awk '{print $1}'); do
+    (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
+done
+(set -x; screen -dmS voltha-api-$TYPE bash -c "while true; do kubectl port-forward -n voltha service/voltha-api $VOLTHA_API_PORT:55555; done" >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 bspin - "Forward VOLTHA SSH port $FORWARD"
-(set -x; screen -p 0 -X -S voltha-ssh-$TYPE stuff $'\003' 2>/dev/null >/dev/null >>$LOG 2>&1) >>$LOG 2>&1
-(set -x; screen -dmS voltha-ssh-$TYPE kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022 >>$LOG 2>&1) >>$LOG 2>&1
+for i in $(screen -ls | grep voltha-ssh-$TYPE | awk '{print $1}'); do
+    (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
+done
+(set -x; screen -dmS voltha-ssh-$TYPE bash -c "while true; do kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022; done" >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
