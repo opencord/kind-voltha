@@ -746,6 +746,33 @@ bspin "Create voltctl configuration file"
 (set -x; voltctl -a v2 -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$TYPE 2>>$LOG) >>$LOG 2>&1
 espin $VERIFIED
 
+if [ ! -f "$TYPE-env.sh" ]; then
+    touch $TYPE-env.sh
+fi
+
+OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS JUST_K8S DEPLOY_K8S \
+    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO \
+    VOLTHA_LOG_LEVEL VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART \
+    VOLTHA_ADAPTER_OPEN_OLT_CHART VOLTHA_ADAPTER_OPEN_ONU_CHART"
+
+for O in $OPTIONS; do
+    if [ $(grep -c "^export $O=" $TYPE-env.sh) -eq 0 ]; then
+        echo "export $O=\"$(eval echo \$$O)\"" >> $TYPE-env.sh
+    fi
+done
+
+if [ $DEPLOY_K8S == "yes" -a $(grep -c "^export KUBECONFIG=" $TYPE-env.sh) -eq 0 ]; then
+    echo "export KUBECONFIG=\"$(./bin/kind get kubeconfig-path --name=voltha-$TYPE)\"" >> $TYPE-env.sh
+fi
+
+if [ $(grep -c "^export VOLTCONFIG=" $TYPE-env.sh) -eq 0 ]; then
+    echo "export VOLTCONFIG=\"$HOME/.volt/config-$TYPE\"" >> $TYPE-env.sh
+fi
+
+if [ $(grep -c "^export PATH=" $TYPE-env.sh) -eq 0 ]; then
+    echo "export PATH=\"$GOPATH/bin:\$PATH\"" >> $TYPE-env.sh
+fi
+
 echo ""
 echo "Please issue the following commands in your terminal to ensure that you" | tee -a $LOG
 echo "are accessing the correct Kubernetes/Kind cluster as well as have the  " | tee -a $LOG
