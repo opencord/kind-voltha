@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CONFIG_VER=1.4.0
-SADIS_VER=3.1.0
-OLT_VER=3.0.1
-AAA_VER=1.9.0
-DHCP_VER=1.6.0
+CONFIG_VER=${CONFIG_VER:-1.4.0}
+SADIS_VER=${SADIS_VERSION:-3.1.0}
+OLT_VER=${OLT_VER:-3.0.1}
+AAA_VER=${AAA_VER:-1.9.0}
+DHCP_VER=${DHCP_VER:-1.6.0}
 
 TYPE=${TYPE:-minimal}
 
