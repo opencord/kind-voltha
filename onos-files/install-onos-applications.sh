@@ -19,13 +19,13 @@ OLT_VER=${OLT_VER:-3.0.1}
 AAA_VER=${AAA_VER:-1.9.0}
 DHCP_VER=${DHCP_VER:-1.6.0}
 
-if [ $(expr $AAA_VER \> 1.9.0) -eq 1 ]; then
+if [ $(expr $AAA_VER \>= 1.9.0) -eq 1 ]; then
     AAA_NAME=aaa-app
 else
     AAA_NAME=aaa
 fi
 
-if [ $(expr $DHCP_VER \> 1.6.0) -eq 1 ]; then
+if [ $(expr $DHCP_VER \>= 1.6.0) -eq 1 ]; then
     DHCP_NAME=dhcpl2relay-app
 else
     DHCP_NAME=dhcpl2relay
