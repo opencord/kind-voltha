@@ -19,9 +19,6 @@ OLT_VER=${OLT_VER:-3.0.1}
 AAA_VER=${AAA_VER:-1.9.0}
 DHCP_VER=${DHCP_VER:-1.6.0}
 
-AAA_NAME=${AAA_NAME:aaa-app}
-DHCP_NAME=${DHCP_NAME:dhcpl2relay-app}
-
 if [ $(expr $AAA_VER \> 1.9.0) -eq 1 ]; then
     AAA_NAME=aaa-app
 else
