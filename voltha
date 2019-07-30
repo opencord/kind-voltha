@@ -44,6 +44,7 @@ TYPE=${TYPE:-minimal}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
+WITH_TP=${WITH_TP:-yes}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
 SKIP_RESTART_API=${SKIP_RESTART_API:-no}
@@ -89,6 +90,17 @@ if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
     WITH_RADIUS=yes
 else
     WITH_RADIUS=no
+fi
+
+# Verify WITH_TP settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_TP:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_TP value of '$WITH_TP'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_TP:") -eq 1 ]; then
+    WITH_TP=yes
+else
+    WITH_TP=no
 fi
 
 # Verify WITH_ONOS settting and convert uniform value of yes or no
@@ -171,16 +183,30 @@ else
 fi
 
 if [ "$TYPE" == "full" ]; then
-   ONOS_API_PORT=${ONOS_API_PORT:-8182}
-   ONOS_SSH_PORT=${ONOS_SSH_PORT:-8102}
-   VOLTHA_API_PORT=${VOLTHA_API_PORT:-55556}
-   VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5023}
+    ONOS_API_PORT=${ONOS_API_PORT:-8182}
+    ONOS_SSH_PORT=${ONOS_SSH_PORT:-8102}
+    VOLTHA_API_PORT=${VOLTHA_API_PORT:-55556}
+    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5023}
 else
     ONOS_API_PORT=${ONOS_API_PORT:-8181}
     ONOS_SSH_PORT=${ONOS_SSH_PORT:-8101}
     VOLTHA_API_PORT=${VOLTHA_API_PORT:-55555}
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5022}
 fi
+
+if [ "$WITH_TP" == "yes" ]; then
+    SADIS_VER=3.1.0
+    OLT_VER=3.0.1
+    AAA_VER=1.9.0
+    DHCP_VER=1.6.0
+else
+    SADIS_VER=2.2.0
+    OLT_VER=2.1.0
+    AAA_VER=1.8.0
+    DHCP_VER=1.5.0
+fi
+
+export SADIS_VER OLT_VER AAA_VER DHCP_VER
 
 if [ "$1" == "get" -a "$2" == "voltconfig" ]; then
     echo "$HOME/.volt/config-$TYPE"
@@ -220,7 +246,7 @@ date > $LOG
 
 # Output install options to log
 echo "OPTIONS" >> $LOG
-ALL_OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS JUST_K8S DEPLOY_K8S \
+ALL_OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP JUST_K8S DEPLOY_K8S \
     SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
     VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
     VOLTHA_ADAPTER_OPEN_ONU_CHART SADIS_VER OLT_VER AAA_VER DHCP_VER"
