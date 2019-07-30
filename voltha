@@ -220,21 +220,19 @@ date > $LOG
 
 # Output install options to log
 echo "OPTIONS" >> $LOG
-echo "    TYPE                          = $TYPE" >> $LOG
-echo "    WITH_BBSIM                    = $WITH_BBSIM" >> $LOG
-echo "    WITH_RADIUS                   = $WITH_RADIUS" >> $LOG
-echo "    WITH_ONOS                     = $WITH_ONOS" >> $LOG
-echo "    JUST_K8S                      = $JUST_K8S" >> $LOG
-echo "    DEPLOY_K8S                    = $DEPLOY_K8S" >> $LOG
-echo "    SKIP_RESTART_API              = $SKIP_RESTART_API" >> $LOG
-echo "    INSTALL_KUBECTL               = $INSTALL_KUBECTL" >> $LOG
-echo "    INSTALL_HELM                  = $INSTALL_HELM" >> $LOG
-echo "    USE_GO                        = $(echo $USE_GO | test $(grep -c true) -eq 1 && echo yes || echo no)" >> $LOG
-echo "    VOLTHA_LOG_LEVEL              = $VOLTHA_LOG_LEVEL" >> $LOG
-echo "    VOLTHA_CHART                  = $VOLTHA_CHART" >> $LOG
-echo "    VOLTHA_ADAPTER_SIM_CHART      = $VOLTHA_ADAPTER_SIM_CHART" >> $LOG
-echo "    VOLTHA_ADAPTER_OPEN_OLT_CHART = $VOLTHA_ADAPTER_OPEN_OLT_CHART" >> $LOG
-echo "    VOLTHA_ADAPTER_OPEN_ONU_CHART = $VOLTHA_ADAPTER_OPEN_ONU_CHART" >> $LOG
+ALL_OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS JUST_K8S DEPLOY_K8S \
+    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
+    VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
+    VOLTHA_ADAPTER_OPEN_ONU_CHART CONFIG_VER SADIS_VER OLT_VER AAA_VER DHCP_VER"
+for O in $ALL_OPTIONS; do
+    VAL=$(eval echo \$$O)
+    if [ $O == "USE_GO" ]; then
+        VAL="$(echo $VAL| test $(grep -c true) -eq 1 && echo yes || echo no)"
+    fi
+    if [ ! -z "$VAL" ]; then
+        printf "    %-30s = %s\n" $O $VAL >> $LOG
+    fi
+done
 
 spin() {
     PARTS="\
@@ -750,13 +748,12 @@ if [ ! -f "$TYPE-env.sh" ]; then
     touch $TYPE-env.sh
 fi
 
-OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS JUST_K8S DEPLOY_K8S \
-    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO \
-    VOLTHA_LOG_LEVEL VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART \
-    VOLTHA_ADAPTER_OPEN_OLT_CHART VOLTHA_ADAPTER_OPEN_ONU_CHART"
-
-for O in $OPTIONS; do
-    if [ $(grep -c "^export $O=" $TYPE-env.sh) -eq 0 ]; then
+for O in $ALL_OPTIONS; do
+    VAL=$(eval echo \$$O)
+    if [ $O == "USE_GO" ]; then
+        VAL="$(echo $VAL| test $(grep -c true) -eq 1 && echo yes || echo no)"
+    fi
+    if [ ! -z "$VAL" -a $(grep -c "^export $O=" $TYPE-env.sh) -eq 0 ]; then
         echo "export $O=\"$(eval echo \$$O)\"" >> $TYPE-env.sh
     fi
 done
