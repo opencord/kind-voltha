@@ -14,11 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CONFIG_VER=${CONFIG_VER:-1.4.0}
 SADIS_VER=${SADIS_VERSION:-3.1.0}
 OLT_VER=${OLT_VER:-3.0.1}
 AAA_VER=${AAA_VER:-1.9.0}
 DHCP_VER=${DHCP_VER:-1.6.0}
+
+if [ $(expr $AAA_VER \>= 1.9.0) -eq 1 ]; then
+    AAA_NAME=aaa-app
+else
+    AAA_NAME=aaa
+fi
+
+if [ $(expr $DHCP_VER \>= 1.6.0) -eq 1 ]; then
+    DHCP_NAME=dhcpl2relay-app
+else
+    DHCP_NAME=dhcpl2relay
+fi
 
 TYPE=${TYPE:-minimal}
 
@@ -32,11 +43,10 @@ fi
 
 mkdir -p onos-files/onos-apps
 echo "Downloading ONOS applications"
-curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/cord-config/$CONFIG_VER/cord-config-$CONFIG_VER.oar -o ./onos-files/onos-apps/cord-config-$CONFIG_VER.oar
 curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/sadis-app/$SADIS_VER/sadis-app-$SADIS_VER.oar -o ./onos-files/onos-apps/sadis-app-$SADIS_VER.oar
-curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/aaa-app/$AAA_VER/aaa-app-$AAA_VER.oar -o ./onos-files/onos-apps/aaa-app-$AAA_VER.oar
+curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/$AAA_NAME/$AAA_VER/$AAA_NAME-$AAA_VER.oar -o ./onos-files/onos-apps/aaa-app-$AAA_VER.oar
 curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/olt-app/$OLT_VER/olt-app-$OLT_VER.oar -o ./onos-files/onos-apps/olt-app-$OLT_VER.oar
-curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/dhcpl2relay-app/$DHCP_VER/dhcpl2relay-app-$DHCP_VER.oar -o ./onos-files/onos-apps/dhcpl2relay-app-$DHCP_VER.oar
+curl --fail -sSL https://repo.maven.apache.org/maven2/org/opencord/$DHCP_NAME/$DHCP_VER/$DHCP_NAME-$DHCP_VER.oar -o ./onos-files/onos-apps/dhcpl2relay-app-$DHCP_VER.oar
 
 until test $(curl -w '\n%{http_code}' --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @./onos-files/onos-apps/cord-config-$CONFIG_VER.oar 2>/dev/null | tail -1) -eq 409; do echo "Installing 'CONFIG' ONOS application ..."; sleep 1; done
 until test $(curl -w '\n%{http_code}' --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @./onos-files/onos-apps/sadis-app-$SADIS_VER.oar 2>/dev/null | tail -1) -eq 409; do echo "Installing 'SADIS' ONOS application ..."; sleep 1; done
