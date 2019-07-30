@@ -22,6 +22,18 @@ DHCP_VER=${DHCP_VER:-1.6.0}
 AAA_NAME=${AAA_NAME:aaa-app}
 DHCP_NAME=${DHCP_NAME:dhcpl2relay-app}
 
+if [ $(expr $AAA_VER \> 1.9.0) -eq 1 ]; then
+    AAA_NAME=aaa-app
+else
+    AAA_NAME=aaa
+fi
+
+if [ $(expr $DHCP_VER \> 1.6.0) -eq 1 ]; then
+    DHCP_NAME=dhcpl2relay-app
+else
+    DHCP_NAME=dhcpl2relay
+fi
+
 TYPE=${TYPE:-minimal}
 
 if [ "$TYPE" == "full" ]; then
