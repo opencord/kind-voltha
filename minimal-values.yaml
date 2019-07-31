@@ -18,6 +18,8 @@ defaults:
 images:
   adapter_open_olt:
     tag_go: master-go
+  bbsim:
+    tag: master
 
 deployments:
   etcdOperator: true

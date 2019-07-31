@@ -45,8 +45,7 @@
     },
     "org.opencord.dhcpl2relay": {
       "dhcpl2relay" : {
-        "dhcpServerConnectPoints" : [ "of:0000000000000001/1" ],
-        "useOltUplinkForServerPktInOut" : false
+        "useOltUplinkForServerPktInOut": true
       }
     }
   }
