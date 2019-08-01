@@ -17,7 +17,9 @@ defaults:
 
 images:
   adapter_open_olt:
-    tag_go: master-go
+    tag_go: master
+  onos:
+    tag: 1.13.5
   bbsim:
     tag: master
 

@@ -39,6 +39,7 @@ WHITE=$(tput setaf 7)
 BOLD=$(tput bold)
 NORMAL=$(tput sgr0)
 ERROR="\xe2\x9c\x97\x20"
+CEOL=$(tput el)
 
 TYPE=${TYPE:-minimal}
 WITH_BBSIM=${WITH_BBSIM:-no}
@@ -187,11 +188,13 @@ if [ "$TYPE" == "full" ]; then
     ONOS_SSH_PORT=${ONOS_SSH_PORT:-8102}
     VOLTHA_API_PORT=${VOLTHA_API_PORT:-55556}
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5023}
+    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-2379}
 else
     ONOS_API_PORT=${ONOS_API_PORT:-8181}
     ONOS_SSH_PORT=${ONOS_SSH_PORT:-8101}
     VOLTHA_API_PORT=${VOLTHA_API_PORT:-55555}
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-5022}
+    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-2379}
 fi
 
 if [ "$WITH_TP" == "yes" ]; then
@@ -207,58 +210,6 @@ else
 fi
 
 export SADIS_VER OLT_VER AAA_VER DHCP_VER
-
-if [ "$1" == "get" -a "$2" == "voltconfig" ]; then
-    echo "$HOME/.volt/config-$TYPE"
-    exit
-fi
-
-if [ $# -ne 1 -o $(echo ":up:down:" | grep -c ":$1:") -ne 1 ]; then 
-    >&2 echo "up or down?"
-    exit 1
-fi
-
-if [ "$1" == "down" ]; then
-    if [ $DEPLOY_K8S == "yes" ]; then
-        if [ -x ./bin/kind ]; then
-            exec ./bin/kind delete cluster --name voltha-$TYPE
-        else
-           >&2 echo "Kind doesn't seem to be installed, so nothing to do. Bye."
-        fi
-    else
-        EXISTS=$(helm list -q)
-        EXPECT="etcd-operator onos open-olt open-onu sim voltha bbsim radius"
-        INTERSECT=
-        for i in $EXISTS; do
-            if [ $(echo $EXPECT | grep -c $i) -eq 1 ]; then
-                HAVE="$HAVE $i"
-            fi
-        done
-        if [ "$HAVE X" != " X" ]; then
-            ./bin/helm delete --purge $HAVE
-        fi
-fi
-    exit 
-fi
-
-LOG="install-$TYPE.log"
-date > $LOG
-
-# Output install options to log
-echo "OPTIONS" >> $LOG
-ALL_OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP JUST_K8S DEPLOY_K8S \
-    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
-    VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
-    VOLTHA_ADAPTER_OPEN_ONU_CHART SADIS_VER OLT_VER AAA_VER DHCP_VER"
-for O in $ALL_OPTIONS; do
-    VAL=$(eval echo \$$O)
-    if [ $O == "USE_GO" ]; then
-        VAL="$(echo $VAL| test $(grep -c true) -eq 1 && echo yes || echo no)"
-    fi
-    if [ ! -z "$VAL" ]; then
-        printf "    %-30s = %s\n" $O $VAL >> $LOG
-    fi
-done
 
 spin() {
     PARTS="\
@@ -347,6 +298,118 @@ espin() {
     echo -e "\r$INDENT$*"
     tput cnorm
 }
+
+if [ "$1" == "get" -a "$2" == "voltconfig" ]; then
+    echo "$HOME/.volt/config-$TYPE"
+    exit
+fi
+
+if [ $# -ne 1 -o $(echo ":up:down:dump:" | grep -c ":$1:") -ne 1 ]; then 
+    >&2 echo "What wouild you like to do today:"
+    >&2 echo "  up   - bring up voltha"
+    >&2 echo "  down - tear down voltha"
+    >&2 echo "  dump - create a debug dump of running system"
+    exit 1
+fi
+
+if [ "$1" == "down" ]; then
+    if [ $DEPLOY_K8S == "yes" ]; then
+        if [ -x ./bin/kind ]; then
+            exec ./bin/kind delete cluster --name voltha-$TYPE
+        else
+           >&2 echo "Kind doesn't seem to be installed, so nothing to do. Bye."
+        fi
+    else
+        EXISTS=$(helm list -q)
+        EXPECT="etcd-operator onos open-olt open-onu sim voltha bbsim radius"
+        INTERSECT=
+        for i in $EXISTS; do
+            if [ $(echo $EXPECT | grep -c $i) -eq 1 ]; then
+                HAVE="$HAVE $i"
+            fi
+        done
+        if [ "$HAVE X" != " X" ]; then
+            ./bin/helm delete --purge $HAVE
+        fi
+    fi
+    exit 
+fi
+
+if [ "$1" == "dump" ]; then
+    LOG="dump-$TYPE.log"
+    TS=$(date -u +"%Y%m%dT%H%M%SZ")
+    WORK=$(mktemp -u -d)
+    DATA=$WORK/voltha-debug-dump-$TS
+    mkdir -p $DATA
+    echo $TS > $LOG
+    echo -e "Capturing debug dump to voltha-debug-dump-$TS.tgz"
+    bspin - "Copy install log"
+    if [ -f install-$TYPE.log ]; then
+        (set -x; cp install-$TYPE.log $DATA/install-$TYPE.log) >>$LOG 2>&1
+        espin - $VERIFIED
+    else
+        espin - "$NO_ENTRY Copy install log: install-$TYPE.log not found"
+    fi
+    bspin - "Dumping Kubernetes PODs"
+    (set -x; kubectl get --all-namespaces pods >> $DATA/all-pods.txt 2>&1) >>$LOG 2>&1
+    espin - $VERIFIED
+    bspin - "Dumping Kubernetes SERVICEs"
+    (set -x; kubectl get --all-namespaces svc >> $DATA/all-services.txt 2>&1) >>$LOG 2>&1
+    espin - $VERIFIED
+    bspin - "Dumping Kubernetes EVENTs"
+    (set -x; kubectl get --all-namespaces events >> $DATA/all-events.txt 2>&1) >>$LOG 2>&1
+    espin - $VERIFIED
+    bspin - "Dumping VOLTHA POD details"
+    PODS=$(kubectl get -n voltha pod -o name)
+    for POD in $PODS; do
+        sspin - "Dumping VOLTHA POD details: $POD$CEOL"
+        mkdir -p $DATA/$POD
+        (set -x; kubectl describe -n voltha $POD >> $DATA/$POD/describe.txt 2>&1) >>$LOG 2>&1
+        sspin - "Dumping VOLTHA POD details: $POD"
+        (set -x; kubectl logs -n voltha --all-containers --previous $LOG_ARGS $POD >> $DATA/$POD/logs-previous.txt 2>&1) >>$LOG 2>&1
+        sspin - "Dumping VOLTHA POD details: $POD"
+        (set -x; kubectl logs -n voltha --all-containers $LOG_ARGS $POD >> $DATA/$POD/logs-current.txt 2>&1) >>$LOG 2>&1
+        sspin - "Dumping VOLTHA POD details: $POD"
+    done
+    espin - "$VERIFIED Dumping VOLTHA POD details$CEOL"
+    bspin - "Dumping ETCD"
+    if [ "$(which etcdctl) X" != " X" ]; then
+        (set -x; ETCDCTL_API=3 etcdctl --endpoints localhost:2379 get --prefix service/voltha | hexdump -C >> $DATA/etcd.hex 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    else
+        espin - "$NO_ENTRY Dumping ETCD: etcdctl command not available"
+    fi
+    bspin - "Creating compressed TAR: voltha-debug-dump-$TS.tgz"
+    (set -x; tar -C $WORK -zcf voltha-debug-dump-$TS.tgz ./voltha-debug-dump-$TS) >>$LOG 2>&1
+    espin - $VERIFIED
+    bspin - "Cleanup"
+    (set -x; rm -rf $WORK) >>$LOG 2>&1
+    espin - $VERIFIED
+    bspin - "$(ls -l voltha-debug-dump-$TS.tgz)"
+    espin - $VERIFIED
+    exit
+fi
+
+
+LOG="install-$TYPE.log"
+date > $LOG
+
+# Output install options to log
+echo "OPTIONS" >> $LOG
+ALL_OPTIONS="TYPE WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP JUST_K8S DEPLOY_K8S \
+    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
+    VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
+    VOLTHA_ADAPTER_OPEN_ONU_CHART SADIS_VER OLT_VER AAA_VER DHCP_VER"
+for O in $ALL_OPTIONS; do
+    VAL=$(eval echo \$$O)
+    if [ $O == "USE_GO" ]; then
+        VAL="$(echo $VAL| test $(grep -c true) -eq 1 && echo yes || echo no)"
+    fi
+    if [ ! -z "$VAL" ]; then
+        printf "    %-30s = %s\n" $O $VAL >> $LOG
+    fi
+done
+
 
 count_pods() {
     local NAMESPACE=$1; shift
@@ -757,6 +820,12 @@ for i in $(screen -ls | grep voltha-ssh-$TYPE | awk '{print $1}'); do
     (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
 done
 (set -x; screen -dmS voltha-ssh-$TYPE bash -c "while true; do kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022; done" >>$LOG 2>&1) >>$LOG 2>&1
+espin - $VERIFIED
+bspin - "Forward VOLTHA ETCD port $FORWARD"
+for i in $(screen -ls | grep voltha-etcd-$TYPE | awk '{print $1}'); do
+    (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
+done
+(set -x; screen -dmS voltha-etcd-$TYPE bash -c "while true; do kubectl port-forward -n voltha service/voltha-etcd-cluster-client $VOLTHA_ETCD_PORT:2379; done" >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
