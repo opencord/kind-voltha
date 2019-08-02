@@ -530,14 +530,13 @@ helm_install() {
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml --set use_go=$USE_GO --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml --set use_go=$USE_GO --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
-            (set -x; helm install -f $NAME-values.yaml --set
-            defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; helm install -f $NAME-values.yaml --set use_go=$USE_GO --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
             COUNT=$(expr 300 / 15)
         fi
         sleep .15
