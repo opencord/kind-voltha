@@ -24,6 +24,7 @@ export PATH=$(go env GOPATH)/bin:$PATH
 This files contained in this repository can be used to deploy either a minimal
 or full voltha deployment. The difference is characterized in the following
 table:
+
 | RESOURCE                | MINIMAL       | FULL                      |
 | ----------------------- | ------------- | ------------------------- |
 | K8s Control Plane Nodes | 1             | 1                         |
