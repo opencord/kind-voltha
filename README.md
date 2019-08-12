@@ -62,6 +62,7 @@ WITH_BBSIM=yes voltha up
 | OPTION                          | DEFAULT                      | DESCRIPTION                                                                         |
 | ------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
 | `TYPE`                          | minimal                      | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
+| `WITH_TIMINGS`                  | no                           | Outputs duration of various steps of the install                                    |
 | `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
 | `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
 | `WITH_ONOS`                     | yes                          | Should `ONOS` service be deployed?                                                  |
