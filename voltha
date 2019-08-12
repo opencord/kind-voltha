@@ -13,11 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FANCY=${FANCY:-1}
+if [ "$TERM X" == " X" ]; then
+    FANCY=0
+fi
+
 # trap ctrl-c and call ctrl_c()
 trap ctrl_c INT
 
 function ctrl_c() {
-    tput cnorm
+    echo -en $CNORM
     echo ""
     echo "ctrl-c trapped"
     echo "Thank you for trying 'votlha up'"
@@ -28,18 +33,36 @@ VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
 KIND_VERSION=${KIND_VERSION:-v0.4.0}
 _VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
 
-BLACK=$(tput setaf 0)
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 4)
-MAGENTA=$(tput setaf 5)
-CYAN=$(tput setaf 6)
-WHITE=$(tput setaf 7)
-BOLD=$(tput bold)
-NORMAL=$(tput sgr0)
-ERROR="\xe2\x9c\x97\x20"
-CEOL=$(tput el)
+BLACK=
+RED=
+GREEN=
+YELLOW=
+BLUE=
+MAGENTA=
+CYAN=
+WHITE=
+BOLD=
+NORMAL=
+ERROR=
+CEOL=
+CNORM=
+CIVIS=
+if [ $FANCY -eq 1 ]; then
+    BLACK=$(tput setaf 0)
+    RED=$(tput setaf 1)
+    GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
+    BLUE=$(tput setaf 4)
+    MAGENTA=$(tput setaf 5)
+    CYAN=$(tput setaf 6)
+    WHITE=$(tput setaf 7)
+    BOLD=$(tput bold)
+    NORMAL=$(tput sgr0)
+    ERROR="\xe2\x9c\x97\x20"
+    CEOL=$(tput el)
+    CNORM=$(tput cnorm)
+    CIVIS=$(tput civis)
+fi
 
 TYPE=${TYPE:-minimal}
 NAME=${NAME:-$TYPE}
@@ -242,7 +265,7 @@ spin() {
         \xe2\xa2\x86\xe2\xa1\xb1 \
         "
     IDX=1
-    tput civis
+    echo -en $CIVIS
     while true; do
        C=$(echo $PARTS | cut '-d ' -f $IDX)
        echo -en "$C"
@@ -255,43 +278,70 @@ spin() {
     done
 }
 
-SPIN_PARTS="\
-        \xe2\xa2\x8e\xe2\xa1\xb0 \
-        \xe2\xa2\x8e\xe2\xa1\xa1 \
-        \xe2\xa2\x8e\xe2\xa1\x91 \
-        \xe2\xa2\x8e\xe2\xa0\xb1 \
-        \xe2\xa0\x8e\xe2\xa1\xb1 \
-        \xe2\xa2\x8a\xe2\xa1\xb1 \
-        \xe2\xa2\x8c\xe2\xa1\xb1 \
-        \xe2\xa2\x86\xe2\xa1\xb1 \
-        "
 IDX=1
-NOT_VERIFIED="\xe2\x9c\x97\x20"
-VERIFIED="\xe2\x9c\x93\x20"
-HELM="\xE2\x8E\x88"
-OLD_KEY="\xF0\x9F\x97\x9D"
-BIRD="\xF0\x9F\x90\xA6"
-HIGH_VOLTAGE="\xE2\x9A\xA1"
-PLUG="\xF0\x9F\xa7\xa9"
-RESTART="\xf0\x9f\x94\x84"
-FORWARD="\xE2\x87\xA8"
-INSTALL="\xF0\x9F\x8F\x97"
-STOP="\xf0\x9f\x9b\x91"
-GO="\xf0\x9f\x9a\x80"
-DOWNLOAD="\xf0\x9f\x93\xa5"
-GEAR="\xe2\x9a\x99"
-NO_ENTRY="\xe2\x9b\x94"
-LOCK="\xf0\x9f\x94\x92"
+SPIN_PARTS=
+NOT_VERIFIED=
+VERIFIED=
+HELM=
+OLD_KEY=
+BIRD=
+HIGH_VOLTAGE=
+PLUG=
+RESTART=
+FORWARD=
+INSTALL=
+STOP=
+GO=
+DOWNLOAD=
+GEAR=
+NO_ENTRY=
+LOCK=
+
+if [ $FANCY -eq 1 ]; then
+    SPIN_PARTS="\
+            \xe2\xa2\x8e\xe2\xa1\xb0 \
+            \xe2\xa2\x8e\xe2\xa1\xa1 \
+            \xe2\xa2\x8e\xe2\xa1\x91 \
+            \xe2\xa2\x8e\xe2\xa0\xb1 \
+            \xe2\xa0\x8e\xe2\xa1\xb1 \
+            \xe2\xa2\x8a\xe2\xa1\xb1 \
+            \xe2\xa2\x8c\xe2\xa1\xb1 \
+            \xe2\xa2\x86\xe2\xa1\xb1 \
+            "
+    NOT_VERIFIED="\xe2\x9c\x97\x20"
+    VERIFIED="\xe2\x9c\x93\x20"
+    HELM="\xE2\x8E\x88"
+    OLD_KEY="\xF0\x9F\x97\x9D"
+    BIRD="\xF0\x9F\x90\xA6"
+    HIGH_VOLTAGE="\xE2\x9A\xA1"
+    PLUG="\xF0\x9F\xa7\xa9"
+    RESTART="\xf0\x9f\x94\x84"
+    FORWARD="\xE2\x87\xA8"
+    INSTALL="\xF0\x9F\x8F\x97"
+    STOP="\xf0\x9f\x9b\x91"
+    GO="\xf0\x9f\x9a\x80"
+    DOWNLOAD="\xf0\x9f\x93\xa5"
+    GEAR="\xe2\x9a\x99"
+    NO_ENTRY="\xe2\x9b\x94"
+    LOCK="\xf0\x9f\x94\x92"
+fi
 
 bspin() {
-    tput civis
     IDX=1
     local INDENT=
     if [ "$1" == "-" ]; then
         INDENT="  "
         shift
     fi
-    echo -en "$INDENT   $*"
+    if [ $FANCY -eq 0 ]; then
+        LINE=$(echo $* | sed -e 's/[\s+-]//g')
+        if [ "$LINE X" == " X" ]; then
+            return
+        fi
+        echo -e "$CIVIS$INDENT$*"
+    else
+        echo -en "$CIVIS$INDENT   $*"
+    fi
 }
 
 sspin() {
@@ -300,11 +350,19 @@ sspin() {
         INDENT="  "
         shift
     fi
-    C=$(echo $SPIN_PARTS | cut '-d ' -f $IDX)
-    echo -en "\r$INDENT$C $*"
-    IDX=$(expr $IDX + 1)
-    if [ $IDX -gt 8 ]; then
-        IDX=1
+    if [ $FANCY -eq 0 ]; then
+        LINE=$(echo $* | sed -e 's/[\s+-]//g')
+        if [ "$LINE X" == " X" ]; then
+            return
+        fi
+        echo -e "$INDENT$*"
+    else
+        C=$(echo $SPIN_PARTS | cut '-d ' -f $IDX)
+        echo -en "\r$INDENT$C $*"
+        IDX=$(expr $IDX + 1)
+        if [ $IDX -gt 8 ]; then
+            IDX=1
+        fi
     fi
 }
 
@@ -314,8 +372,15 @@ espin() {
         INDENT="  "
         shift
     fi
-    echo -e "\r$INDENT$*"
-    tput cnorm
+    if [ $FANCY -eq 0 ]; then
+        LINE=$(echo $* | sed -e 's/[\s+-]//g')
+        if [ "$LINE X" == " X" ]; then
+            return
+        fi
+        echo -e "$INDENT$*"
+    else
+        echo -e "\r$INDENT$*$CNORM"
+    fi
 }
 
 if [ "$1" == "get" -a "$2" == "voltconfig" ]; then
