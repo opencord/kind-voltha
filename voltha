@@ -562,6 +562,22 @@ for O in $ALL_OPTIONS; do
     fi
 done
 
+push_onos_config() {
+    local MSG=$1
+    local RESOURCE=$2
+    local DATA=$3
+
+    bspin - "$MSG $GEAR"
+    until test; do
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+        sspin -
+    done
+    espin - $VERIFIED
+}
 
 count_pods() {
     local NAMESPACE=$1; shift
@@ -896,21 +912,18 @@ if [ $WITH_ONOS == "yes" ]; then
     done
     (set -x; screen -dmS onos-ssh-$NAME bash -c "while true; do kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101; done" >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    if [ ! -x ./onos-files/install-onos-applications.sh ]; then
-        bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
-        (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
-        for i in dhcp-to-controller-flow.json install-onos-applications.sh olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
-            if [ ! -r ./onos-files/$i ]; then
-                (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
-            fi
-        done
-        (set -x; chmod 755 ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
-        espin - $VERIFIED
-    fi
-    
-    bspin - "Install required ONOS applications $INSTALL"
-    (set -x; ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
+    bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
+    (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
+    for i in dhcp-to-controller-flow.json olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
+        if [ ! -r ./onos-files/$i ]; then
+            (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
+        fi
+    done
     espin - $VERIFIED
+   
+    push_onos_config "Push ONOS Network Configuration" "network/configuration" "onos-files/olt-onos-netcfg.json"
+    push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
+    push_onos_config "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     timeout $(expr $(date +%s) - $STIME)

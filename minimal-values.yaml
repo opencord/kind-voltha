@@ -14,14 +14,19 @@
 
 defaults:
   image_tag: master
+  image_pullPolicy: Always
 
 images:
   adapter_open_olt:
     tag_go: master
+    pullPolicy: Always
   onos:
-    tag: 1.13.5
+    tag: master
+    repository: voltha/voltha-onos
+    pullPolicy: Always
   bbsim:
     tag: master
+    pullPolicy: Always
 
 deployments:
   etcdOperator: true
