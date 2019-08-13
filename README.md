@@ -62,16 +62,20 @@ WITH_BBSIM=yes voltha up
 | OPTION                          | DEFAULT                      | DESCRIPTION                                                                         |
 | ------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
 | `TYPE`                          | minimal                      | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
-| `WITH_TIMINGS`                  | no                           | Outputs duration of various steps of the install                                    |
-| `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
-| `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
-| `WITH_ONOS`                     | yes                          | Should `ONOS` service be deployed?                                                  |
-| `JUST_K8S`                      | no                           | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA)                |
+| `NAME`                          | TYPE                         | Name of the KinD Cluster to be created                                              |
 | `DEPLOY_K8S`                    | yes                          | Should the KinD Kubernetes cluster be deployed?                                     |
+| `JUST_K8S`                      | no                           | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA)                |
+| `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
+| `WITH_ONOS`                     | yes                          | Should `ONOS` service be deployed?                                                  |
+| `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
+| `WITH_TP`                       | yes                          | Install the ONOS image that support Tech Profiles                                   |
+| `WITH_TIMINGS`                  | no                           | Outputs duration of various steps of the install                                    |
+| `INSTALL_ONOS_APPS`             | no                           | Replaces/installs ONOS OAR files in onos-files/onos-apps                            |
 | `SKIP_RESTART_API`              | no                           | Should the VOLTHA API service be restarted after install to avoid known bug?        |
 | `INSTALL_KUBECTL`               | yes                          | Should a copy of `kubectl` be installed locally?                                    |
 | `INSTALL_HELM`                  | yes                          | Should a copy of `helm` be installed locallly?                                      |
 | `USE_GO`                        | yes                          | Should the Go[lang] version of the OpenOLT adapter be used?                         |
+| `ONOS_TAG`                      |                              | Used to override the default image tag for the ONOS docker image                    |
 | `VOLTHA_LOG_LEVEL`              | WARN                         | Log level to set for VOLTHA core processes                                          |
 | `VOLTHA_CHART`                  | onf/voltha                   | Helm chart to used to install voltha                                                |
 | `VOLTHA_ADAPTER_SIM_CHART`      | onf/voltha-adapter-simulated | Helm chart to use to install simulated device adapter                               |

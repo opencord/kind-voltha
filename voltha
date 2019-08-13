@@ -70,6 +70,7 @@ WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
+INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 WITH_TP=${WITH_TP:-yes}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
@@ -220,6 +221,18 @@ else
     WITH_TIMINGS=no
 fi
 
+# Verify INSTALL_ONOS_APPS settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_ONOS_APPS:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_ONOS_APPS value of '$INSTALL_ONOS_APPS'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_ONOS_APPS:") -eq 1 ]; then
+    INSTALL_ONOS_APPS=yes
+else
+    INSTALL_ONOS_APPS=no
+fi
+
 mkdir -p .voltha
 touch .voltha/ports
 HAVE=$(grep $NAME .voltha/ports)
@@ -253,18 +266,11 @@ echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 cp $PORTTMP .voltha/ports
 rm -f $PORTTMP
 
-if [ "$WITH_TP" == "yes" ]; then
-    SADIS_VER=3.1.0
-    OLT_VER=3.0.1
-    AAA_VER=1.9.0
-    DHCP_VER=1.6.0
-else
-    SADIS_VER=2.2.0
-    OLT_VER=2.1.0
-    AAA_VER=1.8.0
-    DHCP_VER=1.5.0
+ONOS_TAG=${ONOS_TAG:-}
+if [ "$WITH_TP" == "yes" -a "$ONOS_TAG X" == " X" ]; then
+    ONOS_TAG="voltha-1.7"
 fi
-export ONOS_API_PORT ONOS_SSH_PORT SADIS_VER OLT_VER AAA_VER DHCP_VER
+export ONOS_API_PORT ONOS_SSH_PORT
 
 spin() {
     PARTS="\
@@ -548,9 +554,9 @@ echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 # Output install options to log
 echo "OPTIONS" >> $LOG
 ALL_OPTIONS="NAME TYPE WITH_TIMINGS WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP JUST_K8S DEPLOY_K8S \
-    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
+    INSTALL_ONOS_APPS SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
     VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
-    VOLTHA_ADAPTER_OPEN_ONU_CHART SADIS_VER OLT_VER AAA_VER DHCP_VER \
+    VOLTHA_ADAPTER_OPEN_ONU_CHART ONOS_TAG \
     ONOS_API_PORT ONOS_SSH_PORT VOLTHA_API_PORT VOLTHA_SSH_PORT VOLTHA_ETCD_PORT"
 for O in $ALL_OPTIONS; do
     VAL=$(eval echo \$$O)
@@ -577,6 +583,22 @@ push_onos_config() {
         sspin -
     done
     espin - $VERIFIED
+}
+
+override_onos_app() {
+    local APP=$1
+    local NAME=$(basename $APP | sed -e 's/-.*$//g')
+    until test; do
+        sspin -
+        # Attempt to delete old version (if it exists)
+        (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
+        sspin -
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+    done
 }
 
 count_pods() {
@@ -894,7 +916,11 @@ if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
     if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        helm_install - default onos onf/onos "Install ONOS"
+        SET_TAG=
+        if [ "$ONOS_TAG X" != " X" ]; then
+            SET_TAG="--set images.onos.tag=$ONOS_TAG"
+        fi
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos "Install ONOS"
     else
         espin $VERIFIED
     fi
@@ -920,6 +946,19 @@ if [ $WITH_ONOS == "yes" ]; then
         fi
     done
     espin - $VERIFIED
+
+    if [ $INSTALL_ONOS_APPS == "yes" ]; then
+        bspin - "Installing custom ONOS applications"
+        if [ -x onos-files/onos-apps -a $(ls -1 onos-files/onos-apps/*.oar 2>/dev/null | wc -l) -gt 0 ];  then
+            for OAR in $(ls -1 onos-files/onos-apps/*.oar); do
+                sspin - "Installing custom ONOS applications - $OAR$CEOL"
+               override_onos_app $OAR
+            done
+            espin - "$VERIFIED Installing custom ONOS applications$CEOL"
+        else
+            espin - "$NOT_VERIFIED Installing custom ONOS applications - None Found"
+        fi
+    fi
    
     push_onos_config "Push ONOS Network Configuration" "network/configuration" "onos-files/olt-onos-netcfg.json"
     push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
