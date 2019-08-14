@@ -164,11 +164,24 @@ screen -dmS onos-ui kubectl port-forward service/onos-ui 8181:8181
 screen -dmS onos-ssh kubectl port-forward service/onos-ssh 8101:8101
 ```
 
-#### Installing and Configuring ONOS Applications
-A script has been included, `install-onos-applications.sh`, that can be used
-to download and install the required applications into ONOS.
+#### Configuring ONOS Applications
+Configuration files have been provided to configure aspects of the ONOS deployment. The following
+curl commands push those configurations to the ONOS instance. It is possible (likely) that ONOS
+won't be immediately ready to accept REST requests, so the first `curl` command may need retried
+until ONOS is ready to accept REST connections.
 ```bash
-./onos-files/install-onos-applications.sh
+curl --fail -sSL --user karaf:karaf \
+	-X POST -H Content-Type:application/json \
+	http://127.0.0.1:8181/onos/v1/network/configuration \
+	--data @onos-files/olt-onos-netcfg.json
+curl --fail -sSL --user karaf:karaf \
+	-X POST -H Content-Type:application/json \
+	http://127.0.0.1:8181/onos/v1/configuration/org.opencord.olt.impl.Olt \
+	--data @onos-files/olt-onos-olt-settings.json
+curl --fail -sSL --user karaf:karaf \
+	-X POST -H Content-Type:application/json \
+	http://127.0.0.1:8181/onos/v1/configuration/org.onosproject.net.flow.impl.FlowRuleManager \
+	--data @onos-files/olt-onos-enableExtraneousRules.json
 ```
 
 ## Install VOLTHA Core
@@ -180,7 +193,8 @@ Before any adapters can be deployed the VOLTHA core must be installed and in
 the `Running` state. The following Helm command installs the core components
 of VOLTHA based on the desired deployment type.
 ```bash
-helm install -f $TYPE-values.yaml --namespace voltha --name voltha onf/voltha
+helm install -f $TYPE-values.yaml --set use_go=true --set defaults.log_level=WARN \
+	--namespace voltha --name voltha onf/voltha
 ```
 
 During the install of the core VOLTHA components some containers may "crash" or
@@ -213,9 +227,12 @@ voltha-zookeeper-0                                           1/1       Running  
 The following commands install both the simulated OLT and ONU adapters as well
 as the adapters for an OpenOLT and OpenONU device.
 ```bash
-helm install -f $TYPE-values.yaml --namespace voltha --name sim onf/voltha-adapter-simulated
-helm install -f $TYPE-values.yaml --namespace voltha --name open-olt onf/voltha-adapter-openolt
-helm install -f $TYPE-values.yaml --namespace voltha --name open-onu onf/voltha-adapter-openonu
+helm install -f $TYPE-values.yaml -set use_go=true --set defaults.log_level=WARN \
+	--namespace voltha --name sim onf/voltha-adapter-simulated
+helm install -f $TYPE-values.yaml -set use_go=true --set defaults.log_level=WARN \
+	--namespace voltha --name open-olt onf/voltha-adapter-openolt
+helm install -f $TYPE-values.yaml -set use_go=true --set defaults.log_level=WARN \
+	--namespace voltha --name open-onu onf/voltha-adapter-openonu
 ```
 
 ## Exposing VOLTHA Services
@@ -225,6 +242,17 @@ services cannot be reached.
 ```bash
 screen -dmS voltha-api kubectl port-forward -n voltha service/voltha-api 55555:55555
 screen -dmS voltha-ssh kubectl port-forward -n voltha service/voltha-cli 5022:5022
+```
+
+## Install BBSIM (Broad Band OLT/ONU Simulator)
+BBSIM provides a simulation of a BB device. It can be useful for testing.
+```bash
+helm install -f minimal-values.yaml --namespace voltha --name bbsim onf/bbsim
+```
+
+## Install FreeRADIUS Service
+```bash
+helm install -f minimal-values.yaml --namespace voltha --name radius onf/freeradius
 ```
 
 ## Configure `voltctl` to Connect to VOLTHA
@@ -386,14 +414,23 @@ To remove the cluster simply use the `kind` command:
 kind delete cluster --name=voltha-$TYPE
 ```
 
+## Troubleshooting
+There exists a bug in VOLTHA (as of 8/14/2019) where the API server doesn't always
+correctly connect to the back end services. To work around this bug, the `voltha-api-server`
+and `ofagent` can be restarted as described below.
+```bash
+kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent
+```
+
+Wait for the POD to be removed, then scale it back up.
+```bash
+kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent
+```
+
 ## WIP
 
 ### Create BBSIM Device
 
-#### Install BBSIM Helm Chart
-```bash
-helm install -f $TYPE-values.yaml --namespace voltha --name bbsim onf/bbsim
-```
 
 #### Create BBSIM Device
 ```bash
