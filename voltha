@@ -302,6 +302,10 @@ IDX=1
 CLOCK="TIME:"
 SPIN_PARTS=
 NOT_VERIFIED=
+THEX=
+BUILD=
+CROSS=
+ENTER=
 VERIFIED=
 HELM=
 OLD_KEY=
@@ -330,9 +334,13 @@ if [ $FANCY -eq 1 ]; then
             \xe2\xa2\x86\xe2\xa1\xb1 \
             "
     CLOCK="\xe2\x8f\xb1"
-    NOT_VERIFIED="\xe2\x9c\x97\x20"
-    VERIFIED="\xe2\x9c\x93\x20"
-    HELM="\xE2\x8E\x88"
+    THEX="${RED}${BOLD}\xe2\x9c\x97\x20${NORMAL}"
+    ENTER="${YELLOW}${BOLD}\xe2\x8e\x86${NORMAL}"
+    CROSS="${YELLOW}${BOLD}\xe2\x9c\x9a${NORMAL}"
+    BUILD="${YELLOW}${BOLD}\xf0\x9f\x8f\x97${NORMAL}"
+    NOT_VERIFIED="$BUILD"
+    VERIFIED="${GREEN}${BOLD}\xe2\x9c\x93\x20${NORMAL}"
+    HELM="${BLUE}${BOLD}\xE2\x8E\x88${NORMAL}"
     OLD_KEY="\xF0\x9F\x97\x9D"
     BIRD="\xF0\x9F\x90\xA6"
     HIGH_VOLTAGE="\xE2\x9A\xA1"
@@ -1146,6 +1154,6 @@ echo "" | tee -a $LOG
 echo "Thank you for choosing kind-voltha for you quick cluster needs." | tee -a $LOG
 
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    echo -e "$CLOCK  TOTAL: $(duration $(expr $(date +%s) - $TOTAL_START_TIME))"
+    echo -e "$CLOCK  ${BOLD}TOTAL: $(duration $(expr $(date +%s) - $TOTAL_START_TIME))${NORMAL}"
 fi
 
