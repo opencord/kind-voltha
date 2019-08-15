@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+TOTAL_START_TIME=$(date +%s)
 
 FANCY=${FANCY:-1}
 if [ "$TERM X" == " X" ]; then
@@ -70,6 +71,7 @@ WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
+INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 WITH_TP=${WITH_TP:-yes}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
@@ -220,6 +222,18 @@ else
     WITH_TIMINGS=no
 fi
 
+# Verify INSTALL_ONOS_APPS settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_ONOS_APPS:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_ONOS_APPS value of '$INSTALL_ONOS_APPS'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_ONOS_APPS:") -eq 1 ]; then
+    INSTALL_ONOS_APPS=yes
+else
+    INSTALL_ONOS_APPS=no
+fi
+
 mkdir -p .voltha
 touch .voltha/ports
 HAVE=$(grep $NAME .voltha/ports)
@@ -253,18 +267,11 @@ echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 cp $PORTTMP .voltha/ports
 rm -f $PORTTMP
 
-if [ "$WITH_TP" == "yes" ]; then
-    SADIS_VER=3.1.0
-    OLT_VER=3.0.1
-    AAA_VER=1.9.0
-    DHCP_VER=1.6.0
-else
-    SADIS_VER=2.2.0
-    OLT_VER=2.1.0
-    AAA_VER=1.8.0
-    DHCP_VER=1.5.0
+ONOS_TAG=${ONOS_TAG:-}
+if [ "$WITH_TP" == "yes" -a "$ONOS_TAG X" == " X" ]; then
+    ONOS_TAG="voltha-1.7"
 fi
-export ONOS_API_PORT ONOS_SSH_PORT SADIS_VER OLT_VER AAA_VER DHCP_VER
+export ONOS_API_PORT ONOS_SSH_PORT
 
 spin() {
     PARTS="\
@@ -295,6 +302,10 @@ IDX=1
 CLOCK="TIME:"
 SPIN_PARTS=
 NOT_VERIFIED=
+THEX=
+BUILD=
+CROSS=
+ENTER=
 VERIFIED=
 HELM=
 OLD_KEY=
@@ -323,9 +334,13 @@ if [ $FANCY -eq 1 ]; then
             \xe2\xa2\x86\xe2\xa1\xb1 \
             "
     CLOCK="\xe2\x8f\xb1"
-    NOT_VERIFIED="\xe2\x9c\x97\x20"
-    VERIFIED="\xe2\x9c\x93\x20"
-    HELM="\xE2\x8E\x88"
+    THEX="${RED}${BOLD}\xe2\x9c\x97\x20${NORMAL}"
+    ENTER="${YELLOW}${BOLD}\xe2\x8e\x86${NORMAL}"
+    CROSS="${YELLOW}${BOLD}\xe2\x9c\x9a${NORMAL}"
+    BUILD="${YELLOW}${BOLD}\xf0\x9f\x8f\x97${NORMAL}"
+    NOT_VERIFIED="$BUILD"
+    VERIFIED="${GREEN}${BOLD}\xe2\x9c\x93\x20${NORMAL}"
+    HELM="${BLUE}${BOLD}\xE2\x8E\x88${NORMAL}"
     OLD_KEY="\xF0\x9F\x97\x9D"
     BIRD="\xF0\x9F\x90\xA6"
     HIGH_VOLTAGE="\xE2\x9A\xA1"
@@ -341,12 +356,7 @@ if [ $FANCY -eq 1 ]; then
     LOCK="\xf0\x9f\x94\x92"
 fi
 
-timeout() {
-    local INDENT=
-    if [ "$1" == "-" ]; then
-        INDENT="  "
-        shift
-    fi
+duration() {
     local h=$(expr $1 / 3600)
     local m=$(expr $1 % 3600 / 60)
     local s=$(expr $1 % 60)
@@ -358,8 +368,16 @@ timeout() {
     if [ $m -gt 0 ]; then
         t="$t${m}m"
     fi
-    t="$t${s}s"
-    echo -e "$INDENT  $CLOCK  $t"
+    echo "$t${s}s"
+}
+
+printtime() {
+    local INDENT=
+    if [ "$1" == "-" ]; then
+        INDENT="  "
+        shift
+    fi
+    echo -e "$INDENT  $CLOCK  $(duration $1)"
 }
 
 bspin() {
@@ -548,9 +566,9 @@ echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 # Output install options to log
 echo "OPTIONS" >> $LOG
 ALL_OPTIONS="NAME TYPE WITH_TIMINGS WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP JUST_K8S DEPLOY_K8S \
-    SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
+    INSTALL_ONOS_APPS SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
     VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
-    VOLTHA_ADAPTER_OPEN_ONU_CHART SADIS_VER OLT_VER AAA_VER DHCP_VER \
+    VOLTHA_ADAPTER_OPEN_ONU_CHART ONOS_TAG \
     ONOS_API_PORT ONOS_SSH_PORT VOLTHA_API_PORT VOLTHA_SSH_PORT VOLTHA_ETCD_PORT"
 for O in $ALL_OPTIONS; do
     VAL=$(eval echo \$$O)
@@ -562,6 +580,38 @@ for O in $ALL_OPTIONS; do
     fi
 done
 
+push_onos_config() {
+    local MSG=$1
+    local RESOURCE=$2
+    local DATA=$3
+
+    bspin - "$MSG $GEAR"
+    until test; do
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+        sspin -
+    done
+    espin - $VERIFIED
+}
+
+override_onos_app() {
+    local APP=$1
+    local NAME=$(basename $APP | sed -e 's/-.*$//g')
+    until test; do
+        sspin -
+        # Attempt to delete old version (if it exists)
+        (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
+        sspin -
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+    done
+}
 
 count_pods() {
     local NAMESPACE=$1; shift
@@ -669,7 +719,7 @@ else
     fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -690,7 +740,7 @@ else
 fi
 
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -709,7 +759,7 @@ else
     fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -724,7 +774,7 @@ else
     espin - $VERIFIED
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 bspin "Verify command PATH"
@@ -765,7 +815,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     wait_for_pods - "kube-system" $EXPECT -1 "Waiting for system PODs to start" $P
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -824,7 +874,7 @@ else
 fi
 wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -838,7 +888,7 @@ else
     espin $VERIFIED
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 if [ "$JUST_K8S" == "yes" ]; then
@@ -870,7 +920,7 @@ fi
 EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
 wait_for_pods - "voltha" $EXPECT -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -878,7 +928,11 @@ if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
     if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        helm_install - default onos onf/onos "Install ONOS"
+        SET_TAG=
+        if [ "$ONOS_TAG X" != " X" ]; then
+            SET_TAG="--set images.onos.tag=$ONOS_TAG"
+        fi
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos "Install ONOS"
     else
         espin $VERIFIED
     fi
@@ -896,24 +950,34 @@ if [ $WITH_ONOS == "yes" ]; then
     done
     (set -x; screen -dmS onos-ssh-$NAME bash -c "while true; do kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101; done" >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    if [ ! -x ./onos-files/install-onos-applications.sh ]; then
-        bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
-        (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
-        for i in dhcp-to-controller-flow.json install-onos-applications.sh olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
-            if [ ! -r ./onos-files/$i ]; then
-                (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
-            fi
-        done
-        (set -x; chmod 755 ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
-        espin - $VERIFIED
-    fi
-    
-    bspin - "Install required ONOS applications $INSTALL"
-    (set -x; ./onos-files/install-onos-applications.sh >>$LOG 2>&1) >>$LOG 2>&1
+    bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
+    (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
+    for i in dhcp-to-controller-flow.json olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
+        if [ ! -r ./onos-files/$i ]; then
+            (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
+        fi
+    done
     espin - $VERIFIED
+
+    if [ $INSTALL_ONOS_APPS == "yes" ]; then
+        bspin - "Installing custom ONOS applications"
+        if [ -x onos-files/onos-apps -a $(ls -1 onos-files/onos-apps/*.oar 2>/dev/null | wc -l) -gt 0 ];  then
+            for OAR in $(ls -1 onos-files/onos-apps/*.oar); do
+                sspin - "Installing custom ONOS applications - $OAR$CEOL"
+               override_onos_app $OAR
+            done
+            espin - "$VERIFIED Installing custom ONOS applications$CEOL"
+        else
+            espin - "$NOT_VERIFIED Installing custom ONOS applications - None Found"
+        fi
+    fi
+   
+    push_onos_config "Push ONOS Network Configuration" "network/configuration" "onos-files/olt-onos-netcfg.json"
+    push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
+    push_onos_config "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -936,7 +1000,7 @@ VOLTHA="ofagent-.* \
 EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
 wait_for_pods - "voltha" $EXPECT -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 STIME=$(date +%s)
@@ -967,7 +1031,7 @@ fi
 ADAPTERS="adapter-.*"
 wait_for_pods - "voltha" 4 -1 "Waiting for adapters to start" $ADAPTERS
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 if [ $WITH_BBSIM == "yes" ]; then
@@ -982,7 +1046,7 @@ if [ $WITH_BBSIM == "yes" ]; then
     fi
     wait_for_pods - "voltha" 1 -1 "Waiting for BBSIM to start" "bbsim-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
-        timeout $(expr $(date +%s) - $STIME)
+        printtime $(expr $(date +%s) - $STIME)
     fi
 fi
 
@@ -998,7 +1062,7 @@ if [ $WITH_RADIUS == "yes" ]; then
     fi
     wait_for_pods - "voltha" 1 -1 "Waiting for RADIUS to start" "radius-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
-        timeout $(expr $(date +%s) - $STIME)
+        printtime $(expr $(date +%s) - $STIME)
     fi
 fi
 
@@ -1034,7 +1098,7 @@ done
 (set -x; screen -dmS voltha-etcd-$NAME bash -c "while true; do kubectl port-forward -n voltha service/voltha-etcd-cluster-client $VOLTHA_ETCD_PORT:2379; done" >>$LOG 2>&1) >>$LOG 2>&1
 espin - $VERIFIED
 if [ "$WITH_TIMINGS" == "yes" ]; then
-    timeout $(expr $(date +%s) - $STIME)
+    printtime $(expr $(date +%s) - $STIME)
 fi
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
@@ -1088,4 +1152,8 @@ echo "export PATH=$GOPATH/bin:\$PATH" | tee -a $LOG
 echo -en $NORMAL
 echo "" | tee -a $LOG
 echo "Thank you for choosing kind-voltha for you quick cluster needs." | tee -a $LOG
+
+if [ "$WITH_TIMINGS" == "yes" ]; then
+    echo -e "$CLOCK  ${BOLD}TOTAL: $(duration $(expr $(date +%s) - $TOTAL_START_TIME))${NORMAL}"
+fi
 

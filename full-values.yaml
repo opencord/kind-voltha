@@ -14,12 +14,19 @@
 
 defaults:
   image_tag: master
+  image_pullPolicy: Always
 
 images:
   adapter_open_olt:
-    tag_go: master-go
+    tag_go: master
+    pullPolicy: Always
+  onos:
+    tag: master
+    repository: voltha/voltha-onos
+    pullPolicy: Always
   bbsim:
     tag: master
+    pullPolicy: Always
 
 onos_env:
 - name: POD_IP
