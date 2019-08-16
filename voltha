@@ -99,152 +99,70 @@ if [ $(echo ":minimal:full:" | grep -ic ":$TYPE:") -eq 0 ]; then
     exit 1
 fi
 
-# Verify WITH_BBSIM settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_BBSIM:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_BBSIM value of '$WITH_BBSIM'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_BBSIM:") -eq 1 ]; then
-    WITH_BBSIM=yes
-else
-    WITH_BBSIM=no
-fi
+# Used to verify configuration values are set to "yes" or "no" value or convert
+# equivalents to "yes" or "no"
+function verify_yes_no() {
+    local VAR=$1
+    local VAL=$(eval echo \$$VAR)
+    if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$VAL:") -eq 0 ]; then
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid '$VAR' value of '$VAL'. Should be 'yes' or 'no'${NORMAL}"
+        echo "INVALID"
+        return 1
+    fi
+    if [ $(echo ":y:yes:true:1:" | grep -ic ":$VAL:") -eq 1 ]; then
+        echo "yes"
+    else
+        echo "no"
+    fi
+    return 0
+}
 
-# Verify WITH_RADIUS settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_RADIUS:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_RADIUS value of '$WITH_RADIUS'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
-    WITH_RADIUS=yes
-else
-    WITH_RADIUS=no
-fi
+ALL_YES_NO="\
+    WITH_TIMINGS \
+    WITH_BBSIM \
+    WITH_RADIUS \
+    WITH_ONOS \
+    WITH_TP \
+    CONFIG_SADIS \
+    JUST_K8S \
+    DEPLOY_K8S \
+    INSTALL_ONOS_APPS \
+    SKIP_RESTART_API \
+    INSTALL_KUBECTL \
+    INSTALL_HELM \
+    USE_GO \
+    "
 
-# Verify WITH_TP settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_TP:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_TP value of '$WITH_TP'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_TP:") -eq 1 ]; then
-    WITH_TP=yes
-else
-    WITH_TP=no
-fi
+ALL_OPTIONS="\
+    NAME \
+    TYPE \
+    $ALL_YES_NO \
+    VOLTHA_LOG_LEVEL \
+    VOLTHA_CHART \
+    VOLTHA_ADAPTER_SIM_CHART \
+    VOLTHA_ADAPTER_OPEN_OLT_CHART \
+    VOLTHA_ADAPTER_OPEN_ONU_CHART \
+    ONOS_TAG \
+    ONOS_API_PORT \
+    ONOS_SSH_PORT \
+    VOLTHA_API_PORT \
+    VOLTHA_SSH_PORT \
+    VOLTHA_ETCD_PORT \
+    "
 
-# Verify WITH_ONOS settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_ONOS:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_ONOS value of '$WITH_ONOS'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_ONOS:") -eq 1 ]; then
-    WITH_ONOS=yes
-else
-    WITH_ONOS=no
-fi
+# Iterate over yes/no configuration options and validate
+for VAR in $ALL_YES_NO; do
+    eval $VAR=$(verify_yes_no $VAR)
+    if [ "$(eval echo \$$VAR)" == "INVALID" ]; then
+        exit 1;
+    fi
+done
 
-# Verify JUST_K8S settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$JUST_K8S:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$JUST_K8S value of '$JUST_K8S'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$JUST_K8S:") -eq 1 ]; then
-    JUST_K8S=yes
-else
-    JUST_K8S=no
-fi
-
-# Verify DEPLOY_K8S settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$DEPLOY_K8S:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$DEPLOY_K8S value of '$DEPLOY_K8S'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$DEPLOY_K8S:") -eq 1 ]; then
-    DEPLOY_K8S=yes
-else
-    DEPLOY_K8S=no
-fi
-
-# Verify INSTALL_KUBECTL settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_KUBECTL:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_KUBECTL value of '$INSTALL_KUBECTL'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_KUBECTL:") -eq 1 ]; then
-    INSTALL_KUBECTL=yes
-else
-    INSTALL_KUBECTL=no
-fi
-
-# Verify SKIP_RESTART_API settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$SKIP_RESTART_API:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$SKIP_RESTART_API value of '$SKIP_RESTART_API'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$SKIP_RESTART_API:") -eq 1 ]; then
-    SKIP_RESTART_API=yes
-else
-    SKIP_RESTART_API=no
-fi
-
-# Verify USE_GO settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$USE_GO:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$USE_GO value of '$USE_GO'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$USE_GO:") -eq 1 ]; then
+# Convert USE_GO from yes/no to true/false for helm chart usage
+if [ "$USE_GO" == "yes" ]; then
     USE_GO=true
 else
     USE_GO=false
-fi
-
-# Verify INSTALL_HELM settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_HELM:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_HELM value of '$INSTALL_HELM'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_HELM:") -eq 1 ]; then
-    INSTALL_HELM=yes
-else
-    INSTALL_HELM=no
-fi
-
-# Verify WITH_TIMINGS settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$WITH_TIMINGS:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$WITH_TIMINGS value of '$WITH_TIMINGS'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_TIMINGS:") -eq 1 ]; then
-    WITH_TIMINGS=yes
-else
-    WITH_TIMINGS=no
-fi
-
-# Verify INSTALL_ONOS_APPS settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$INSTALL_ONOS_APPS:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$INSTALL_ONOS_APPS value of '$INSTALL_ONOS_APPS'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$INSTALL_ONOS_APPS:") -eq 1 ]; then
-    INSTALL_ONOS_APPS=yes
-else
-    INSTALL_ONOS_APPS=no
-fi
-
-# Verify CONFIG_SADIS settting and convert uniform value of yes or no
-if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$CONFIG_SADIS:") -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$CONFIG_SADIS value of '$CONFIG_SADIS'. Should be 'yes' or 'no'${NORMAL}"
-    exit 1
-fi
-
-if [ $(echo ":y:yes:true:1:" | grep -ic ":$CONFIG_SADIS:") -eq 1 ]; then
-    CONFIG_SADIS=yes
-else
-    CONFIG_SADIS=no
 fi
 
 mkdir -p .voltha
@@ -546,19 +464,12 @@ if [ "$1" == "dump" ]; then
     exit
 fi
 
-
 LOG="install-$NAME.log"
 date > $LOG
 echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT" >> $LOG
 
 # Output install options to log
 echo "OPTIONS" >> $LOG
-ALL_OPTIONS="NAME TYPE WITH_TIMINGS WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP \
-    CONFIG_SADIS JUST_K8S DEPLOY_K8S \
-    INSTALL_ONOS_APPS SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
-    VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
-    VOLTHA_ADAPTER_OPEN_ONU_CHART ONOS_TAG \
-    ONOS_API_PORT ONOS_SSH_PORT VOLTHA_API_PORT VOLTHA_SSH_PORT VOLTHA_ETCD_PORT"
 for O in $ALL_OPTIONS; do
     VAL=$(eval echo \$$O)
     if [ $O == "USE_GO" ]; then
