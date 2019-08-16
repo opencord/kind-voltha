@@ -70,6 +70,7 @@ WITH_BBSIM=yes voltha up
 | `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
 | `WITH_TP`                       | yes                          | Install the ONOS image that support Tech Profiles                                   |
 | `WITH_TIMINGS`                  | no                           | Outputs duration of various steps of the install                                    |
+| `CONFIG_SADIS`                  | no                           | Configure SADIS entries into ONOS, if WITH_ONOS set (see SADIS Configuration        |    
 | `INSTALL_ONOS_APPS`             | no                           | Replaces/installs ONOS OAR files in onos-files/onos-apps                            |
 | `SKIP_RESTART_API`              | no                           | Should the VOLTHA API service be restarted after install to avoid known bug?        |
 | `INSTALL_KUBECTL`               | yes                          | Should a copy of `kubectl` be installed locally?                                    |
@@ -172,8 +173,12 @@ until ONOS is ready to accept REST connections.
 ```bash
 curl --fail -sSL --user karaf:karaf \
 	-X POST -H Content-Type:application/json \
-	http://127.0.0.1:8181/onos/v1/network/configuration \
-	--data @onos-files/olt-onos-netcfg.json
+	http://127.0.0.1:8181/onos/v1/network/configuration/apps/org.opencord.kafka \
+	--data @onos-files/onos-kafka.json
+curl --fail -sSL --user karaf:karaf \
+	-X POST -H Content-Type:application/json \
+	http://127.0.0.1:8181/onos/v1/network/configuration/apps/org.opencord.dhcpl2relay \
+	--data @onos-files/onos-dhcpl2relay.json
 curl --fail -sSL --user karaf:karaf \
 	-X POST -H Content-Type:application/json \
 	http://127.0.0.1:8181/onos/v1/configuration/org.opencord.olt.impl.Olt \
@@ -183,6 +188,28 @@ curl --fail -sSL --user karaf:karaf \
 	http://127.0.0.1:8181/onos/v1/configuration/org.onosproject.net.flow.impl.FlowRuleManager \
 	--data @onos-files/olt-onos-enableExtraneousRules.json
 ```
+
+#### SADIS Configuration
+The ONOS applications leverage the _Subscriber and Device Information Store (SADIS)_ when processing
+EAPOL and DHCP packets from VOLTHA controlled devices. In order for VOLTHA to function propperly
+SADIS entries must be configured into ONOS.
+
+The repository contains two example SADIS configuration that can be used with ONOS depending if
+you using VOLTHA with _tech profile_ support (`onos-files/onos-sadis-no-tp.json`) or without
+_tech profile_ support (`onos-files/onos-sadis-tp.json`). Either of these configurations can be
+pushed to ONOS using the following command:
+```bash
+curl --fail -sSL --user karaf:karaf \
+	-X POST -H Content-Type:application/json \
+	http://127.0.0.1:8181/onos/v1/network/configuration/apps/org.opencord.sadis \
+	--data @<selected SADIS configuration file>
+```
+
+When using the `voltha up` script, if you specify `WITH_ONOS=yes` and `CONFIG_SADIS=yes`
+then the script will deploy a SADIS configuration based on the setting of `WITH_TP`. If
+you would like to deploy a custom SADIS configuration then you can place that in the
+file `onos-file/onos-sadis.json` and it will be used instead of the default SADIS
+configuration files.
 
 ## Install VOLTHA Core
 VOLTHA has two main _parts_: core and adapters. The **core** provides the main
