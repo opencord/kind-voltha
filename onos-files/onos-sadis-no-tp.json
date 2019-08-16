@@ -1,0 +1,29 @@
+{
+      "sadis": {
+        "integration": {
+          "cache": {
+            "enabled": false,
+            "maxsize": 50,
+            "ttl": "PT0m"
+          }
+        },
+        "entries": [
+          {
+            "id": "BBSIMOLT000",
+            "hardwareIdentifier": "0f:f1:ce:c0:ff:ee",
+            "nasId": "BBSIMOLT000",
+            "uplinkPort": 65536
+          },
+          {
+            "id": "BBSM00000001-1",
+            "cTag": 900,
+            "sTag": 900,
+            "nasPortId": "BBSM00000001-1",
+            "circuitId": "BBSM00000001-1",
+            "remoteId": "BBSIMOLT000"
+          }
+        ]
+      }
+    }
+  }
+}

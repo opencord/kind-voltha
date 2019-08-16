@@ -1,0 +1,5 @@
+{
+  "kafka": {
+    "bootstrapServers": "voltha-kafka.voltha.svc.cluster.local:9092"
+  }
+}

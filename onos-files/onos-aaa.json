@@ -1,0 +1,8 @@
+{
+  "AAA": {
+    "radiusIp": ":RADIUS_IP:",
+    "nasIp": ":RADIUS_IP:",
+    "radiusServerPort": "1812",
+    "radiusSecret": "SECRET"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "dhcpl2relay" : {
+    "useOltUplinkForServerPktInOut": true
+  }
+}

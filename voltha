@@ -71,6 +71,7 @@ WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
+CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 WITH_TP=${WITH_TP:-yes}
 JUST_K8S=${JUST_K8S:-no}
@@ -234,6 +235,18 @@ else
     INSTALL_ONOS_APPS=no
 fi
 
+# Verify CONFIG_SADIS settting and convert uniform value of yes or no
+if [ $(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$CONFIG_SADIS:") -eq 0 ]; then
+    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$CONFIG_SADIS value of '$CONFIG_SADIS'. Should be 'yes' or 'no'${NORMAL}"
+    exit 1
+fi
+
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$CONFIG_SADIS:") -eq 1 ]; then
+    CONFIG_SADIS=yes
+else
+    CONFIG_SADIS=no
+fi
+
 mkdir -p .voltha
 touch .voltha/ports
 HAVE=$(grep $NAME .voltha/ports)
@@ -272,31 +285,6 @@ if [ "$WITH_TP" == "yes" -a "$ONOS_TAG X" == " X" ]; then
     ONOS_TAG="voltha-1.7"
 fi
 export ONOS_API_PORT ONOS_SSH_PORT
-
-spin() {
-    PARTS="\
-        \xe2\xa2\x8e\xe2\xa1\xb0 \
-        \xe2\xa2\x8e\xe2\xa1\xa1 \
-        \xe2\xa2\x8e\xe2\xa1\x91 \
-        \xe2\xa2\x8e\xe2\xa0\xb1 \
-        \xe2\xa0\x8e\xe2\xa1\xb1 \
-        \xe2\xa2\x8a\xe2\xa1\xb1 \
-        \xe2\xa2\x8c\xe2\xa1\xb1 \
-        \xe2\xa2\x86\xe2\xa1\xb1 \
-        "
-    IDX=1
-    echo -en $CIVIS
-    while true; do
-       C=$(echo $PARTS | cut '-d ' -f $IDX)
-       echo -en "$C"
-       IDX=$(expr $IDX + 1)
-       if [ $IDX -gt 8 ]; then
-           IDX=1
-       fi
-       sleep .15 
-       echo -en "\r"
-    done
-}
 
 IDX=1
 CLOCK="TIME:"
@@ -565,7 +553,8 @@ echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 
 # Output install options to log
 echo "OPTIONS" >> $LOG
-ALL_OPTIONS="NAME TYPE WITH_TIMINGS WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP JUST_K8S DEPLOY_K8S \
+ALL_OPTIONS="NAME TYPE WITH_TIMINGS WITH_BBSIM WITH_RADIUS WITH_ONOS WITH_TP \
+    CONFIG_SADIS JUST_K8S DEPLOY_K8S \
     INSTALL_ONOS_APPS SKIP_RESTART_API INSTALL_KUBECTL INSTALL_HELM USE_GO VOLTHA_LOG_LEVEL \
     VOLTHA_CHART VOLTHA_ADAPTER_SIM_CHART VOLTHA_ADAPTER_OPEN_OLT_CHART \
     VOLTHA_ADAPTER_OPEN_ONU_CHART ONOS_TAG \
@@ -586,7 +575,7 @@ push_onos_config() {
     local DATA=$3
 
     bspin - "$MSG $GEAR"
-    until test; do
+    while true; do
         (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
         if [ $? -eq 0 ]; then
             break
@@ -599,18 +588,37 @@ push_onos_config() {
 
 override_onos_app() {
     local APP=$1
-    local NAME=$(basename $APP | sed -e 's/-.*$//g')
-    until test; do
+    local NAME=$(basename $APP | sed -e 's/^[0-9][0-9]*-//g' -e 's/-.*$//g')
+    while true; do
         sspin -
         # Attempt to delete old version (if it exists)
         (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
         sspin -
+        if [ $? -ne 0 ]; then
+            continue
+        fi
         (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
         if [ $? -eq 0 ]; then
             break
         fi
         sleep .2
     done
+}
+
+activate_onos_app() {
+    local MSG="$1"
+    local APP=$2
+
+    bspin - "$MSG $GO"
+    while true; do
+        sspin -
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$APP/active >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+    done
+    espin - "$VERIFIED"
 }
 
 count_pods() {
@@ -948,11 +956,15 @@ if [ $WITH_ONOS == "yes" ]; then
     for i in $(screen -ls | grep onos-ssh-$NAME | awk '{print $1}'); do
         (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
     done
+
+
     (set -x; screen -dmS onos-ssh-$NAME bash -c "while true; do kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101; done" >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
+    ONOS_FILES="olt-onos-enableExtraneousRules.json  olt-onos-olt-settings.json onos-aaa.json \
+        onos-dhcpl2relay.json onos-kafka.json onos-sadis-no-tp.json onos-sadis-tp.json"
     (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
-    for i in dhcp-to-controller-flow.json olt-onos-enableExtraneousRules.json olt-onos-netcfg.json olt-onos-olt-settings.json radius-config.json; do
+    for i in $ONOS_FILES; do
         if [ ! -r ./onos-files/$i ]; then
             (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
         fi
@@ -964,17 +976,27 @@ if [ $WITH_ONOS == "yes" ]; then
         if [ -x onos-files/onos-apps -a $(ls -1 onos-files/onos-apps/*.oar 2>/dev/null | wc -l) -gt 0 ];  then
             for OAR in $(ls -1 onos-files/onos-apps/*.oar); do
                 sspin - "Installing custom ONOS applications - $OAR$CEOL"
-               override_onos_app $OAR
+                override_onos_app $OAR
             done
             espin - "$VERIFIED Installing custom ONOS applications$CEOL"
         else
             espin - "$NOT_VERIFIED Installing custom ONOS applications - None Found"
         fi
     fi
-   
-    push_onos_config "Push ONOS Network Configuration" "network/configuration" "onos-files/olt-onos-netcfg.json"
+  
+    push_onos_config "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.kafka" "onos-files/onos-kafka.json"
+    push_onos_config "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
     push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
     push_onos_config "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
+    if [ -f onos-files/onos-sadis.json ]; then
+        push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
+    elif [ "$CONFIG_SADIS" == "yes" ]; then
+        SADIS_CFG=onos-files/onos-sadis-no-tp.json
+        if [ "$WITH_TP" == "yes" ]; then
+            SADIS_CFG=onos-files/onos-sadis-tp.json
+        fi
+        push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
+    fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
@@ -1103,7 +1125,7 @@ fi
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
     bspin "Configure ONOS RADIUS Connection $GEAR"
-    (set -x; cat onos-files/radius-config.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl -XPOST -sSL http://karaf:karaf@localhost:8181/onos/v1/network/configuration -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; cat onos-files/onos-aaa.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl -XPOST -sSL http://karaf:karaf@localhost:8181/onos/v1/network/configuration/apps/org.opencord.aaa -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
     espin $VERIFIED
 fi
 
