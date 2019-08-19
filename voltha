@@ -80,6 +80,7 @@ SKIP_RESTART_API=${SKIP_RESTART_API:-no}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
 USE_GO=${USE_GO:-yes}
+WAIT_ON_DOWN=${WAIT_ON_DOWN:-no}
 VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:=onf/voltha}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
@@ -131,6 +132,7 @@ ALL_YES_NO="\
     INSTALL_KUBECTL \
     INSTALL_HELM \
     USE_GO \
+    WAIT_ON_DOWN \
     "
 
 ALL_OPTIONS="\
@@ -356,6 +358,136 @@ if [ $# -ne 1 -o $(echo ":up:down:dump:" | grep -c ":$1:") -ne 1 ]; then
     exit 1
 fi
 
+push_onos_config() {
+    local MSG=$1
+    local RESOURCE=$2
+    local DATA=$3
+
+    bspin - "$MSG $GEAR"
+    while true; do
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+        sspin -
+    done
+    espin - $VERIFIED
+}
+
+override_onos_app() {
+    local APP=$1
+    local NAME=$(basename $APP | sed -e 's/^[0-9][0-9]*-//g' -e 's/-.*$//g')
+    while true; do
+        sspin -
+        # Attempt to delete old version (if it exists)
+        (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
+        sspin -
+        if [ $? -ne 0 ]; then
+            continue
+        fi
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+    done
+}
+
+activate_onos_app() {
+    local MSG="$1"
+    local APP=$2
+
+    bspin - "$MSG $GO"
+    while true; do
+        sspin -
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$APP/active >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep .2
+    done
+    espin - "$VERIFIED"
+}
+
+count_pods() {
+    local NAMESPACE=$1; shift
+    if [ "$NAMESPACE" == "all-namespaces" ]; then
+        NAMESPACE="--all-namespaces"
+    else
+        NAMESPACE="-n $NAMESPACE"
+    fi
+    echo "$NAMESPACE" > /tmp/t
+    local STATES=$1; shift
+    echo "$STATES" >> /tmp/t
+    local PODS=$(kubectl get $NAMESPACE  pod -o go-template="{{range .items}}{{.metadata.name}}/{{.status.phase}}/_{{range .status.containerStatuses}}{{.ready}}_{{end}} {{end}}")
+    local COUNT=0
+    local PATTERNS="$*"
+    for POD in $PODS; do
+        local NAME=$(echo $POD | cut -d/ -f 1)
+        local STATE=$(echo $POD | cut -d/ -f 2)
+        local CONTAINERS=$(echo $POD | cut -d/ -f 3 | sed -e 's/_/ /g')
+        if [ "$STATES" == "*" -o $(echo "$STATES" | grep -c ":$STATE:") -ne 0 ]; then
+            echo "IN WITH $POD" >> /tmp/t
+            local TOTAL=$(echo $CONTAINERS | wc -w)
+            local FOUND=$(echo $CONTAINERS | grep -o true | wc -l)
+            if [ $TOTAL -eq $FOUND ]; then
+                for PATTERN in $PATTERNS; do
+                    echo "TEST $PATTERN AGAINST $NAME" >> /tmp/t
+                    if [[ $NAME =~ $PATTERN ]]; then
+                        echo "COUNT $NAME" >> /tmp/t
+                        COUNT=$(expr $COUNT + 1)
+                        break
+                    fi
+                done
+            fi
+        fi
+    done
+    echo $COUNT >> /tmp/t
+    echo $COUNT
+}
+
+wait_for_pods() {
+    local INDENT=
+    if [ "$1" == "-" ]; then
+        INDENT=$1; shift
+    fi
+    local NAMESPACE=$1; shift
+    local EXPECT=$1; shift
+    local TYPE=$1; shift
+    local RETRY=$1; shift
+    local MESSAGE=$1; shift
+    local PATTERNS=$*
+    local HAVE=$(count_pods $NAMESPACE ":Running:" $PATTERNS)
+    local ALL=$HAVE
+    if [ "$TYPE" == "only" ]; then
+        ALL=$(count_pods "all-namespaces" "*" ".*")
+    fi
+    COUNT=$(expr 300 / 15)
+    bspin $INDENT $MESSAGE
+    sspin $INDENT
+    if [ $HAVE -ne $EXPECT -o $ALL -ne $HAVE ]; then
+        while [ $HAVE -ne $EXPECT -o $ALL -ne $HAVE ]; do
+            sspin $INDENT
+            COUNT=$(expr $COUNT - 1)
+            if [ $COUNT -eq 0 ]; then
+                HAVE=$(count_pods $NAMESPACE ":Running:" $PATTERNS)
+                ALL=$HAVE
+                if [ "$TYPE" == "only" ]; then
+                    ALL=$(count_pods "all-namespaces" "*" ".*")
+                fi
+                COUNT=$(expr 300 / 15)
+            fi
+            sleep .15
+        done
+    fi
+    espin $INDENT $VERIFIED
+    if [ $HAVE -ne $EXPECT ]; then
+        return 1
+    fi
+    return 0
+}
+
 if [ "$1" == "down" ]; then
     echo "Tearing down voltha cluster $NAME"
     LOG="down-$NAME.log"
@@ -379,6 +511,21 @@ if [ "$1" == "down" ]; then
             fi
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
+        if [ "$WAIT_ON_DOWN" == "yes" ]; then
+            # There should only be 13 or 15 PODs in the kube-system name
+            # space and no other PODs
+
+            PODS="coredns-.* \
+                etcd-voltha-$NAME-control-plane \
+                kindnet-.* \
+                kube-apiserver-voltha-$NAME-control-plane \
+                kube-controller-manager-voltha-$NAME-control-plane \
+                kube-proxy-.* \
+                kube-scheduler-voltha-$NAME-control-plane \
+                tiller-deploy-.*"
+            EXPECT=$(test "$TYPE" == "minimal" && echo "13" || echo "15")
+            wait_for_pods "all-namespaces" $EXPECT "only" -1 "Waiting for only system PODs to be running" $PODS
+        fi
     fi
     bspin "Remove port-forwards: onos-ui-$NAME"
     for i in $(screen -ls | grep onos-ui-$NAME | awk '{print $1}'); do
@@ -479,114 +626,6 @@ for O in $ALL_OPTIONS; do
         printf "    %-30s = %s\n" $O $VAL >> $LOG
     fi
 done
-
-push_onos_config() {
-    local MSG=$1
-    local RESOURCE=$2
-    local DATA=$3
-
-    bspin - "$MSG $GEAR"
-    while true; do
-        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
-        if [ $? -eq 0 ]; then
-            break
-        fi
-        sleep .2
-        sspin -
-    done
-    espin - $VERIFIED
-}
-
-override_onos_app() {
-    local APP=$1
-    local NAME=$(basename $APP | sed -e 's/^[0-9][0-9]*-//g' -e 's/-.*$//g')
-    while true; do
-        sspin -
-        # Attempt to delete old version (if it exists)
-        (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
-        sspin -
-        if [ $? -ne 0 ]; then
-            continue
-        fi
-        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
-        if [ $? -eq 0 ]; then
-            break
-        fi
-        sleep .2
-    done
-}
-
-activate_onos_app() {
-    local MSG="$1"
-    local APP=$2
-
-    bspin - "$MSG $GO"
-    while true; do
-        sspin -
-        (set -x; curl --fail -sSL --user karaf:karaf -X POST http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$APP/active >>$LOG 2>&1) >>$LOG 2>&1
-        if [ $? -eq 0 ]; then
-            break
-        fi
-        sleep .2
-    done
-    espin - "$VERIFIED"
-}
-
-count_pods() {
-    local NAMESPACE=$1; shift
-    local PODS=$(kubectl -n $NAMESPACE get pod -o go-template="{{range .items}}{{.metadata.name}}/{{.status.phase}}/_{{range .status.containerStatuses}}{{.ready}}_{{end}} {{end}}")
-    local COUNT=0
-    local PATTERNS=$*
-    for POD in $PODS; do
-        local NAME=$(echo $POD | cut -d/ -f 1)
-        local STATE=$(echo $POD | cut -d/ -f 2)
-        local CONTAINERS=$(echo $POD | cut -d/ -f 3 | sed -e 's/_/ /g')
-        if [ "$STATE" == "Running" ]; then
-            local TOTAL=$(echo $CONTAINERS | wc -w)
-            local FOUND=$(echo $CONTAINERS | grep -o true | wc -l)
-            if [ $TOTAL -eq $FOUND ]; then
-                for PATTERN in $PATTERNS; do
-                    if [[ $NAME =~ $PATTERN ]]; then
-                        COUNT=$(expr $COUNT + 1)
-                    fi
-                done
-            fi
-        fi
-    done
-    echo $COUNT
-}
-
-wait_for_pods() {
-    local INDENT=
-    if [ "$1" == "-" ]; then
-        INDENT=$1; shift
-    fi
-    local NAMESPACE=$1; shift
-    local EXPECT=$1; shift
-    local RETRY=$1; shift
-    local MESSAGE=$1; shift
-    local PATTERNS=$*
-    local HAVE=$(count_pods $NAMESPACE $PATTERNS)
-    COUNT=$(expr 300 / 15)
-    bspin $INDENT $MESSAGE
-    sspin $INDENT
-    if [ $HAVE -ne $EXPECT ]; then
-        while [ $HAVE -ne $EXPECT ]; do
-            sspin $INDENT
-            COUNT=$(expr $COUNT - 1)
-            if [ $COUNT -eq 0 ]; then
-                HAVE=$(count_pods $NAMESPACE $PATTERNS)
-                COUNT=$(expr 300 / 15)
-            fi
-            sleep .15
-        done
-    fi
-    espin $INDENT $VERIFIED
-    if [ $HAVE -ne $EXPECT ]; then
-        return 1
-    fi
-    return 0
-}
 
 helm_install() { 
     local INDENT=
@@ -731,7 +770,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         kube-scheduler-voltha-$NAME-control-plane"
 
     EXPECT=$(test "$TYPE" == "minimal" && echo "12" || echo "14")
-    wait_for_pods - "kube-system" $EXPECT -1 "Waiting for system PODs to start" $P
+    wait_for_pods - "kube-system" $EXPECT "includes" -1 "Waiting for system PODs to start" $P
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
@@ -750,7 +789,7 @@ if [ $COUNT -ne 1 ]; then
         bspin - "Initialize Helm"
         (set -x; helm init --upgrade >>$LOG 2>&1) >>$LOG 2>&1
         espin - $VERIFIED
-        wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
+        wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
     fi
     bspin - "Add Google Incubator repository to Helm"
     (set -x; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com >>$LOG 2>&1) >>$LOG 2>&1
@@ -791,7 +830,7 @@ if [ $COUNT -ne 1 ]; then
 else
     espin $VERIFIED
 fi
-wait_for_pods - "kube-system" 1 -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
+wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -837,7 +876,7 @@ else
     espin $VERIFIED
 fi
 EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
-wait_for_pods - "voltha" $EXPECT -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
+wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -855,7 +894,7 @@ if [ $WITH_ONOS == "yes" ]; then
     else
         espin $VERIFIED
     fi
-    wait_for_pods - "default" 1 -1 "Waiting for ONOS to start" "onos-.*"
+    wait_for_pods - "default" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
     
     bspin - "Forward ONOS API port $FORWARD"
     for i in $(screen -ls | grep onos-ui-$NAME | awk '{print $1}'); do
@@ -931,7 +970,7 @@ VOLTHA="ofagent-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
 EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
-wait_for_pods - "voltha" $EXPECT -1 "Waiting for VOLTHA Core to start" $VOLTHA
+wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -962,7 +1001,7 @@ else
 fi
 
 ADAPTERS="adapter-.*"
-wait_for_pods - "voltha" 4 -1 "Waiting for adapters to start" $ADAPTERS
+wait_for_pods - "voltha" 4 "includes" -1 "Waiting for adapters to start" $ADAPTERS
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -977,7 +1016,7 @@ if [ $WITH_BBSIM == "yes" ]; then
     else
         espin - $VERIFIED
     fi
-    wait_for_pods - "voltha" 1 -1 "Waiting for BBSIM to start" "bbsim-.*"
+    wait_for_pods - "voltha" 1 "includes" -1 "Waiting for BBSIM to start" "bbsim-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -993,7 +1032,7 @@ if [ $WITH_RADIUS == "yes" ]; then
     else
         espin - $VERIFIED
     fi
-    wait_for_pods - "voltha" 1 -1 "Waiting for RADIUS to start" "radius-.*"
+    wait_for_pods - "voltha" 1 "includes" -1 "Waiting for RADIUS to start" "radius-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1004,9 +1043,9 @@ if [ $SKIP_RESTART_API == "no" ]; then
     echo -e "Restart VOLTHA API $RESTART"
     API="voltha-api-server-.* ofagent-.*"
     (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
-    wait_for_pods - "voltha" 0 -1 "Wait for API to stop $STOP" $API
+    wait_for_pods - "voltha" 0 "includes" -1 "Wait for API to stop $STOP" $API
     (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
-    wait_for_pods - "voltha" 2 -1 "Wait for API to re-start $GO" $API
+    wait_for_pods - "voltha" 2 "includes" -1 "Wait for API to re-start $GO" $API
 else
     bspin "Skip VOLTHA API Restart"
     espin $NO_ENTRY
