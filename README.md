@@ -68,15 +68,12 @@ WITH_BBSIM=yes voltha up
 | `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
 | `WITH_ONOS`                     | yes                          | Should `ONOS` service be deployed?                                                  |
 | `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
-| `WITH_TP`                       | yes                          | Install the ONOS image that support Tech Profiles                                   |
 | `WITH_TIMINGS`                  | no                           | Outputs duration of various steps of the install                                    |
 | `CONFIG_SADIS`                  | no                           | Configure SADIS entries into ONOS, if WITH_ONOS set (see SADIS Configuration        |    
 | `INSTALL_ONOS_APPS`             | no                           | Replaces/installs ONOS OAR files in onos-files/onos-apps                            |
 | `SKIP_RESTART_API`              | no                           | Should the VOLTHA API service be restarted after install to avoid known bug?        |
 | `INSTALL_KUBECTL`               | yes                          | Should a copy of `kubectl` be installed locally?                                    |
 | `INSTALL_HELM`                  | yes                          | Should a copy of `helm` be installed locallly?                                      |
-| `USE_GO`                        | yes                          | Should the Go[lang] version of the OpenOLT adapter be used?                         |
-| `ONOS_TAG`                      |                              | Used to override the default image tag for the ONOS docker image                    |
 | `VOLTHA_LOG_LEVEL`              | WARN                         | Log level to set for VOLTHA core processes                                          |
 | `VOLTHA_CHART`                  | onf/voltha                   | Helm chart to used to install voltha                                                |
 | `VOLTHA_ADAPTER_SIM_CHART`      | onf/voltha-adapter-simulated | Helm chart to use to install simulated device adapter                               |
@@ -204,12 +201,6 @@ curl --fail -sSL --user karaf:karaf \
 	http://127.0.0.1:8181/onos/v1/network/configuration/apps/org.opencord.sadis \
 	--data @<selected SADIS configuration file>
 ```
-
-When using the `voltha up` script, if you specify `WITH_ONOS=yes` and `CONFIG_SADIS=yes`
-then the script will deploy a SADIS configuration based on the setting of `WITH_TP`. If
-you would like to deploy a custom SADIS configuration then you can place that in the
-file `onos-file/onos-sadis.json` and it will be used instead of the default SADIS
-configuration files.
 
 ## Install VOLTHA Core
 VOLTHA has two main _parts_: core and adapters. The **core** provides the main

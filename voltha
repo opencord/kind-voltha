@@ -73,19 +73,24 @@ WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
-WITH_TP=${WITH_TP:-yes}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
 SKIP_RESTART_API=${SKIP_RESTART_API:-no}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
-USE_GO=${USE_GO:-yes}
 WAIT_ON_DOWN=${WAIT_ON_DOWN:-no}
 VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
-VOLTHA_CHART=${VOLTHA_CHART:=onf/voltha}
+VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
+VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
+VOLTHA_BBSIM_CHART=${VOLTHA_BBSIM_CHART:-onf/bbsim}
+VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
+VOLTHA_ADAPTER_SIM_CHART_VERSION=${VOLTHA_ADAPTER_SIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
+VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
+VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
+
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -123,7 +128,6 @@ ALL_YES_NO="\
     WITH_BBSIM \
     WITH_RADIUS \
     WITH_ONOS \
-    WITH_TP \
     CONFIG_SADIS \
     JUST_K8S \
     DEPLOY_K8S \
@@ -131,7 +135,6 @@ ALL_YES_NO="\
     SKIP_RESTART_API \
     INSTALL_KUBECTL \
     INSTALL_HELM \
-    USE_GO \
     WAIT_ON_DOWN \
     "
 
@@ -141,10 +144,15 @@ ALL_OPTIONS="\
     $ALL_YES_NO \
     VOLTHA_LOG_LEVEL \
     VOLTHA_CHART \
+    VOLTHA_CHART_VERSION \
+    VOLTHA_BBSIM_CHART \
+    VOLTHA_BBSIM_CHART_VERSION \
     VOLTHA_ADAPTER_SIM_CHART \
+    VOLTHA_ADAPTER_SIM_CHART_VERSION \
     VOLTHA_ADAPTER_OPEN_OLT_CHART \
+    VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION \
     VOLTHA_ADAPTER_OPEN_ONU_CHART \
-    ONOS_TAG \
+    VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
     VOLTHA_API_PORT \
@@ -159,13 +167,6 @@ for VAR in $ALL_YES_NO; do
         exit 1;
     fi
 done
-
-# Convert USE_GO from yes/no to true/false for helm chart usage
-if [ "$USE_GO" == "yes" ]; then
-    USE_GO=true
-else
-    USE_GO=false
-fi
 
 mkdir -p .voltha
 touch .voltha/ports
@@ -200,10 +201,6 @@ echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 cp $PORTTMP .voltha/ports
 rm -f $PORTTMP
 
-ONOS_TAG=${ONOS_TAG:-}
-if [ "$WITH_TP" == "yes" -a "$ONOS_TAG X" == " X" ]; then
-    ONOS_TAG="voltha-1.7"
-fi
 export ONOS_API_PORT ONOS_SSH_PORT
 
 IDX=1
@@ -619,9 +616,6 @@ echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOL
 echo "OPTIONS" >> $LOG
 for O in $ALL_OPTIONS; do
     VAL=$(eval echo \$$O)
-    if [ $O == "USE_GO" ]; then
-        VAL="$(echo $VAL| test $(grep -c true) -eq 1 && echo yes || echo no)"
-    fi
     if [ ! -z "$VAL" ]; then
         printf "    %-30s = %s\n" $O $VAL >> $LOG
     fi
@@ -635,17 +629,25 @@ helm_install() {
     local NAMESPACE=$1; shift
     local INAME=$1; shift
     local CHART=$1; shift
+    local CHART_VERSION=$1; shift
     local MESSAGE=$*
+
+    echo "CHART_VERSION=\"$CHART_VERSION\""
+    if [ "$CHART_VERSION X" != " X" -a "$CHART_VERSION" != "latest" ]; then
+        CHART_VERSION="--version $CHART_VERSION"
+    else
+        CHART_VERSION=
+    fi
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml --set use_go=$USE_GO --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
-            (set -x; helm install -f $NAME-values.yaml --set use_go=$USE_GO --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; helm install -f $NAME-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
             COUNT=$(expr 300 / 15)
         fi
         sleep .15
@@ -871,7 +873,7 @@ STIME=$(date +%s)
 bspin "Verify ETCD Operator $OLD_KEY"
 if [ $(helm list --deployed --short --namespace voltha "^etcd-operator\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED 
-    helm_install - voltha etcd-operator stable/etcd-operator "Install ETCD Operator"
+    helm_install - voltha etcd-operator stable/etcd-operator latest "Install ETCD Operator"
 else
     espin $VERIFIED
 fi
@@ -886,11 +888,7 @@ if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
     if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        SET_TAG=
-        if [ "$ONOS_TAG X" != " X" ]; then
-            SET_TAG="--set images.onos.tag=$ONOS_TAG"
-        fi
-        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos "Install ONOS"
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos latest "Install ONOS"
     else
         espin $VERIFIED
     fi
@@ -912,7 +910,7 @@ if [ $WITH_ONOS == "yes" ]; then
     espin - $VERIFIED
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     ONOS_FILES="olt-onos-enableExtraneousRules.json  olt-onos-olt-settings.json onos-aaa.json \
-        onos-dhcpl2relay.json onos-kafka.json onos-sadis-no-tp.json onos-sadis-tp.json"
+        onos-dhcpl2relay.json onos-kafka.json onos-sadis-sample.json"
     (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
     for i in $ONOS_FILES; do
         if [ ! -r ./onos-files/$i ]; then
@@ -941,10 +939,7 @@ if [ $WITH_ONOS == "yes" ]; then
     if [ -f onos-files/onos-sadis.json ]; then
         push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
     elif [ "$CONFIG_SADIS" == "yes" ]; then
-        SADIS_CFG=onos-files/onos-sadis-no-tp.json
-        if [ "$WITH_TP" == "yes" ]; then
-            SADIS_CFG=onos-files/onos-sadis-tp.json
-        fi
+        SADIS_CFG=onos-files/onos-sadis-sample.json
         push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
     fi
 fi
@@ -956,12 +951,12 @@ STIME=$(date +%s)
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
-    helm_install - voltha voltha $VOLTHA_CHART "Install VOLTHA Core"
+    helm_install - voltha voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
 else
     espin $VERIFIED
 fi
 
-VOLTHA="ofagent-.* \
+VOLTHA="voltha-ofagent-.* \
     ro-core.* \
     rw-core.* \
     voltha-api-server-.* \
@@ -980,7 +975,7 @@ echo -e "Verify Adapters $PLUG"
 bspin - "Verify Simulated Adapters installed"
 if [ $(helm list --deployed --short --namespace voltha "^sim\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
-    helm_install - voltha sim $VOLTHA_ADAPTER_SIM_CHART "Install Simulated Adapters"
+    helm_install - voltha sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "Install Simulated Adapters"
 else
     espin - $VERIFIED
 fi
@@ -988,14 +983,14 @@ fi
 bspin - "Verify OpenOLT Adapter installed"
 if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
-    helm_install - voltha open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART "Install OpenOLT Adapter"
+    helm_install - voltha open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "Install OpenOLT Adapter"
 else
     espin - $VERIFIED
 fi
 bspin - "Verify OpenONU Adapter installed"
 if [ $(helm list --deployed --short --namespace voltha "^open-onu\$" | wc -l) -ne 1 ]; then
     espin - $NOT_VERIFIED
-    helm_install - voltha open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART "Install OpenONU Adapter"
+    helm_install - voltha open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "Install OpenONU Adapter"
 else
     espin - $VERIFIED
 fi
@@ -1012,7 +1007,7 @@ if [ $WITH_BBSIM == "yes" ]; then
     bspin - "Verify BBSIM Installed"
     if [ $(helm list --deployed --short --namespace voltha "^bbsim\$" | wc -l) -ne 1 ]; then
         espin - $NOT_VERIFIED
-        helm_install - voltha bbsim onf/bbsim "Install BBSIM"
+        helm_install - voltha bbsim $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM"
     else
         espin - $VERIFIED
     fi
@@ -1028,7 +1023,7 @@ if [ $WITH_RADIUS == "yes" ]; then
     bspin - "Verify RADIUS Installed"
     if [ $(helm list --deployed --short --namespace voltha "^radius\$" | wc -l) -ne 1 ]; then
         espin - $NOT_VERIFIED
-        helm_install - voltha radius onf/freeradius "Install RADIUS"
+        helm_install - voltha radius onf/freeradius latest "Install RADIUS"
     else
         espin - $VERIFIED
     fi
@@ -1041,10 +1036,10 @@ fi
 STIME=$(date +%s)
 if [ $SKIP_RESTART_API == "no" ]; then
     echo -e "Restart VOLTHA API $RESTART"
-    API="voltha-api-server-.* ofagent-.*"
-    (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
+    API="voltha-api-server-.* voltha-ofagent-.*"
+    (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server voltha-ofagent >>$LOG 2>&1) >>$LOG 2>&1
     wait_for_pods - "voltha" 0 "includes" -1 "Wait for API to stop $STOP" $API
-    (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server ofagent >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server voltha-ofagent >>$LOG 2>&1) >>$LOG 2>&1
     wait_for_pods - "voltha" 2 "includes" -1 "Wait for API to re-start $GO" $API
 else
     bspin "Skip VOLTHA API Restart"
@@ -1090,9 +1085,6 @@ fi
 
 for O in $ALL_OPTIONS; do
     VAL=$(eval echo \$$O)
-    if [ $O == "USE_GO" ]; then
-        VAL="$(echo $VAL| test $(grep -c true) -eq 1 && echo yes || echo no)"
-    fi
     if [ ! -z "$VAL" -a $(grep -c "^export $O=" $NAME-env.sh) -eq 0 ]; then
         echo "export $O=\"$(eval echo \$$O)\"" >> $NAME-env.sh
     fi
