@@ -42,40 +42,40 @@ images:
 # is no need to utilize this list.
 #images:
 #  onos:
-#    repositry: voltha/voltha-onos
+#    repository: voltha/voltha-onos
 #    tag: 2.1.0
 #  adapter_open_olt:
-#    repositry: voltha/voltha-openolt-adapter
+#    repository: voltha/voltha-openolt-adapter
 #    tag: 2.1.1
 #  adapter_open_onu:
-#    repositry: voltha/voltha-openonu-adapter
+#    repository: voltha/voltha-openonu-adapter
 #    tag: 2.1.0
 #  adapter_simulated_olt:
-#    repositry: voltha/voltha-adapter-simulated-olt
+#    repository: voltha/voltha-adapter-simulated-olt
 #    tag: 2.1.1
 #  adapter_simulated_olt:
-#    repositry: voltha/voltha-adapter-simulated-onu
+#    repository: voltha/voltha-adapter-simulated-onu
 #    tag: 2.1.1
 #  bbsim:
-#    repositry: voltha/voltha-bbsim
+#    repository: voltha/voltha-bbsim
 #    tag: 2.1.0
 #  afrouter:
-#    repositry: voltha/voltha-afrouter
+#    repository: voltha/voltha-afrouter
 #    tag: 2.1.1
 #  afrouterd:
-#    repositry: voltha/voltha-afrouterd
+#    repository: voltha/voltha-afrouterd
 #    tag: 2.1.1
 #  cli:
-#    repositry: voltha/voltha-cli
+#    repository: voltha/voltha-cli
 #    tag: 2.1.1
 #  ofagent:
-#    repositry: voltha/voltha-ofagent
+#    repository: voltha/voltha-ofagent
 #    tag: 2.1.1
 #  ro_core:
-#    repositry: voltha/voltha-ro-core
+#    repository: voltha/voltha-ro-core
 #    tag: 2.1.1
 #  rw_core:
-#    repositry: voltha/voltha-rw-core
+#    repository: voltha/voltha-rw-core
 #    tag: 2.1.1
 
 deployments:
@@ -85,6 +85,7 @@ deployments:
 
 voltha-etcd-cluster:
   clusterSize: 1
+  autoCompactionRetention: 1
 
 onos_env:
 - name: POD_IP
