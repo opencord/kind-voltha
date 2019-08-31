@@ -1,0 +1,8 @@
+config:
+  dryRun: false
+  whitelistedNamespaces: voltha
+  debug:
+    enabled: true
+    schedule_immediate_kill: true
+args:
+  logLevel: 5

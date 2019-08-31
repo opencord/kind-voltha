@@ -40,42 +40,38 @@ images:
 # provided as a conveinence if you would like to override on a per image
 # basis. If you are using the defaults, master, or voltha-2.1 branch there
 # is no need to utilize this list.
-#images:
-#  onos:
-#    repositry: voltha/voltha-onos
-#    tag: 2.1.0
 #  adapter_open_olt:
-#    repositry: voltha/voltha-openolt-adapter
+#    repository: voltha/voltha-openolt-adapter
 #    tag: 2.1.1
 #  adapter_open_onu:
-#    repositry: voltha/voltha-openonu-adapter
+#    repository: voltha/voltha-openonu-adapter
 #    tag: 2.1.0
 #  adapter_simulated_olt:
-#    repositry: voltha/voltha-adapter-simulated-olt
+#    repository: voltha/voltha-adapter-simulated-olt
 #    tag: 2.1.1
-#  adapter_simulated_olt:
-#    repositry: voltha/voltha-adapter-simulated-onu
+#  adapter_simulated_onu:
+#    repository: voltha/voltha-adapter-simulated-onu
 #    tag: 2.1.1
 #  bbsim:
-#    repositry: voltha/voltha-bbsim
+#    repository: voltha/voltha-bbsim
 #    tag: 2.1.0
 #  afrouter:
-#    repositry: voltha/voltha-afrouter
+#    repository: voltha/voltha-afrouter
 #    tag: 2.1.1
 #  afrouterd:
-#    repositry: voltha/voltha-afrouterd
+#    repository: voltha/voltha-afrouterd
 #    tag: 2.1.1
 #  cli:
-#    repositry: voltha/voltha-cli
+#    repository: voltha/voltha-cli
 #    tag: 2.1.1
 #  ofagent:
-#    repositry: voltha/voltha-ofagent
+#    repository: voltha/voltha-ofagent
 #    tag: 2.1.1
 #  ro_core:
-#    repositry: voltha/voltha-ro-core
+#    repository: voltha/voltha-ro-core
 #    tag: 2.1.1
 #  rw_core:
-#    repositry: voltha/voltha-rw-core
+#    repository: voltha/voltha-rw-core
 #    tag: 2.1.1
 
 onos_env:
@@ -92,3 +88,111 @@ onos_env:
 
 # Customization for BBSIM
 kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
+
+# SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
+# The VOLTHA charts have support for adding extra labels to deployments and
+# pods. These extra labels can be used to integrate with other utilities
+# such as kube-monkey to add a bit of chaos to the cluster. Below are some
+# settings that can be uncommented to opt-in VOLTHA deployments/pods to
+# kube-monkey. For example, if you want ALL deployments and pods to opt-in
+# then uncomment the `extra_deployment_labels` and `extra_pod_label` blocks.
+# If you want to be more selected then comment the blocks that pertain to the
+# targets you care about.
+
+#extra_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#extra_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#rw_core_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#rw_core_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#ro_core_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#ro_core_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#openolt_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#openolt_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#openonu_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#openonu_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#simolt_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#simolt_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#simonu_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#simonu_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
