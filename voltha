@@ -71,6 +71,7 @@ WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
+WITH_CHAOS=${WITH_CHAOS:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -128,6 +129,7 @@ ALL_YES_NO="\
     WITH_BBSIM \
     WITH_RADIUS \
     WITH_ONOS \
+    WITH_CHAOS \
     CONFIG_SADIS \
     JUST_K8S \
     DEPLOY_K8S \
@@ -455,7 +457,11 @@ wait_for_pods() {
     local RETRY=$1; shift
     local MESSAGE=$1; shift
     local PATTERNS=$*
-    local HAVE=$(count_pods $NAMESPACE ":Running:" $PATTERNS)
+    local STATES=":Running:"
+    if [ "$TYPE" == "not" ]; then
+        STATES="*"
+    fi
+    local HAVE=$(count_pods $NAMESPACE "$STATES" $PATTERNS)
     local ALL=$HAVE
     if [ "$TYPE" == "only" ]; then
         ALL=$(count_pods "all-namespaces" "*" ".*")
@@ -468,7 +474,7 @@ wait_for_pods() {
             sspin $INDENT
             COUNT=$(expr $COUNT - 1)
             if [ $COUNT -eq 0 ]; then
-                HAVE=$(count_pods $NAMESPACE ":Running:" $PATTERNS)
+                HAVE=$(count_pods $NAMESPACE "$STATES" $PATTERNS)
                 ALL=$HAVE
                 if [ "$TYPE" == "only" ]; then
                     ALL=$(count_pods "all-namespaces" "*" ".*")
@@ -511,7 +517,6 @@ if [ "$1" == "down" ]; then
         if [ "$WAIT_ON_DOWN" == "yes" ]; then
             # There should only be 13 or 15 PODs in the kube-system name
             # space and no other PODs
-
             PODS="coredns-.* \
                 etcd-voltha-$NAME-control-plane \
                 kindnet-.* \
@@ -521,7 +526,14 @@ if [ "$1" == "down" ]; then
                 kube-scheduler-voltha-$NAME-control-plane \
                 tiller-deploy-.*"
             EXPECT=$(test "$TYPE" == "minimal" && echo "13" || echo "15")
-            wait_for_pods "all-namespaces" $EXPECT "only" -1 "Waiting for only system PODs to be running" $PODS
+            PODS="adapter-.* \
+                bbsim.* \
+                etcd-operator.* \
+                radius.* \
+                voltha-.*"
+            EXPECT=0
+
+            wait_for_pods "voltha" $EXPECT "not" -1 "Waiting for VOLTHA PODs to terminate" $PODS
         fi
     fi
     bspin "Remove port-forwards: onos-ui-$NAME"
@@ -632,22 +644,26 @@ helm_install() {
     local CHART_VERSION=$1; shift
     local MESSAGE=$*
 
-    echo "CHART_VERSION=\"$CHART_VERSION\""
     if [ "$CHART_VERSION X" != " X" -a "$CHART_VERSION" != "latest" ]; then
         CHART_VERSION="--version $CHART_VERSION"
     else
         CHART_VERSION=
     fi
 
+    local CHART_ARGS=
+    if [ -r "${INAME}-values.yaml" ]; then
+        CHART_ARGS="-f ${INAME}-values.yaml"
+    fi
+
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
-            (set -x; helm install -f $NAME-values.yaml --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; helm install -f $NAME-values.yaml $CHART_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
             COUNT=$(expr 300 / 15)
         fi
         sleep .15
@@ -728,7 +744,7 @@ if [ -x $GOPATH/bin/voltctl ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
-    bspin - "Download and build voltctl $DOWNLOAD"
+    bspin - "Download and install voltctl $DOWNLOAD"
     (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/ciena/voltctl/releases/download/$VOLTCTL_VERSION/voltctl-$_VOLTCTL_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/voltctl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
@@ -849,6 +865,31 @@ else
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
+fi
+
+STIME=$(date +%s)
+bspin "Verify or download chart specific values files $DOWNLOAD"
+VALUES_FILES="monkey-values.yaml"
+for i in $VALUES_FILES; do
+    if [ ! -r ./$i ]; then
+        (set -x; curl -o ./$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/$i >>$LOG 2>&1) >>$LOG 2>&1
+    fi
+done
+espin $VERIFIED
+if [ "$WITH_TIMINGS" == "yes" ]; then
+    printtime $(expr $(date +%s) - $STIME)
+fi
+
+if [ "$WITH_CHAOS" == "yes" ]; then
+    bspin "Verify or clone kube-monkey helm chart $DOWNLOAD"
+    if [ -r ./kube-monkey ]; then
+        espin $VERIFIED
+    else
+        espin $NOT_VERIFIED
+        bspin - "GIT clone kube-monkey"
+        (set -x; git clone https://github.com/asobti/kube-monkey kube-monkey >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    fi
 fi
 
 if [ "$JUST_K8S" == "yes" ]; then
@@ -1072,6 +1113,22 @@ if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
     bspin "Configure ONOS RADIUS Connection $GEAR"
     (set -x; cat onos-files/onos-aaa.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl -XPOST -sSL http://karaf:karaf@localhost:8181/onos/v1/network/configuration/apps/org.opencord.aaa -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
     espin $VERIFIED
+fi
+
+if [ "$WITH_CHAOS" == "yes" ]; then
+    STIME=$(date +%s)
+    echo -e "Verify kube-monkey $LOCK"
+    bspin - "Verify kube-monkey Installed"
+    if [ $(helm list --deployed --short --namespace kube-monkey "^monkey\$" | wc -l) -ne 1 ]; then
+        espin - $NOT_VERIFIED
+        helm_install - kube-monkey monkey ./kube-monkey/helm/kubemonkey latest "Install Chaos Monkey"
+    else
+        espin - $VERIFIED
+    fi
+    wait_for_pods - "kube-monkey" 1 "includes" -1 "Waiting for Chaos to start" "monkey-.*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        printtime $(expr $(date +%s) - $STIME)
+    fi
 fi
 
 bspin "Create voltctl configuration file"
