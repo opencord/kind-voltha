@@ -795,7 +795,7 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
 fi
 
 STIME=$(date +%s)
-COUNT=$(count_pods "kube-system" "tiller-deploy-.*")
+COUNT=$(count_pods "kube-system" ":Running:" "tiller-deploy-.*")
 bspin "Verify Helm"
 if [ $COUNT -ne 1 ]; then
     espin $NOT_VERIFIED
