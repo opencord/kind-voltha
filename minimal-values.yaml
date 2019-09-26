@@ -20,8 +20,8 @@
 # set "<VALUE>" to "master". Similarly, if you want to use the images 
 # generated from the HEAD of the "voltha-2.1" git branches, then uncomment
 # this block and replace "<VALUE>" with "voltha-2.1".
-#defaults:
-#  image_tag: <VALUE>
+defaults:
+  image_tag: voltha-2.1
 
 images:
   onos:
@@ -32,7 +32,7 @@ images:
     # there is a need to specify the exact image repository and image tag.
     # If you would like to use the "master", "voltha-2.1", or other image 
     # just replace the "tag" value below.
-    tag: 2.1.0
+    tag: voltha-2.1
 
 # IMAGE_SELECTION
 # ---------------
@@ -52,9 +52,9 @@ images:
 #  adapter_simulated_onu:
 #    repository: voltha/voltha-adapter-simulated-onu
 #    tag: 2.1.1
-#  bbsim:
-#    repository: voltha/voltha-bbsim
-#    tag: 2.1.0
+  bbsim:
+    repository: voltha/voltha-bbsim
+    tag: voltha-2.1
 #  afrouter:
 #    repository: voltha/voltha-afrouter
 #    tag: 2.1.1
@@ -146,6 +146,20 @@ onus_per_pon_port: 1
 #  kube-monkey/kill-value: 1
 #
 #ro_core_pod_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#ofagent_deployment_labels:
+#  kube-monkey/enabled: enabled
+#  kube-monkey/identifier: monkey-victim
+#  kube-monkey/mtbf: 1
+#  kube-monkey/kill-mode: fixed
+#  kube-monkey/kill-value: 1
+#
+#ofagent_pod_labels:
 #  kube-monkey/enabled: enabled
 #  kube-monkey/identifier: monkey-victim
 #  kube-monkey/mtbf: 1
