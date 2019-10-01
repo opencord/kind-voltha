@@ -72,6 +72,9 @@ WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
 WITH_CHAOS=${WITH_CHAOS:-no}
+WITH_ADAPTERS=${WITH_ADAPTERS:-yes}
+WITH_SIM_ADAPTERS=${WITH_SIM_ADAPTERS:-yes}
+WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -79,6 +82,7 @@ DEPLOY_K8S=${DEPLOY_K8S:-yes}
 SKIP_RESTART_API=${SKIP_RESTART_API:-yes}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
+UPDATE_HELM_REPOS=${UPDATE_HELM_REPOS:-yes}
 WAIT_ON_DOWN=${WAIT_ON_DOWN:-no}
 VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
@@ -130,6 +134,9 @@ ALL_YES_NO="\
     WITH_RADIUS \
     WITH_ONOS \
     WITH_CHAOS \
+    WITH_ADAPTERS \
+    WITH_SIM_ADAPTERS \
+    WITH_OPEN_ADAPTERS \
     CONFIG_SADIS \
     JUST_K8S \
     DEPLOY_K8S \
@@ -137,6 +144,7 @@ ALL_YES_NO="\
     SKIP_RESTART_API \
     INSTALL_KUBECTL \
     INSTALL_HELM \
+    UPDATE_HELM_REPOS \
     WAIT_ON_DOWN \
     "
 
@@ -847,6 +855,11 @@ if [ $COUNT -ne 1 ]; then
     espin - $VERIFIED
 else
     espin $VERIFIED
+    if [ "$UPDATE_HELM_REPOS" == "yes" ]; then
+        bspin - "Update Helm repository cache"
+        (set -x; helm repo update >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    fi
 fi
 wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
 if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1005,41 +1018,51 @@ VOLTHA="voltha-ofagent-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
+#EXPECT=$(test "$TYPE" == "minimal" && echo "8" || echo "11")
 EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
 wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
 
-STIME=$(date +%s)
-echo -e "Verify Adapters $PLUG"
-bspin - "Verify Simulated Adapters installed"
-if [ $(helm list --deployed --short --namespace voltha "^sim\$" | wc -l) -ne 1 ]; then
-    espin - $NOT_VERIFIED
-    helm_install - voltha sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "Install Simulated Adapters"
-else
-    espin - $VERIFIED
-fi
-
-bspin - "Verify OpenOLT Adapter installed"
-if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
-    espin - $NOT_VERIFIED
-    helm_install - voltha open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "Install OpenOLT Adapter"
-else
-    espin - $VERIFIED
-fi
-bspin - "Verify OpenONU Adapter installed"
-if [ $(helm list --deployed --short --namespace voltha "^open-onu\$" | wc -l) -ne 1 ]; then
-    espin - $NOT_VERIFIED
-    helm_install - voltha open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "Install OpenONU Adapter"
-else
-    espin - $VERIFIED
-fi
-
-ADAPTERS="adapter-.*"
-wait_for_pods - "voltha" 4 "includes" -1 "Waiting for adapters to start" $ADAPTERS
-if [ "$WITH_TIMINGS" == "yes" ]; then
-    printtime $(expr $(date +%s) - $STIME)
+if [ "$WITH_ADAPTERS" == "yes" ]; then
+    STIME=$(date +%s)
+    EXPECT=0
+    echo -e "Verify Adapters $PLUG"
+    if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
+        bspin - "Verify Simulated Adapters installed"
+        if [ $(helm list --deployed --short --namespace voltha "^sim\$" | wc -l) -ne 1 ]; then
+            espin - $NOT_VERIFIED
+            helm_install - voltha sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "Install Simulated Adapters"
+        else
+            espin - $VERIFIED
+        fi
+        EXPECT=$(expr $EXPECT + 2)
+    fi
+    
+    if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
+        bspin - "Verify OpenOLT Adapter installed"
+        if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
+            espin - $NOT_VERIFIED
+            helm_install - voltha open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "Install OpenOLT Adapter"
+        else
+            espin - $VERIFIED
+        fi
+        bspin - "Verify OpenONU Adapter installed"
+        if [ $(helm list --deployed --short --namespace voltha "^open-onu\$" | wc -l) -ne 1 ]; then
+            espin - $NOT_VERIFIED
+            helm_install - voltha open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "Install OpenONU Adapter"
+        else
+            espin - $VERIFIED
+        fi
+        EXPECT=$(expr $EXPECT + 2)
+    fi
+    
+    ADAPTERS="adapter-.*"
+    wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for adapters to start" $ADAPTERS
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        printtime $(expr $(date +%s) - $STIME)
+    fi
 fi
 
 if [ $WITH_BBSIM == "yes" ]; then
