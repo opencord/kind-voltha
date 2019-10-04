@@ -88,7 +88,7 @@ VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
 VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
 VOLTHA_BBSIM_CHART=${VOLTHA_BBSIM_CHART:-onf/bbsim}
-VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-latest}
+VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-2.1.1}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
 VOLTHA_ADAPTER_SIM_CHART_VERSION=${VOLTHA_ADAPTER_SIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
@@ -357,7 +357,7 @@ if [ "$1" == "get" -a "$2" == "voltconfig" ]; then
     exit
 fi
 
-if [ $# -ne 1 -o $(echo ":up:down:dump:" | grep -c ":$1:") -ne 1 ]; then 
+if [ $# -ne 1 -o $(echo ":up:down:dump:" | grep -c ":$1:") -ne 1 ]; then
     >&2 echo "What wouild you like to do today:"
     >&2 echo "  up   - bring up voltha"
     >&2 echo "  down - tear down voltha"
@@ -570,7 +570,7 @@ if [ "$1" == "down" ]; then
         (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
     done
     espin "$VERIFIED Remove port-forwards$CEOL"
-    exit 
+    exit
 fi
 
 if [ "$1" == "dump" ]; then
@@ -598,7 +598,7 @@ if [ "$1" == "dump" ]; then
     (set -x; kubectl get --all-namespaces events >> $DATA/all-events.txt 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     bspin - "Dumping VOLTHA POD details"
-    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')" 
+    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')"
     for POD in $PODS; do
         NS=$(echo $POD | cut -d: -f1)
         POD=$(echo $POD | cut -d: -f2)
@@ -643,7 +643,7 @@ for O in $ALL_OPTIONS; do
     fi
 done
 
-helm_install() { 
+helm_install() {
     local INDENT=
     if [ "$1" == "-" ]; then
         INDENT=$1; shift
@@ -822,13 +822,13 @@ if [ $COUNT -ne 1 ]; then
     bspin - "Add Google Incubator repository to Helm"
     (set -x; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-   
+
     # HACK (sort-of) - the config for tiller is about to be patched, which will
     # cause the tiller pod to be recreated. This can sometimes cause a timing
     # issue with the "wait_for_pods" call on tiller as it may incorrectly
-    # identify the running/ready tiller pod that is soon to be terminated as 
+    # identify the running/ready tiller pod that is soon to be terminated as
     # what it is waiting for. To avoid this issue we do a clean scale down and
-    # scale up of the pod so the script controlls when it should be expecting 
+    # scale up of the pod so the script controlls when it should be expecting
     # things
     (set -x; kubectl -n kube-system scale deploy tiller-deploy --replicas=0 >>$LOG 2>&1) >>$LOG 2>&1
 
@@ -841,7 +841,7 @@ if [ $COUNT -ne 1 ]; then
     bspin - "Update Helm repository cache"
     (set -x; helm repo update >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
-    
+
     # Create and k8s service account so that Helm can create pods
     bspin - "Create Tiller ServiceAccount"
     (set -x; kubectl create serviceaccount --namespace kube-system tiller >>$LOG 2>&1) >>$LOG 2>&1
@@ -928,7 +928,7 @@ fi
 STIME=$(date +%s)
 bspin "Verify ETCD Operator $OLD_KEY"
 if [ $(helm list --deployed --short --namespace voltha "^etcd-operator\$" | wc -l) -ne 1 ]; then
-    espin $NOT_VERIFIED 
+    espin $NOT_VERIFIED
     helm_install - voltha etcd-operator stable/etcd-operator latest "Install ETCD Operator"
 else
     espin $VERIFIED
@@ -949,7 +949,7 @@ if [ $WITH_ONOS == "yes" ]; then
         espin $VERIFIED
     fi
     wait_for_pods - "default" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
-    
+
     bspin - "Forward ONOS API port $FORWARD"
     for i in $(screen -ls | grep onos-ui-$NAME | awk '{print $1}'); do
         (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
@@ -987,7 +987,7 @@ if [ $WITH_ONOS == "yes" ]; then
             espin - "$NOT_VERIFIED Installing custom ONOS applications - None Found"
         fi
     fi
-  
+
     push_onos_config "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.kafka" "onos-files/onos-kafka.json"
     push_onos_config "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
     push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
@@ -1041,7 +1041,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         fi
         EXPECT=$(expr $EXPECT + 2)
     fi
-    
+
     if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
         if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
@@ -1059,7 +1059,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         fi
         EXPECT=$(expr $EXPECT + 2)
     fi
-    
+
     ADAPTERS="adapter-.*"
     wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for adapters to start" $ADAPTERS
     if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1199,4 +1199,3 @@ echo "Thank you for choosing kind-voltha for you quick cluster needs." | tee -a 
 if [ "$WITH_TIMINGS" == "yes" ]; then
     echo -e "$CLOCK  ${BOLD}TOTAL: $(duration $(expr $(date +%s) - $TOTAL_START_TIME))${NORMAL}"
 fi
-
