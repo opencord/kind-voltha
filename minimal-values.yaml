@@ -46,21 +46,21 @@ images:
 #  adapter_open_onu:
 #    repository: voltha/voltha-openonu-adapter
 #    tag: 2.1.0
-#  adapter_simulated_olt:
-#    repository: voltha/voltha-adapter-simulated-olt
-#    tag: 2.1.1
-#  adapter_simulated_onu:
-#    repository: voltha/voltha-adapter-simulated-onu
-#    tag: 2.1.1
+  adapter_simulated_olt:
+    repository: voltha/voltha-adapter-simulated-olt
+    tag: master
+  adapter_simulated_onu:
+    repository: voltha/voltha-adapter-simulated-onu
+    tag: master
   bbsim:
     repository: voltha/voltha-bbsim
     tag: voltha-2.1
-#  afrouter:
-#    repository: voltha/voltha-afrouter
-#    tag: 2.1.1
-#  afrouterd:
-#    repository: voltha/voltha-afrouterd
-#    tag: 2.1.1
+  afrouter:
+    repository: voltha/voltha-afrouter
+    tag: master
+  afrouterd:
+    repository: voltha/voltha-afrouterd
+    tag: master
 #  cli:
 #    repository: voltha/voltha-cli
 #    tag: 2.1.1

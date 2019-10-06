@@ -599,6 +599,10 @@ if [ "$1" == "dump" ]; then
     espin - $VERIFIED
     bspin - "Dumping VOLTHA POD details"
     PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')" 
+    SINCE=
+    if [ ! -z "$DUMP_FROM" ]; then
+        SINCE="--since-time=$DUMP_FROM"
+    fi
     for POD in $PODS; do
         NS=$(echo $POD | cut -d: -f1)
         POD=$(echo $POD | cut -d: -f2)
@@ -606,9 +610,9 @@ if [ "$1" == "dump" ]; then
         mkdir -p $DATA/$POD
         (set -x; kubectl describe -n $NS $POD >> $DATA/$POD/describe.txt 2>&1) >>$LOG 2>&1
         sspin - "Dumping VOLTHA POD details: $POD"
-        (set -x; kubectl logs -n $NS --all-containers --previous $LOG_ARGS $POD >> $DATA/$POD/logs-previous.txt 2>&1) >>$LOG 2>&1
+        (set -x; kubectl logs -n $NS --all-containers $SINCE --previous $LOG_ARGS $POD >> $DATA/$POD/logs-previous.txt 2>&1) >>$LOG 2>&1
         sspin - "Dumping VOLTHA POD details: $POD"
-        (set -x; kubectl logs -n $NS --all-containers $LOG_ARGS $POD >> $DATA/$POD/logs-current.txt 2>&1) >>$LOG 2>&1
+        (set -x; kubectl logs -n $NS --all-containers $SINCE $LOG_ARGS $POD >> $DATA/$POD/logs-current.txt 2>&1) >>$LOG 2>&1
         sspin - "Dumping VOLTHA POD details: $POD"
     done
     espin - "$VERIFIED Dumping VOLTHA POD details$CEOL"

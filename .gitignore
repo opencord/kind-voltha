@@ -6,3 +6,6 @@ src
 install.log
 *.swp
 *.log
+logger/*
+voltha-debug-dump-minimal*
+voltha-system-tests
