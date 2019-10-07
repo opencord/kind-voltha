@@ -88,7 +88,7 @@ VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
 VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
 VOLTHA_BBSIM_CHART=${VOLTHA_BBSIM_CHART:-onf/bbsim}
-VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-2.1.1}
+VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
 VOLTHA_ADAPTER_SIM_CHART_VERSION=${VOLTHA_ADAPTER_SIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
@@ -598,7 +598,7 @@ if [ "$1" == "dump" ]; then
     (set -x; kubectl get --all-namespaces events >> $DATA/all-events.txt 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     bspin - "Dumping VOLTHA POD details"
-    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')" 
+    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')"
     SINCE=
     if [ ! -z "$DUMP_FROM" ]; then
         SINCE="--since-time=$DUMP_FROM"

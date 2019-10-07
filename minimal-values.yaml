@@ -17,7 +17,7 @@
 # By default no defaults are set and the image tags specified in the helm
 # charts will be used. If you would like to use the images generated from the
 # HEAD of the "master" git branches, then uncomment this below block and
-# set "<VALUE>" to "master". Similarly, if you want to use the images 
+# set "<VALUE>" to "master". Similarly, if you want to use the images
 # generated from the HEAD of the "voltha-2.1" git branches, then uncomment
 # this block and replace "<VALUE>" with "voltha-2.1".
 defaults:
@@ -30,7 +30,7 @@ images:
     # ---------------
     # The helm chart used to deploy ONOS is the public ONOS helm chart so,
     # there is a need to specify the exact image repository and image tag.
-    # If you would like to use the "master", "voltha-2.1", or other image 
+    # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
     tag: voltha-2.1
 
@@ -53,8 +53,8 @@ images:
     repository: voltha/voltha-adapter-simulated-onu
     tag: master
   bbsim:
-    repository: voltha/voltha-bbsim
-    tag: voltha-2.1
+    repository: voltha/bbsim
+    tag: master
   afrouter:
     repository: voltha/voltha-afrouter
     tag: master
