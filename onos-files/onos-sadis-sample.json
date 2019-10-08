@@ -9,7 +9,7 @@
     },
     "entries": [
       {
-        "id": "BBSIMOLT000",
+        "id": "BBSIM_OLT_0",
         "hardwareIdentifier": "0f:f1:ce:c0:ff:ee",
         "nasId": "BBSIMOLT000",
         "uplinkPort": 65536
@@ -20,6 +20,39 @@
         "sTag": 900,
         "nasPortId": "BBSM00000001-1",
         "circuitId": "BBSM00000001-1",
+        "remoteId": "BBSIMOLT000",
+        "technologyProfileId": 64,
+        "upstreamBandwidthProfile": "Default",
+        "downstreamBandwidthProfile": "Default"
+      },
+      {
+        "id": "BBSM00000002-1",
+        "cTag": 901,
+        "sTag": 900,
+        "nasPortId": "BBSM00000002-1",
+        "circuitId": "BBSM00000002-1",
+        "remoteId": "BBSIMOLT000",
+        "technologyProfileId": 64,
+        "upstreamBandwidthProfile": "Default",
+        "downstreamBandwidthProfile": "Default"
+      },
+      {
+        "id": "BBSM00000101-1",
+        "cTag": 902,
+        "sTag": 900,
+        "nasPortId": "BBSM00000101-1",
+        "circuitId": "BBSM00000101-1",
+        "remoteId": "BBSIMOLT000",
+        "technologyProfileId": 64,
+        "upstreamBandwidthProfile": "Default",
+        "downstreamBandwidthProfile": "Default"
+      },
+      {
+        "id": "BBSM00000102-1",
+        "cTag": 903,
+        "sTag": 900,
+        "nasPortId": "BBSM00000102-1",
+        "circuitId": "BBSM00000102-1",
         "remoteId": "BBSIMOLT000",
         "technologyProfileId": 64,
         "upstreamBandwidthProfile": "Default",
