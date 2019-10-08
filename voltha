@@ -576,6 +576,9 @@ fi
 if [ "$1" == "dump" ]; then
     LOG="dump-$NAME.log"
     TS=$(date -u +"%Y%m%dT%H%M%SZ")
+    if [ ! -z "$DUMP_FROM" ]; then
+        TS=$(echo $DUMP_FROM | sed -e 's/[:-]//g')
+    fi
     WORK=$(mktemp -u -d)
     DATA=$WORK/voltha-debug-dump-$NAME-$TS
     mkdir -p $DATA

@@ -15,6 +15,12 @@
 
 # this script repeatedly invokes the e2e system test on a VOLTHA instance
 
+NAME=${NAME:-minimal}
+EXIT_ON_FAIL=${EXIT_ON_FAIL:-no}
+INCLUDE_LOG_DIR=${INCLUDE_LOG_DIR:-}
+
+# === END OF CONFIGURATION ===
+
 set -o pipefail
 
 if [ ! -r voltha-system-tests ]; then
@@ -73,7 +79,7 @@ LOG=$(mktemp)
 while true; do 
   RUN_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   echo "START RUN $RUN @ $RUN_TS" | tee -a $LOG
-  DEPLOY_K8S=y WITH_BBSIM=y ./voltha up
+  DEPLOY_K8S=y WITH_BBSIM=y WITH_SADIS=y WITH_RADIUS=y ./voltha up
   # because BBSIM needs time
   sleep 60
   ETCD=$(kubectl -n voltha get pods | grep etcd-cluster | awk '{print $1}')
@@ -103,7 +109,34 @@ while true; do
       FAILURE_LIST+=($COUNT_SINCE_FAIL)
       COUNT_SINCE_FAIL=0
       DUMP_FROM=$RUN_TS ./voltha dump
-      ./voltha down
+      C_TS=$(echo $RUN_TS | sed -e 's/[:-]//g')
+
+      if [ ! -z "$INCLUDE_LOG_DIR" ]; then
+          # Now that we have the dump compressed tar file, expand it into a temp
+          # area, augment it with the extended (combined) log files and then
+          # repackage it
+          WORK=$(mktemp -d)
+          tar -C $WORK -zxf voltha-debug-dump-$NAME-$C_TS.tgz
+          mkdir $WORK/voltha-debug-dump-$NAME-$C_TS/logs
+          for LOG in $(ls -1 $INCLUDE_LOG_DIR/*.log.[0-9]*); do
+              LOG_NAME=$(basename $LOG)
+              WORK_LOG=$(mktemp)
+              cat $LOG | awk "{if ( \$1 >= \"$RUN_TS\" ) print}" > $WORK_LOG
+              if [ $(stat -c %s $WORK_LOG) -eq 0 ]; then
+                  rm -f $WORK_LOG
+              else
+                  mv $WORK_LOG $WORK/voltha-debug-dump-$NAME-$C_TS/logs/$LOG_NAME
+              fi
+          done
+
+          tar -C $WORK -czf voltha-debug-dump-$NAME-$C_TS.tgz ./voltha-debug-dump-$NAME-$C_TS
+      fi
+
+      if [ "$EXIT_ON_FAIL" == "yes" ]; then
+          exit
+      fi
+
+      DEPLOY_K8S=n ./voltha down
   fi
   echo "END RUN: $RUN @ $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a $LOG
   COMPLETED=$(expr $COMPLETED + 1)

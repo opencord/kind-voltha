@@ -54,9 +54,12 @@ while true; do
             NS=$(echo $POD | cut -d: -f1)
             POD=$(echo $POD | cut -d: -f2 | sed -e 's/^pod\///g')
             echo "    $POD"
-            kubectl logs --timestamps=true $SINCE_FLAG -n $NS --all-containers $LOG_ARGS $POD 2>&1 > $WORK/$POD.log
+            kubectl logs --timestamps=true $SINCE_FLAG -n $NS --all-containers $LOG_ARGS $POD 2>/dev/null > $WORK/$POD.log
             if [ $? -ne 0 ]; then
                 echo "        ERROR: Encountered while getting POD log, removing failed entry"
+                rm -f $WORK/$POD.log
+            elif [ $(cat $WORK/$POD.log | wc -l) -eq 0 ]; then
+                # empty
                 rm -f $WORK/$POD.log
             fi
         done
