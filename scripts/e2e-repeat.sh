@@ -18,6 +18,8 @@
 NAME=${NAME:-minimal}
 EXIT_ON_FAIL=${EXIT_ON_FAIL:-no}
 INCLUDE_LOG_DIR=${INCLUDE_LOG_DIR:-}
+BBSIM_ONU_SN=${BBSIM_ONIU_SN:-BBSM00000001}
+BBSIM_OLT_SN=${BBSIM_OLT_SN:-BBSIM_OLT_0}
 
 # === END OF CONFIGURATION ===
 
@@ -89,7 +91,7 @@ while true; do
             $(kubectl -n voltha exec -ti $ETCD \
             -- sh -c 'ETCDCTL_API=3 etcdctl endpoint status -w json' | tr -d '\r\n' | jq .[].Status.dbSize))
   BEFORE_RSS=$(ps -eo rss,pid,cmd | grep /usr/local/bin/etcd | grep -v grep | cut -d\  -f1 | numfmt --to=iec)
-  (cd voltha-system-tests; make sanity-kind 2>&1 | tee $LOG)
+  (cd voltha-system-tests; BBSIM_OLT_SN=$BBSIM_OLT_SN BBSIM_ONU_SN=$BBSIM_ONU_SN make sanity-kind 2>&1 | tee $LOG)
   FAIL=$?
   AFTER_KEY_COUNT=$(kubectl -n voltha exec -ti $ETCD \
       -- sh -c 'ETCDCTL_API=3 etcdctl get --command-timeout=60s --from-key=true --keys-only . | sed -e "/^$/d" | wc -l | tr -d "\r\n"')
