@@ -21,7 +21,7 @@
 # generated from the HEAD of the "voltha-2.1" git branches, then uncomment
 # this block and replace "<VALUE>" with "voltha-2.1".
 defaults:
-  image_tag: voltha-2.1
+  image_tag: master
 
 images:
   onos:
@@ -32,7 +32,7 @@ images:
     # there is a need to specify the exact image repository and image tag.
     # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
-    tag: voltha-2.1
+    tag: master
 
 # IMAGE_SELECTION
 # ---------------
@@ -46,21 +46,21 @@ images:
 #  adapter_open_onu:
 #    repository: voltha/voltha-openonu-adapter
 #    tag: 2.1.0
-  adapter_simulated_olt:
-    repository: voltha/voltha-adapter-simulated-olt
-    tag: master
-  adapter_simulated_onu:
-    repository: voltha/voltha-adapter-simulated-onu
-    tag: master
-  bbsim:
-    repository: voltha/bbsim
-    tag: master
-  afrouter:
-    repository: voltha/voltha-afrouter
-    tag: master
-  afrouterd:
-    repository: voltha/voltha-afrouterd
-    tag: master
+#  adapter_simulated_olt:
+#    repository: voltha/voltha-adapter-simulated-olt
+#    tag: master
+#  adapter_simulated_onu:
+#    repository: voltha/voltha-adapter-simulated-onu
+#    tag: master
+#  bbsim:
+#    repository: voltha/bbsim
+#    tag: master
+#  afrouter:
+#    repository: voltha/voltha-afrouter
+#    tag: master
+#  afrouterd:
+#    repository: voltha/voltha-afrouterd
+#    tag: master
 #  cli:
 #    repository: voltha/voltha-cli
 #    tag: 2.1.1
