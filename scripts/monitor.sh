@@ -16,7 +16,7 @@
 # This script sets up a watch with information that is valuable when
 # developing voltha with k8s
 
-watch '$HOME/kind-voltha/bin/kubectl get --all-namespaces pods,svc && echo "" \
+$HOME/kind-voltha/bin/kubectl get --all-namespaces pods,svc && echo "" \
     &&  kubectl  describe --all-namespaces  pods | grep Image: | grep voltha | sed -e "s/^ *//g" -e "s/: */: /g"  && echo "" \
     && echo "DB SIZE: $(./scripts/etcd-db-size.sh)" && echo "" \
-    && echo "RSS SIZE: $(ps -eo rss,pid,cmd | grep /usr/local/bin/etcd | grep -v grep | cut -d\  -f1 | numfmt --to=iec)"'
+    && echo "RSS SIZE: $(ps -eo rss,pid,cmd | grep /usr/local/bin/etcd | grep -v grep | cut -d\  -f1 | numfmt --to=iec | tr '\n' ' ' )"

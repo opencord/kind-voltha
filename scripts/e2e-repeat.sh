@@ -78,13 +78,19 @@ RSS_DIFFS=()
 KEY_DIFFS=()
 SIZE_DIFFS=()
 LOG=$(mktemp)
+FIRST=1
 while true; do 
   RUN_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   echo "START RUN $RUN @ $RUN_TS" | tee -a $LOG
-  DEPLOY_K8S=y WITH_BBSIM=y WITH_SADIS=y WITH_RADIUS=y ./voltha up
+  if [ $FIRST -eq 1 ]; then
+      DEPLOY_K8S=y WITH_BBSIM=y WITH_SADIS=y WITH_RADIUS=y CONFIG_SADIS=y ./voltha up
+      FIRST=0
+  else
+      helm install --wait -f full-values.yaml --set defaults.log_level=WARN --namespace voltha --name bbsim onf/bbsim
+  fi
   # because BBSIM needs time
   sleep 60
-  ETCD=$(kubectl -n voltha get pods | grep etcd-cluster | awk '{print $1}')
+  ETCD=$(kubectl -n voltha get pods | grep etcd-cluster | awk '{print $1}' | head -1)
   BEFORE_KEY_COUNT=$(kubectl -n voltha exec -ti $ETCD \
       -- sh -c 'ETCDCTL_API=3 etcdctl get --command-timeout=60s --from-key=true --keys-only . | sed -e "/^$/d" | wc -l | tr -d "\r\n"')
   BEFORE_SIZE=$(numfmt --to=iec \

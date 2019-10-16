@@ -72,7 +72,6 @@ WITH_BBSIM=yes voltha up
 | `WITH_CHAOS`                    | no                           | Starts kube-monkey to introduce chaos                                               |
 | `CONFIG_SADIS`                  | no                           | Configure SADIS entries into ONOS, if WITH_ONOS set (see SADIS Configuration        |    
 | `INSTALL_ONOS_APPS`             | no                           | Replaces/installs ONOS OAR files in onos-files/onos-apps                            |
-| `SKIP_RESTART_API`              | no                           | Should the VOLTHA API service be restarted after install to avoid known bug?        |
 | `INSTALL_KUBECTL`               | yes                          | Should a copy of `kubectl` be installed locally?                                    |
 | `INSTALL_HELM`                  | yes                          | Should a copy of `helm` be installed locallly?                                      |
 | `VOLTHA_LOG_LEVEL`              | WARN                         | Log level to set for VOLTHA core processes                                          |

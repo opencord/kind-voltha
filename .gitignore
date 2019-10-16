@@ -9,3 +9,4 @@ install.log
 logger/*
 voltha-debug-dump-minimal*
 voltha-system-tests
+voltha-debug-dump-*

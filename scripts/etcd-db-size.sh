@@ -17,7 +17,7 @@
 
 set -o pipefail
 
-ETCD=$(kubectl -n voltha get pods 2>&1 | grep etcd-cluster | awk '{print $1}')
+ETCD=$(kubectl -n voltha get pods 2>&1 | grep etcd-cluster | awk '{print $1}' | head -1)
 if [ -z  "$ETCD" ]; then
     echo "N/A"
 else

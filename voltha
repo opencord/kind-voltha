@@ -79,7 +79,6 @@ CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
-SKIP_RESTART_API=${SKIP_RESTART_API:-yes}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
 UPDATE_HELM_REPOS=${UPDATE_HELM_REPOS:-yes}
@@ -141,7 +140,6 @@ ALL_YES_NO="\
     JUST_K8S \
     DEPLOY_K8S \
     INSTALL_ONOS_APPS \
-    SKIP_RESTART_API \
     INSTALL_KUBECTL \
     INSTALL_HELM \
     UPDATE_HELM_REPOS \
@@ -1107,15 +1105,6 @@ if [ $WITH_RADIUS == "yes" ]; then
 fi
 
 STIME=$(date +%s)
-if [ $SKIP_RESTART_API == "no" ]; then
-    echo -e "Restart VOLTHA API $RESTART"
-    API="voltha-api-server-.* voltha-ofagent-.*"
-    (set -x; kubectl scale --replicas=0 deployment -n voltha voltha-api-server voltha-ofagent >>$LOG 2>&1) >>$LOG 2>&1
-    wait_for_pods - "voltha" 0 "includes" -1 "Wait for API to stop $STOP" $API
-    (set -x; kubectl scale --replicas=1 deployment -n voltha voltha-api-server voltha-ofagent >>$LOG 2>&1) >>$LOG 2>&1
-    wait_for_pods - "voltha" 2 "includes" -1 "Wait for API to re-start $GO" $API
-fi
-
 bspin - "Forward VOLTHA API port $FORWARD"
 for i in $(screen -ls | grep voltha-api-$NAME | awk '{print $1}'); do
     (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
