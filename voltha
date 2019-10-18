@@ -26,7 +26,7 @@ function ctrl_c() {
     echo -en $CNORM
     echo ""
     echo "ctrl-c trapped"
-    echo "Thank you for trying 'votlha up'"
+    echo "Thank you for trying 'voltha up'"
     exit
 }
 
@@ -745,7 +745,7 @@ else
     else
         espin $NOT_VERIFIED
         bspin - "Download and install Helm $DOWNLOAD"
-        (set -x; curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl -sSL https://git.io/get_helm.sh | DESIRED_VERSION=v2.14.3  USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>$LOG 2>&1) >>$LOG 2>&1
         espin - $VERIFIED
     fi
 fi
