@@ -189,18 +189,19 @@ if [ "$HAVE X" == " X" ]; then
         START=$(expr $START + 1)
     done
     DELTA=$(expr $START - 81)
-    ONOS_API_PORT=${START}81
-    ONOS_SSH_PORT=${START}01
-    VOLTHA_API_PORT=5$(expr 55 + $DELTA)55
-    VOLTHA_SSH_PORT=$(expr 50 + $DELTA)22
-    VOLTHA_ETCD_PORT=$(expr 23 + $DELTA)79
+    ONOS_API_PORT=${ONOS_API_PORT:-${START}81}
+    ONOS_SSH_PORT=${ONOS_SSH_PORT:-${START}01}
+    VOLTHA_API_PORT=${VOLTHA_API_PORT:-5$(expr 55 + $DELTA)55}
+    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$(expr 50 + $DELTA)22}
+    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(expr 23 + $DELTA)79}
 else
     VALUES=$(echo $HAVE | sed -e 's/\s//g' | cut -d= -f2)
-    ONOS_API_PORT=$(echo $VALUES | cut -d, -f1)
-    ONOS_SSH_PORT=$(echo $VALUES | cut -d, -f2)
-    VOLTHA_API_PORT=$(echo $VALUES | cut -d, -f3)
-    VOLTHA_SSH_PORT=$(echo $VALUES | cut -d, -f4)
-    VOLTHA_ETCD_PORT=$(echo $VALUES | cut -d, -f5)
+    echo "VALUES = $VALUES"
+    ONOS_API_PORT=${ONOS_API_PORT:-$(echo $VALUES | cut -d, -f1)}
+    ONOS_SSH_PORT=${ONOS_SSH_PORT:-$(echo $VALUES | cut -d, -f2)}
+    VOLTHA_API_PORT=${VOLTHA_API_PORT:-$(echo $VALUES | cut -d, -f3)}
+    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$(echo $VALUES | cut -d, -f4)}
+    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(echo $VALUES | cut -d, -f5)}
 fi
 
 PORTTMP=$(mktemp -u)
