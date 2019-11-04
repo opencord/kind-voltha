@@ -99,8 +99,8 @@ onos_env:
 kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
 pon_ports: 1
 onus_per_pon_port: 1
-auth: false
-dhcp: false
+auth: true
+dhcp: true
 
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
