@@ -17,7 +17,7 @@
 # By default no defaults are set and the image tags specified in the helm
 # charts will be used. If you would like to use the images generated from the
 # HEAD of the "master" git branches, then uncomment this below block and
-# set "<VALUE>" to "master". Similarly, if you want to use the images 
+# set "<VALUE>" to "master". Similarly, if you want to use the images
 # generated from the HEAD of the "voltha-2.1" git branches, then uncomment
 # this block and replace "<VALUE>" with "voltha-2.1".
 #defaults:
@@ -30,7 +30,7 @@ images:
     # ---------------
     # The helm chart used to deploy ONOS is the public ONOS helm chart so,
     # there is a need to specify the exact image repository and image tag.
-    # If you would like to use the "master", "voltha-2.1", or other image 
+    # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
     tag: 2.1.0
 
@@ -88,6 +88,10 @@ onos_env:
 
 # Customization for BBSIM
 kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
+pon_ports: 1
+onus_per_pon_port: 1
+auth: true
+dhcp: true
 
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
