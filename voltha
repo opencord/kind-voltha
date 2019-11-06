@@ -1129,7 +1129,7 @@ fi
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
     bspin "Configure ONOS RADIUS Connection $GEAR"
-    (set -x; cat onos-files/onos-aaa.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl -XPOST -sSL http://karaf:karaf@localhost:8181/onos/v1/network/configuration/apps/org.opencord.aaa -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; cat onos-files/onos-aaa.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl --fail -sSL --user karaf:karaf -X POST http://127.0.0.1:$ONOS_API_PORT/onos/v1/network/configuration/apps/org.opencord.aaa -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
     espin $VERIFIED
 fi
 
