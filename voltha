@@ -510,17 +510,18 @@ port_forward() {
 kill_port_forward() {
     local TAG=$1-$NAME
     local PIDS=$(ps e -ww | grep "_TAG=$TAG" | grep -v grep | awk '{print $1}')
+    local PARENTS=
     local KIDS=
     if [ ! -z "$PIDS" ]; then
         for P in $PIDS; do
-            if [ $(ps -o ppid $P | tail -n +2) -eq 1 ]; then
-                (set -x; kill -9 $P >>$LOG 2>&1) >>$LOG 2>&1
+            if [ $(ps -o ppid $P | tail -n +2)  -eq 1 ]; then
+                PARENTS="$PARENTS $P"
             else
                 KIDS="$KIDS $P"
             fi
         done
         if [ ! -z "$KIDS" ]; then
-            (set -x; kill -9 $KIDS >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; kill -9 $PARENTS $KIDS >>$LOG 2>&1) >>$LOG 2>&1
         fi
     fi
 }
