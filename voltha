@@ -540,8 +540,8 @@ if [ "$1" == "down" ]; then
     kill_port_forward onos-ssh
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
     kill_port_forward voltha-api
-    sspin "Remove port-forwards: voltha-ssh-$NAME$CEOL"
-    kill_port_forward voltha-ssh
+    sspin "Remove port-forwards: voltha-cli-$NAME$CEOL"
+    kill_port_forward voltha-cli
     sspin "Remove port-forwards: voltha-etcd-$NAME$CEOL"
     kill_port_forward voltha-etcd-cluster-client
     espin "$VERIFIED Remove port-forwards$CEOL"
@@ -1129,8 +1129,8 @@ kill_port_forward voltha-api
 port_forward voltha voltha-api $VOLTHA_API_PORT 55555
 espin - $VERIFIED
 bspin - "Forward VOLTHA SSH port $FORWARD"
-kill_port_forward voltha-ssh
-port_forward voltha voltha-ssh $VOLTHA_SSH_PORT 5022
+kill_port_forward voltha-cli
+port_forward voltha voltha-cli $VOLTHA_SSH_PORT 5022
 espin - $VERIFIED
 bspin - "Forward VOLTHA ETCD port $FORWARD"
 kill_port_forward voltha-etcd-cluster-client
