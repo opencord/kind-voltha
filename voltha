@@ -509,20 +509,24 @@ port_forward() {
 
 kill_port_forward() {
     local TAG=$1-$NAME
-    local PIDS=$(ps e -ww | grep "_TAG=$TAG" | grep -v grep | awk '{print $1}')
+    local P_IDS=$(ps e -ww -A | grep "_TAG=$TAG" | grep -v grep | awk '{print $1}')
     local PARENTS=
     local KIDS=
-    if [ ! -z "$PIDS" ]; then
-        for P in $PIDS; do
-            if [ $(ps -o ppid $P | tail -n +2)  -eq 1 ]; then
-                PARENTS="$PARENTS $P"
+    local UNKNOWN=
+    if [ ! -z "$P_IDS" ]; then
+        for P_ID in $P_IDS; do
+            local PP_ID=$(ps -o ppid $P_ID | tail -n +2)
+            if [ ! -z "$PP_ID" ]; then
+                if [ $PP_ID -eq 1 ]; then
+                    PARENTS="$PARENTS $P_ID"
+                else
+                    KIDS="$KIDS $P_ID"
+                fi
             else
-                KIDS="$KIDS $P"
+                UNKNOWN="$UNKNOWN $P_ID"
             fi
         done
-        if [ ! -z "$KIDS" ]; then
-            (set -x; kill -9 $PARENTS $KIDS >>$LOG 2>&1) >>$LOG 2>&1
-        fi
+        (set -x; kill -9 $PARENTS $KIDS $UNKNOWN >>$LOG 2>&1) >>$LOG 2>&1
     fi
 }
 
@@ -1041,7 +1045,6 @@ VOLTHA="voltha-ofagent-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
-#EXPECT=$(test "$TYPE" == "minimal" && echo "8" || echo "11")
 EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
 wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
