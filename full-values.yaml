@@ -20,8 +20,8 @@
 # set "<VALUE>" to "master". Similarly, if you want to use the images
 # generated from the HEAD of the "voltha-2.1" git branches, then uncomment
 # this block and replace "<VALUE>" with "voltha-2.1".
-#defaults:
-#  image_tag: <VALUE>
+defaults:
+  image_tag: master
 
 images:
   onos:
@@ -32,7 +32,7 @@ images:
     # there is a need to specify the exact image repository and image tag.
     # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
-    tag: 2.1.0
+    tag: master
 
 # IMAGE_SELECTION
 # ---------------

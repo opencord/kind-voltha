@@ -31,7 +31,7 @@ function ctrl_c() {
 }
 
 VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
-KIND_VERSION=${KIND_VERSION:-v0.4.0}
+KIND_VERSION=${KIND_VERSION:-v0.5.1}
 _VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
 
 BLACK=
@@ -75,6 +75,7 @@ WITH_CHAOS=${WITH_CHAOS:-no}
 WITH_ADAPTERS=${WITH_ADAPTERS:-yes}
 WITH_SIM_ADAPTERS=${WITH_SIM_ADAPTERS:-yes}
 WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
+ONLY_ONE=${ONLY_ONE:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -94,7 +95,7 @@ VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
-
+EXTRA_HELM_INSTALL_ARGS=
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -144,6 +145,7 @@ ALL_YES_NO="\
     INSTALL_HELM \
     UPDATE_HELM_REPOS \
     WAIT_ON_DOWN \
+    ONLY_ONE \
     "
 
 ALL_OPTIONS="\
@@ -497,10 +499,54 @@ wait_for_pods() {
     return 0
 }
 
+port_forward() {
+    local NS=$1
+    local SVC=$2
+    local FROM_PORT=$3
+    local TO_PORT=$4
+    local TAG=$SVC-$NAME
+
+    (set -x; _TAG=$TAG bash -c "while true; do kubectl port-forward -n $NS service/$SVC $FROM_PORT:$TO_PORT; done" >>$LOG 2>&1 &) >>$LOG 2>&1
+}
+
+kill_port_forward() {
+    local TAG=$1-$NAME
+    local P_IDS=$(ps e -ww -A | grep "_TAG=$TAG" | grep -v grep | awk '{print $1}')
+    local PARENTS=
+    local KIDS=
+    local UNKNOWN=
+    if [ ! -z "$P_IDS" ]; then
+        for P_ID in $P_IDS; do
+            local PP_ID=$(ps -o ppid $P_ID | tail -n +2)
+            if [ ! -z "$PP_ID" ]; then
+                if [ $PP_ID -eq 1 ]; then
+                    PARENTS="$PARENTS $P_ID"
+                else
+                    KIDS="$KIDS $P_ID"
+                fi
+            else
+                UNKNOWN="$UNKNOWN $P_ID"
+            fi
+        done
+        (set -x; kill -9 $PARENTS $KIDS $UNKNOWN >>$LOG 2>&1) >>$LOG 2>&1
+    fi
+}
+
 if [ "$1" == "down" ]; then
     echo "Tearing down voltha cluster $NAME"
     LOG="down-$NAME.log"
     echo $(date -u +"%Y%m%dT%H%M%SZ") >$LOG
+    bspin "Remove port-forwards: onos-ui-$NAME"
+    kill_port_forward onos-ui
+    sspin "Remove port-forwards: onos-ssh-$NAME$CEOL"
+    kill_port_forward onos-ssh
+    sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
+    kill_port_forward voltha-api
+    sspin "Remove port-forwards: voltha-cli-$NAME$CEOL"
+    kill_port_forward voltha-cli
+    sspin "Remove port-forwards: voltha-etcd-$NAME$CEOL"
+    kill_port_forward voltha-etcd-cluster-client
+    espin "$VERIFIED Remove port-forwards$CEOL"
     if [ $DEPLOY_K8S == "yes" ]; then
         if [ -x ./bin/kind ]; then
             bspin "Delete Kubernetes Kind Cluster"
@@ -516,7 +562,7 @@ if [ "$1" == "down" ]; then
         for i in $EXISTS; do
             if [ $(echo $EXPECT | grep -c $i) -eq 1 ]; then
                 sspin "Remove Helm Deployments: $i$CEOL"
-                (set -x; ./bin/helm delete --purge $i >>$LOG 2>&1) >>$LOG 2>&1
+                (set -x; ./bin/helm delete --no-hooks --purge $i >>$LOG 2>&1) >>$LOG 2>&1
             fi
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
@@ -542,32 +588,6 @@ if [ "$1" == "down" ]; then
             wait_for_pods "voltha" $EXPECT "not" -1 "Waiting for VOLTHA PODs to terminate" $PODS
         fi
     fi
-    bspin "Remove port-forwards: onos-ui-$NAME"
-    for i in $(screen -ls | grep onos-ui-$NAME | awk '{print $1}'); do
-        sspin
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-    sspin "Remove port-forwards: onos-ssh-$NAME$CEOL"
-    for i in $(screen -ls | grep onos-ssh-$NAME | awk '{print $1}'); do
-        sspin
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-    sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
-    for i in $(screen -ls | grep voltha-api-$NAME | awk '{print $1}'); do
-        sspin
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-    sspin "Remove port-forwards: voltha-ssh-$NAME$CEOL"
-    for i in $(screen -ls | grep voltha-ssh-$NAME | awk '{print $1}'); do
-        sspin
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-    sspin "Remove port-forwards: voltha-etcd-$NAME$CEOL"
-    for i in $(screen -ls | grep voltha-etcd-$NAME | awk '{print $1}'); do
-        sspin
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-    espin "$VERIFIED Remove port-forwards$CEOL"
     exit
 fi
 
@@ -672,7 +692,7 @@ helm_install() {
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
@@ -719,11 +739,18 @@ if [ "$DEPLOY_K8S" == "no" ]; then
     espin $NO_ENTRY
 else
     bspin "Verify Kubernetes/Kind $HELM"
+    IS_INSTALLED=0
+    OP_TYPE="install"
     if [ -x $GOPATH/bin/kind ]; then
-        espin $VERIFIED
-    else
+        OP_TYPE="upgrade"
+        if [ $($GOPATH/bin/kind --version | grep -c $KIND_VERSION) -eq 1 ]; then
+            IS_INSTALLED=1
+            espin $VERIFIED
+        fi
+    fi
+    if [ $IS_INSTALLED -eq 0 ]; then
         espin $NOT_VERIFIED
-        bspin - "Download and install Kubernetes/kind $DOWNLOAD"
+        bspin - "Download and $OP_TYPE Kubernetes/kind $DOWNLOAD"
         (set -x; curl -o $GOPATH/bin/kind -sSL https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
         (set -x; chmod 755 $GOPATH/bin/kind >>$LOG 2>&1) >>$LOG 2>&1
         espin - $VERIFIED
@@ -749,6 +776,7 @@ else
         espin - $VERIFIED
     fi
 fi
+
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -956,18 +984,12 @@ if [ $WITH_ONOS == "yes" ]; then
     wait_for_pods - "default" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
 
     bspin - "Forward ONOS API port $FORWARD"
-    for i in $(screen -ls | grep onos-ui-$NAME | awk '{print $1}'); do
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-    (set -x; screen -dmS onos-ui-$NAME bash -c "while true; do kubectl port-forward service/onos-ui $ONOS_API_PORT:8181; done" >>$LOG 2>&1) >>$LOG 2>&1
+    kill_port_forward onos-ui
+    port_forward default onos-ui $ONOS_API_PORT 8181
     espin - $VERIFIED
     bspin - "Forward ONOS SSH port $FORWARD"
-    for i in $(screen -ls | grep onos-ssh-$NAME | awk '{print $1}'); do
-        (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-    done
-
-
-    (set -x; screen -dmS onos-ssh-$NAME bash -c "while true; do kubectl port-forward service/onos-ssh $ONOS_SSH_PORT:8101; done" >>$LOG 2>&1) >>$LOG 2>&1
+    kill_port_forward onos-ssh
+    port_forward default onos-ssh $ONOS_SSH_PORT 8101
     espin - $VERIFIED
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     ONOS_FILES="olt-onos-enableExtraneousRules.json  olt-onos-olt-settings.json onos-aaa.json \
@@ -1012,7 +1034,11 @@ STIME=$(date +%s)
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
+    if [ "$ONLY_ONE" == "yes" ]; then
+        EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"=
+    fi
     helm_install - voltha voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
+    EXTRA_HELM_INSTALL_ARGS=
 else
     espin $VERIFIED
 fi
@@ -1025,8 +1051,11 @@ VOLTHA="voltha-ofagent-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
-#EXPECT=$(test "$TYPE" == "minimal" && echo "8" || echo "11")
-EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
+if [ "$ONLY_ONE" == "yes" ]; then
+    EXPECT=$(test "$TYPE" == "minimal" && echo "6" || echo "8")
+else
+    EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
+fi
 wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
@@ -1106,22 +1135,16 @@ fi
 
 STIME=$(date +%s)
 bspin - "Forward VOLTHA API port $FORWARD"
-for i in $(screen -ls | grep voltha-api-$NAME | awk '{print $1}'); do
-    (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-done
-(set -x; screen -dmS voltha-api-$NAME bash -c "while true; do kubectl port-forward -n voltha service/voltha-api $VOLTHA_API_PORT:55555; done" >>$LOG 2>&1) >>$LOG 2>&1
+kill_port_forward voltha-api
+port_forward voltha voltha-api $VOLTHA_API_PORT 55555
 espin - $VERIFIED
 bspin - "Forward VOLTHA SSH port $FORWARD"
-for i in $(screen -ls | grep voltha-ssh-$NAME | awk '{print $1}'); do
-    (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-done
-(set -x; screen -dmS voltha-ssh-$NAME bash -c "while true; do kubectl port-forward -n voltha service/voltha-cli $VOLTHA_SSH_PORT:5022; done" >>$LOG 2>&1) >>$LOG 2>&1
+kill_port_forward voltha-cli
+port_forward voltha voltha-cli $VOLTHA_SSH_PORT 5022
 espin - $VERIFIED
 bspin - "Forward VOLTHA ETCD port $FORWARD"
-for i in $(screen -ls | grep voltha-etcd-$NAME | awk '{print $1}'); do
-    (set -x; screen -X -S $i quit >>$LOG 2>&1) >>$LOG 2>&1
-done
-(set -x; screen -dmS voltha-etcd-$NAME bash -c "while true; do kubectl port-forward -n voltha service/voltha-etcd-cluster-client $VOLTHA_ETCD_PORT:2379; done" >>$LOG 2>&1) >>$LOG 2>&1
+kill_port_forward voltha-etcd-cluster-client
+port_forward voltha voltha-etcd-cluster-client $VOLTHA_ETCD_PORT 2379
 espin - $VERIFIED
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
