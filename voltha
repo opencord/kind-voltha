@@ -75,6 +75,7 @@ WITH_CHAOS=${WITH_CHAOS:-no}
 WITH_ADAPTERS=${WITH_ADAPTERS:-yes}
 WITH_SIM_ADAPTERS=${WITH_SIM_ADAPTERS:-yes}
 WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
+ONLY_ONE=${ONLY_ONE:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -94,7 +95,7 @@ VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
-
+EXTRA_HELM_INSTALL_ARGS=
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -144,6 +145,7 @@ ALL_YES_NO="\
     INSTALL_HELM \
     UPDATE_HELM_REPOS \
     WAIT_ON_DOWN \
+    ONLY_ONE \
     "
 
 ALL_OPTIONS="\
@@ -690,7 +692,7 @@ helm_install() {
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
@@ -1032,7 +1034,11 @@ STIME=$(date +%s)
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
+    if [ "$ONLY_ONE" == "yes" ]; then
+        EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"=
+    fi
     helm_install - voltha voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
+    EXTRA_HELM_INSTALL_ARGS=
 else
     espin $VERIFIED
 fi
@@ -1045,7 +1051,11 @@ VOLTHA="voltha-ofagent-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
-EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
+if [ "$ONLY_ONE" == "yes" ]; then
+    EXPECT=$(test "$TYPE" == "minimal" && echo "6" || echo "8")
+else
+    EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
+fi
 wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
