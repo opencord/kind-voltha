@@ -79,6 +79,8 @@ WITH_BBSIM=yes voltha up
 | `VOLTHA_ADAPTER_SIM_CHART`      | onf/voltha-adapter-simulated | Helm chart to use to install simulated device adapter                               |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART` | onf/voltha-adapter-openolt   | Helm chart to use to install OpenOlt adapter                                        |
 | `VOLTHA_ADAPTER_OPEN_ONU_CHART` | onf/voltha-adapter-openonu   | Helm chart to use to install OpenOnu adapter                                        |
+| `ONLY_ONE`                      | no                           | Run a single `rw-core` and no `api-server`                                          |
+
 
 ## Create Kubernetes Cluster
 Kind provides a command line control tool to easily create Kubernetes clusters
