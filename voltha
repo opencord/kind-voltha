@@ -30,9 +30,8 @@ function ctrl_c() {
     exit
 }
 
-VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
+VOLTCTL_VERSION=${VOLTCTL_VERSION:-1.0.1}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
-_VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
 
 BLACK=
 RED=
@@ -788,7 +787,7 @@ if [ -x $GOPATH/bin/voltctl ]; then
 else
     espin $NOT_VERIFIED
     bspin - "Download and install voltctl $DOWNLOAD"
-    (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/ciena/voltctl/releases/download/$VOLTCTL_VERSION/voltctl-$_VOLTCTL_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/opencord/voltctl/releases/download/v$VOLTCTL_VERSION/voltctl-$VOLTCTL_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/voltctl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
