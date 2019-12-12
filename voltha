@@ -30,7 +30,7 @@ function ctrl_c() {
     exit
 }
 
-VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.8-dev}
+VOLTCTL_VERSION=${VOLTCTL_VERSION:-0.0.5-dev}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
 _VOLTCTL_VERSION=$(echo $VOLTCTL_VERSION | sed -e 's/-/_/g')
 
