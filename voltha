@@ -782,11 +782,27 @@ fi
 
 STIME=$(date +%s)
 bspin "Verify voltctl $HIGH_VOLTAGE"
+VOK=0
+VMESSAGE="install"
 if [ -x $GOPATH/bin/voltctl ]; then
+    VHAVE=$($GOPATH/bin/voltctl version --clientonly -o json 2>/dev/null | jq -r .version 2>/dev/null)
+    if [ "$VHAVE" == "$VOLTCTL_VERSION" ]; then
+        VOK=1
+    elif [ "$VHAVE X" != " X" ]; then
+        LT=$(printf "%s\n%s\n" "$VHAVE" "$VOLTCTL_VERSION" | sort -V | head -1)
+        if [ "$LT" == "$VOLTCTL_VERSION" ]; then
+            VOK=1
+        else
+            VMESSAGE="upgrade"
+        fi
+    fi
+fi
+
+if [ $VOK -eq 1 ]; then
     espin $VERIFIED
 else
     espin $NOT_VERIFIED
-    bspin - "Download and install voltctl $DOWNLOAD"
+    bspin - "Download and $VMESSAGE voltctl $DOWNLOAD"
     (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/opencord/voltctl/releases/download/v$VOLTCTL_VERSION/voltctl-$VOLTCTL_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/voltctl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
