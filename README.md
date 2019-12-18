@@ -59,6 +59,12 @@ with the BBSIM POD you could use the following command:
 WITH_BBSIM=yes voltha up
 ```
 
+To start a specific version of VOLTHA, e.g. 2.2, you could use the following command:
+```
+source releases/voltha-2.2 && voltha up
+```
+Please check the `releases` folder to see the available ones.
+
 | OPTION                          | DEFAULT                      | DESCRIPTION                                                                         |
 | ------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
 | `TYPE`                          | minimal                      | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
@@ -75,6 +81,7 @@ WITH_BBSIM=yes voltha up
 | `INSTALL_KUBECTL`               | yes                          | Should a copy of `kubectl` be installed locally?                                    |
 | `INSTALL_HELM`                  | yes                          | Should a copy of `helm` be installed locallly?                                      |
 | `VOLTHA_LOG_LEVEL`              | WARN                         | Log level to set for VOLTHA core processes                                          |
+| `ONOS_CHART_VERSION`            | latest                       | Version of helm chart for ONOS                                                      |
 | `VOLTHA_CHART`                  | onf/voltha                   | Helm chart to used to install voltha                                                |
 | `VOLTHA_ADAPTER_SIM_CHART`      | onf/voltha-adapter-simulated | Helm chart to use to install simulated device adapter                               |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART` | onf/voltha-adapter-openolt   | Helm chart to use to install OpenOlt adapter                                        |
