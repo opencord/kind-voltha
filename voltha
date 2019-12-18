@@ -541,8 +541,6 @@ if [ "$1" == "down" ]; then
     kill_port_forward onos-ssh
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
     kill_port_forward voltha-api
-    sspin "Remove port-forwards: voltha-cli-$NAME$CEOL"
-    kill_port_forward voltha-cli
     sspin "Remove port-forwards: voltha-etcd-$NAME$CEOL"
     kill_port_forward voltha-etcd-cluster-client
     espin "$VERIFIED Remove port-forwards$CEOL"
@@ -785,22 +783,16 @@ bspin "Verify voltctl $HIGH_VOLTAGE"
 VOK=0
 VMESSAGE="install"
 if [ -x $GOPATH/bin/voltctl ]; then
-    VHAVE=$($GOPATH/bin/voltctl version --clientonly -o json 2>/dev/null | jq -r .version 2>/dev/null)
-    if [ "$VHAVE" == "$VOLTCTL_VERSION" ]; then
+    VHAVE=$($GOPATH/bin/voltctl version --clientonly -o json | jq -r .version)
+    if [ $? -eq 0 -a "$VHAVE" == "$VOLTCTL_VERSION" ]; then
         VOK=1
-    elif [ "$VHAVE X" != " X" ]; then
-        LT=$(printf "%s\n%s\n" "$VHAVE" "$VOLTCTL_VERSION" | sort -V | head -1)
-        if [ "$LT" == "$VOLTCTL_VERSION" ]; then
-            VOK=1
-        else
-            VMESSAGE="upgrade"
-        fi
+        espin $VERIFIED
+    else
+        VMESSAGE="upgrade"
     fi
 fi
 
-if [ $VOK -eq 1 ]; then
-    espin $VERIFIED
-else
+if [ $VOK -eq 0 ]; then
     espin $NOT_VERIFIED
     bspin - "Download and $VMESSAGE voltctl $DOWNLOAD"
     (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/opencord/voltctl/releases/download/v$VOLTCTL_VERSION/voltctl-$VOLTCTL_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
@@ -1062,14 +1054,13 @@ VOLTHA="voltha-ofagent-.* \
     ro-core.* \
     rw-core.* \
     voltha-api-server-.* \
-    voltha-cli-server-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
 if [ "$ONLY_ONE" == "yes" ]; then
-    EXPECT=$(test "$TYPE" == "minimal" && echo "6" || echo "8")
+    EXPECT=$(test "$TYPE" == "minimal" && echo "5" || echo "7")
 else
-    EXPECT=$(test "$TYPE" == "minimal" && echo "9" || echo "11")
+    EXPECT=$(test "$TYPE" == "minimal" && echo "8" || echo "10")
 fi
 wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1152,10 +1143,6 @@ STIME=$(date +%s)
 bspin - "Forward VOLTHA API port $FORWARD"
 kill_port_forward voltha-api
 port_forward voltha voltha-api $VOLTHA_API_PORT 55555
-espin - $VERIFIED
-bspin - "Forward VOLTHA SSH port $FORWARD"
-kill_port_forward voltha-cli
-port_forward voltha voltha-cli $VOLTHA_SSH_PORT 5022
 espin - $VERIFIED
 bspin - "Forward VOLTHA ETCD port $FORWARD"
 kill_port_forward voltha-etcd-cluster-client

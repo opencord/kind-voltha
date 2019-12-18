@@ -23,6 +23,9 @@
 defaults:
   image_tag: master
 
+replicas:
+  cli: ~
+
 images:
   onos:
     repository: voltha/voltha-onos
