@@ -986,7 +986,7 @@ if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
     if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        helm_install - default onos onf/onos $ONOS_CHART_VERSION "Install ONOS"
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos $ONOS_CHART_VERSION "Install ONOS"
     else
         espin $VERIFIED
     fi
