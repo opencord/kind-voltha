@@ -695,7 +695,9 @@ helm_install() {
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
+            (set -x; helm delete --purge $INAME >>$LOG 2>&1) >>$LOG 2>&1
             (set -x; helm install -f $NAME-values.yaml $CHART_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+            SUCCESS=$?
             COUNT=$(expr 300 / 15)
         fi
         sleep .15
