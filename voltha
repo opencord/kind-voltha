@@ -94,6 +94,7 @@ VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapter-openonu}
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
+ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
@@ -162,6 +163,7 @@ ALL_OPTIONS="\
     VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION \
     VOLTHA_ADAPTER_OPEN_ONU_CHART \
     VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION \
+    ONOS_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
     VOLTHA_API_PORT \
@@ -986,7 +988,7 @@ if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
     if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos latest "Install ONOS"
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos onf/onos $ONOS_CHART_VERSION "Install ONOS"
     else
         espin $VERIFIED
     fi
