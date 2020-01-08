@@ -32,7 +32,7 @@ function ctrl_c() {
 
 VOLTCTL_VERSION=${VOLTCTL_VERSION:-1.0.1}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
-VK_RELEASE=${VK_RELEASE:-master}
+VK_RELEASE=${VK_RELEASE:-v2.2}
 
 BLACK=
 RED=
@@ -826,11 +826,19 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         if [ ! -r ./$NAME-cluster.cfg ]; then
             espin - $NOT_VERIFIED
 	        bspin - "Download cluster configuration: $TYPE-cluster.cfg to $NAME-cluster.cfg $DOWNLOAD"
-            (set -x; curl -o ./$NAME-cluster.cfg -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-cluster.cfg >>$LOG 2>&1) >>$LOG 2>&1
+            ERR_OUT=$(mktemp)
+            (set -x; curl --fail -o ./$NAME-cluster.cfg -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-cluster.cfg >>$LOG 2>>$ERR_OUT) >>$LOG 2>&1
+            if [ $? -ne 0 ]; then
+                espin - $THEX
+                echo -e "${RED}${BOLD}${ERROR}ERROR: $NAME-cluster.cfg${NORMAL}${RED} - $(cat $ERR_OUT)${NORMAL}"
+                echo "ERROR: $(cat $ERR_OUT)" >>$LOG
+                rm -rf $ERR_OUT ./$NAME-cluster.cfg
+                exit 1
+            fi
+            rm -rf $ERR_OUT
+        else
 	        espin - $VERIFIED
-	    else
-	        espin - $VERIFIED
-	    fi
+        fi
         kind create cluster --name voltha-$NAME --config $NAME-cluster.cfg
      else
         espin $VERIFIED
@@ -921,7 +929,16 @@ bspin "Verify Helm values file: $NAME-values.yaml"
 if [ ! -r "./$NAME-values.yaml" ]; then
     espin $NOT_VERIFIED
     bspin - "Download Helm values file: $TYPE-values.yaml to $NAME-values.yaml $DOWNLOAD"
-    (set -x; curl -o ./$NAME-values.yaml -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-values.yaml >>$LOG 2>&1) >>$LOG 2>&1
+    ERR_OUT=$(mktemp)
+    (set -x; curl --fail -o ./$NAME-values.yaml -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-values.yaml >>$LOG 2>$ERR_OUT) >>$LOG 2>&1
+    if [ $? -ne 0 ]; then
+        espin - $THEX
+        echo -e "${RED}${BOLD}${ERROR}ERROR: $NAME-values.yaml${NORMAL}${RED} - $(cat $ERR_OUT)${NORMAL}"
+        echo "ERROR: $(cat $ERR_OUT)" >>$LOG
+        rm -rf $ERR_OUT ./$NAME-values.yaml
+        exit 1
+    fi
+    rm -rf $ERR_OUT
     espin - $VERIFIED
 else
     espin $VERIFIED
@@ -933,9 +950,18 @@ fi
 STIME=$(date +%s)
 bspin "Verify or download chart specific values files $DOWNLOAD"
 VALUES_FILES="monkey-values.yaml"
+ERR_OUT=$(mktemp)
 for i in $VALUES_FILES; do
     if [ ! -r ./$i ]; then
-        (set -x; curl -o ./$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$i >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl --fail -o ./$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$i >>$LOG 2>$ERR_OUT) >>$LOG 2>&1
+        if [ $? -ne 0 ]; then
+            espin $THEX
+            echo -e "${RED}${BOLD}${ERROR}ERROR: $i${NORMAL}${RED} - $(cat $ERR_OUT)${NORMAL}"
+            echo "ERROR: $i - $(cat $ERR_OUT)" >>$LOG
+            rm -rf $ERR_OUT ./$i
+            exit 1
+        fi
+        rm -rf $ERR_OUT
     fi
 done
 espin $VERIFIED
@@ -1010,9 +1036,18 @@ if [ $WITH_ONOS == "yes" ]; then
     ONOS_FILES="olt-onos-enableExtraneousRules.json  olt-onos-olt-settings.json onos-aaa.json \
         onos-dhcpl2relay.json onos-kafka.json onos-sadis-sample.json"
     (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
+    ERR_OUT=$(mktemp)
     for i in $ONOS_FILES; do
         if [ ! -r ./onos-files/$i ]; then
-            (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; curl --fail -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/onos-files/$i >>$LOG 2>$ERR_OUT) >>$LOG 2>&1
+            if [ $? -ne 0 ]; then
+                espin - $THEX
+                echo -e "${RED}${BOLD}${ERROR}ERROR: $i${NORMAL}${RED} - $(cat $ERR_OUT)${NORMAL}"
+                echo "ERROR: $(cat $ERR_OUT)" >>$LOG
+                rm -rf $ERR_OUT ./onos-files/$i
+                exit 1
+            fi
+            rm -rf $ERR_OUT
         fi
     done
     espin - $VERIFIED
