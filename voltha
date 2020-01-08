@@ -32,6 +32,7 @@ function ctrl_c() {
 
 VOLTCTL_VERSION=${VOLTCTL_VERSION:-1.0.1}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
+VK_RELEASE=${VK_RELEASE:-2.2}
 
 BLACK=
 RED=
@@ -169,6 +170,9 @@ ALL_OPTIONS="\
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
     VOLTHA_ETCD_PORT \
+    VK_RELEASE \
+    KIND_VERSION \
+    VOLTCTL_VERSION \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -822,7 +826,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         if [ ! -r ./$NAME-cluster.cfg ]; then
             espin - $NOT_VERIFIED
 	        bspin - "Download cluster configuration: $TYPE-cluster.cfg to $NAME-cluster.cfg $DOWNLOAD"
-            (set -x; curl -o ./$NAME-cluster.cfg -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/$TYPE-cluster.cfg >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; curl -o ./$NAME-cluster.cfg -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-cluster.cfg >>$LOG 2>&1) >>$LOG 2>&1
 	        espin - $VERIFIED
 	    else
 	        espin - $VERIFIED
@@ -917,7 +921,7 @@ bspin "Verify Helm values file: $NAME-values.yaml"
 if [ ! -r "./$NAME-values.yaml" ]; then
     espin $NOT_VERIFIED
     bspin - "Download Helm values file: $TYPE-values.yaml to $NAME-values.yaml $DOWNLOAD"
-    (set -x; curl -o ./$NAME-values.yaml -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/$TYPE-values.yaml >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -o ./$NAME-values.yaml -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-values.yaml >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 else
     espin $VERIFIED
@@ -931,7 +935,7 @@ bspin "Verify or download chart specific values files $DOWNLOAD"
 VALUES_FILES="monkey-values.yaml"
 for i in $VALUES_FILES; do
     if [ ! -r ./$i ]; then
-        (set -x; curl -o ./$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/$i >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl -o ./$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$i >>$LOG 2>&1) >>$LOG 2>&1
     fi
 done
 espin $VERIFIED
@@ -1008,7 +1012,7 @@ if [ $WITH_ONOS == "yes" ]; then
     (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
     for i in $ONOS_FILES; do
         if [ ! -r ./onos-files/$i ]; then
-            (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
+            (set -x; curl -o ./onos-files/$i -sSL https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/onos-files/$i >>$LOG 2>&1) >>$LOG 2>&1
         fi
     done
     espin - $VERIFIED
