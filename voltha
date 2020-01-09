@@ -381,10 +381,26 @@ push_onos_config() {
         if [ $? -eq 0 ]; then
             break
         fi
-        sleep .2
+        sleep 1
         sspin -
     done
     espin - $VERIFIED
+}
+
+check_onos_app_active() {
+  local APP_ID=$1
+
+  bspin - "Checking that $APP_ID is active $CLOCK"
+  while true; do
+      (set -x; curl --fail -sSL --user karaf:karaf -X GET http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$APP_ID | grep ACTIVE >>$LOG 2>&1) >>$LOG 2>&1
+      if [ $? -eq 0 ]; then
+          break
+      fi
+      sleep 1
+      sspin -
+  done
+  sleep 5 # OSGI components take a little longer that the app to activate
+  espin - $VERIFIED
 }
 
 override_onos_app() {
@@ -1065,14 +1081,18 @@ if [ $WITH_ONOS == "yes" ]; then
         fi
     fi
 
+    check_onos_app_active org.opencord.kafka
     push_onos_config "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.kafka" "onos-files/onos-kafka.json"
+    check_onos_app_active org.opencord.dhcpl2relay
     push_onos_config "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
+    check_onos_app_active org.opencord.olt
     push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
     push_onos_config "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
     if [ -f onos-files/onos-sadis.json ]; then
         push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
     elif [ "$CONFIG_SADIS" == "yes" ]; then
         SADIS_CFG=onos-files/onos-sadis-sample.json
+        check_onos_app_active org.opencord.sadis
         push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
     fi
 fi
