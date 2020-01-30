@@ -83,7 +83,7 @@ DEPLOY_K8S=${DEPLOY_K8S:-yes}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
 UPDATE_HELM_REPOS=${UPDATE_HELM_REPOS:-yes}
-WAIT_ON_DOWN=${WAIT_ON_DOWN:-no}
+WAIT_ON_DOWN=${WAIT_ON_DOWN:-yes}
 VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
 VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
@@ -602,8 +602,13 @@ if [ "$1" == "down" ]; then
                 etcd-operator.* \
                 radius.* \
                 voltha-.*"
+
             EXPECT=0
 
+            if [ "$WITH_ONOS" == "yes" ]; then
+              ONOS_PODS="onos-.*"
+              wait_for_pods "default" $EXPECT "not" -1 "Waiting for ONOS PODs to terminate" $ONOS_PODS
+            fi
             wait_for_pods "voltha" $EXPECT "not" -1 "Waiting for VOLTHA PODs to terminate" $PODS
         fi
     fi
