@@ -23,6 +23,18 @@
 defaults:
   image_tag: master
 
+# OFAGENT IMPLEMENTATION
+# ----------------------
+# There are currently two implementations of OFAGENT: the original written in
+# Python and the reimplementation written in Go. The variable `use_ofagent_go`
+# can be used to optionally use the new Go implementation. This is done by
+# setting that value to `true`. Along with this change you will also need
+# to set the Docker image information below (search for START_OFAGENT_GO).
+use_ofagent_go: false
+
+ofagent:
+  log_level: debug
+
 replicas:
   cli: ~
 
@@ -67,8 +79,14 @@ images:
 #  cli:
 #    repository: voltha/voltha-cli
 #    tag: 2.1.1
+# START_OFAGENT_GO - Uncomment the following block to use the Go implementation
+# of the ofagent
 #  ofagent:
-#    repository: voltha/voltha-ofagent
+#    repository: volta/ofagent-go
+#    tag: master
+# END_OFAGENT_GO
+#  ofagent:
+#    repository: volta/voltha-ofagent-go
 #    tag: 2.1.1
 #  ro_core:
 #    repository: voltha/voltha-ro-core
