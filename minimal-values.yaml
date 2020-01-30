@@ -82,7 +82,7 @@ images:
 # START_OFAGENT_GO - Uncomment the following block to use the Go implementation
 # of the ofagent
 #  ofagent:
-#    repository: volta/ofagent-go
+#    repository: voltha/ofagent-go
 #    tag: master
 # END_OFAGENT_GO
 #  ofagent:
