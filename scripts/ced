@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -x
+NAME=${1:-bbsim}
+exec voltctl device enable $(voltctl device create -t openolt -H $(kubectl get svc -n voltha $NAME -o jsonpath={.spec.clusterIP}):50060)

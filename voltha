@@ -30,7 +30,7 @@ function ctrl_c() {
     exit
 }
 
-VOLTCTL_VERSION=${VOLTCTL_VERSION:-1.0.7}
+VOLTCTL_VERSION=${VOLTCTL_VERSION:-latest}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
 VK_RELEASE=${VK_RELEASE:-master}
 
@@ -811,20 +811,29 @@ STIME=$(date +%s)
 bspin "Verify voltctl $HIGH_VOLTAGE"
 VOK=0
 VMESSAGE="install"
+export VC_VERSION="$VOLTCTL_VERSION"
+if [ "$VC_VERSION" == "latest" ]; then
+    export VC_VERSION=$(curl -sSL https://api.github.com/repos/opencord/voltctl/releases/latest | jq -r .tag_name | sed -e 's/^v//g')
+fi
 if [ -x $GOPATH/bin/voltctl ]; then
     VHAVE=$($GOPATH/bin/voltctl version --clientonly -o json | jq -r .version)
-    if [ $? -eq 0 -a "$VHAVE" == "$VOLTCTL_VERSION" ]; then
+    if [ $? -eq 0 -a "$VHAVE" == "$VC_VERSION" ]; then
         VOK=1
         espin $VERIFIED
     else
-        VMESSAGE="upgrade"
+        VCHECK=$(echo -e "$VHAVE\n$VC_VERSION" | sort -V | head -1)
+        if [ "$VCHECK" == "$VHAVE" ]; then
+            VMESSAGE="upgrade"
+        else
+            VMESSAGE="downgrade"
+        fi
     fi
 fi
 
 if [ $VOK -eq 0 ]; then
     espin $NOT_VERIFIED
     bspin - "Download and $VMESSAGE voltctl $DOWNLOAD"
-    (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/opencord/voltctl/releases/download/v$VOLTCTL_VERSION/voltctl-$VOLTCTL_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; curl -o $GOPATH/bin/voltctl -sSL https://github.com/opencord/voltctl/releases/download/v$VC_VERSION/voltctl-$VC_VERSION-$HOSTOS-$HOSTARCH >>$LOG 2>&1) >>$LOG 2>&1
     (set -x; chmod 755 $GOPATH/bin/voltctl >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 fi
