@@ -1100,7 +1100,7 @@ if [ $WITH_ONOS == "yes" ]; then
     check_onos_app_active org.opencord.dhcpl2relay
     push_onos_config "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
     check_onos_app_active org.opencord.olt
-    push_onos_config "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.Olt" "onos-files/olt-onos-olt-settings.json"
+    push_onos_config "Enable VOLTHA ONOS DHCP and EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" "onos-files/olt-onos-olt-settings.json"
     push_onos_config "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
     if [ -f onos-files/onos-sadis.json ]; then
         push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"

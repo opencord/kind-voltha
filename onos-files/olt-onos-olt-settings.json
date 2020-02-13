@@ -1,4 +1,6 @@
 {
  "enableDhcpOnProvisioning" : true,
+ "enableDhcpV4": true,
+ "enableEapol": true,
  "defaultVlan" : 65535
 }
