@@ -16,47 +16,59 @@
       },
       {
         "id": "BBSM00000001-1",
-        "cTag": 900,
-        "sTag": 900,
         "nasPortId": "BBSM00000001-1",
         "circuitId": "BBSM00000001-1",
-        "remoteId": "BBSIMOLT000",
-        "technologyProfileId": 64,
-        "upstreamBandwidthProfile": "Default",
-        "downstreamBandwidthProfile": "Default"
+        "remoteId": "BBSM00000001-1",
+        "uniTagList": [{
+          "ponCTag": 900,
+          "ponSTag": 900,
+          "technologyProfileId": 64,
+          "downstreamBandwidthProfile": "Default",
+          "upstreamBandwidthProfile": "Default",
+          "isDhcpRequired": true
+        }]
       },
       {
         "id": "BBSM00000002-1",
-        "cTag": 901,
-        "sTag": 900,
         "nasPortId": "BBSM00000002-1",
         "circuitId": "BBSM00000002-1",
-        "remoteId": "BBSIMOLT000",
-        "technologyProfileId": 64,
-        "upstreamBandwidthProfile": "Default",
-        "downstreamBandwidthProfile": "Default"
+        "remoteId": "BBSM00000002-1",
+        "uniTagList": [{
+          "ponCTag": 901,
+          "ponSTag": 900,
+          "technologyProfileId": 64,
+          "downstreamBandwidthProfile": "Default",
+          "upstreamBandwidthProfile": "Default",
+          "isDhcpRequired": true
+        }]
       },
       {
         "id": "BBSM00000101-1",
-        "cTag": 902,
-        "sTag": 900,
         "nasPortId": "BBSM00000101-1",
         "circuitId": "BBSM00000101-1",
-        "remoteId": "BBSIMOLT000",
-        "technologyProfileId": 64,
-        "upstreamBandwidthProfile": "Default",
-        "downstreamBandwidthProfile": "Default"
+        "remoteId": "BBSM00000101-1",
+        "uniTagList": [{
+          "ponCTag": 902,
+          "ponSTag": 900,
+          "technologyProfileId": 64,
+          "downstreamBandwidthProfile": "Default",
+          "upstreamBandwidthProfile": "Default",
+          "isDhcpRequired": true
+        }]
       },
       {
-        "id": "BBSM00000102-1",
-        "cTag": 903,
-        "sTag": 900,
-        "nasPortId": "BBSM00000102-1",
-        "circuitId": "BBSM00000102-1",
-        "remoteId": "BBSIMOLT000",
-        "technologyProfileId": 64,
-        "upstreamBandwidthProfile": "Default",
-        "downstreamBandwidthProfile": "Default"
+        "id": "BBSM00000201-1",
+        "nasPortId": "BBSM00000201-1",
+        "circuitId": "BBSM00000201-1",
+        "remoteId": "BBSM00000201-1",
+        "uniTagList": [{
+          "ponCTag": 903,
+          "ponSTag": 900,
+          "technologyProfileId": 64,
+          "downstreamBandwidthProfile": "Default",
+          "upstreamBandwidthProfile": "Default",
+          "isDhcpRequired": true
+        }]
       }
     ]
   },
