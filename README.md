@@ -74,6 +74,9 @@ Please check the `releases` folder to see the available ones.
 | `WITH_BBSIM`                    | no                           | Should the BBSIM POD be deployed?                                                   |
 | `WITH_ONOS`                     | yes                          | Should `ONOS` service be deployed?                                                  |
 | `WITH_RADIUS`                   | no                           | Should `freeradius` service be deployed?                                            |
+| `WITH_EAPOL`                    | no                           | Configure the OLT app to push EAPOL flows                                           |
+| `WITH_DHCP`                     | no                           | Configure the OLT app to push DCHP flows                                            |
+| `WITH_IGMP`                     | no                           | Configure the OLT app to push IGMP flows                                            |
 | `WITH_TIMINGS`                  | no                           | Outputs duration of various steps of the install                                    |
 | `WITH_CHAOS`                    | no                           | Starts kube-monkey to introduce chaos                                               |
 | `CONFIG_SADIS`                  | no                           | Configure SADIS entries into ONOS, if WITH_ONOS set (see SADIS Configuration        |    
