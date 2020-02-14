@@ -70,6 +70,9 @@ NAME=${NAME:-$TYPE}
 WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
+WITH_EAPOL=${WITH_EAPOL:-yes}
+WITH_DHCP=${WITH_DHCP:-yes}
+WITH_IGMP=${WITH_IGMP:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
 WITH_CHAOS=${WITH_CHAOS:-no}
 WITH_ADAPTERS=${WITH_ADAPTERS:-yes}
@@ -133,6 +136,9 @@ ALL_YES_NO="\
     WITH_TIMINGS \
     WITH_BBSIM \
     WITH_RADIUS \
+    WITH_EAPOL \
+    WITH_DHCP \
+    WITH_IGMP \
     WITH_ONOS \
     WITH_CHAOS \
     WITH_ADAPTERS \
@@ -371,13 +377,19 @@ if [ $# -ne 1 -o $(echo ":up:down:dump:" | grep -c ":$1:") -ne 1 ]; then
 fi
 
 push_onos_config() {
-    local MSG=$1
-    local RESOURCE=$2
-    local DATA=$3
+    local TYPE=$1
+    local MSG=$2
+    local RESOURCE=$3
+    local DATA=$4
 
     bspin - "$MSG $GEAR"
     while true; do
-        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $TYPE == "file" ]; then
+          (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
+        fi
+        if [ $TYPE == "json" ]; then
+          (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data $DATA >>$LOG 2>&1) >>$LOG 2>&1
+        fi
         if [ $? -eq 0 ]; then
             break
         fi
@@ -1063,7 +1075,7 @@ if [ $WITH_ONOS == "yes" ]; then
     port_forward default onos-ssh $ONOS_SSH_PORT 8101
     espin - $VERIFIED
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
-    ONOS_FILES="olt-onos-enableExtraneousRules.json  olt-onos-olt-settings.json onos-aaa.json \
+    ONOS_FILES="olt-onos-enableExtraneousRules.json onos-aaa.json \
         onos-dhcpl2relay.json onos-kafka.json onos-sadis-sample.json"
     (set -x; mkdir -p ./onos-files  >>$LOG 2>&1) >>$LOG 2>&1
     ERR_OUT=$(mktemp)
@@ -1096,18 +1108,27 @@ if [ $WITH_ONOS == "yes" ]; then
     fi
 
     check_onos_app_active org.opencord.kafka
-    push_onos_config "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.kafka" "onos-files/onos-kafka.json"
+    push_onos_config "file" "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.kafka" "onos-files/onos-kafka.json"
     check_onos_app_active org.opencord.dhcpl2relay
-    push_onos_config "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
+    push_onos_config "file" "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
     check_onos_app_active org.opencord.olt
-    push_onos_config "Enable VOLTHA ONOS DHCP and EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" "onos-files/olt-onos-olt-settings.json"
-    push_onos_config "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
+    # FIXME use WITH_DHCP and WITH_EAPOL flags to configre OLT App
+    if [ $WITH_EAPOL == "yes" ]; then
+      push_onos_config "json" "Enable VOLTHA ONOS EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableEapol":true}'
+    fi
+    if [ $WITH_DHCP == "yes" ]; then
+      push_onos_config "json" "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":true,"enableDhcpV4":true}'
+    fi
+    if [ $WITH_IGMP == "yes" ]; then
+      push_onos_config "json" "Enable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":true}'
+    fi
+    push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
     if [ -f onos-files/onos-sadis.json ]; then
-        push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
+        push_onos_config "file" "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
     elif [ "$CONFIG_SADIS" == "yes" ]; then
         SADIS_CFG=onos-files/onos-sadis-sample.json
         check_onos_app_active org.opencord.sadis
-        push_onos_config "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
+        push_onos_config "file" "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
     fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
