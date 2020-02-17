@@ -1113,14 +1113,23 @@ if [ $WITH_ONOS == "yes" ]; then
     push_onos_config "file" "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
     check_onos_app_active org.opencord.olt
     # FIXME use WITH_DHCP and WITH_EAPOL flags to configre OLT App
+    # Default value for "enableEapol" is true in OLT App
     if [ $WITH_EAPOL == "yes" ]; then
       push_onos_config "json" "Enable VOLTHA ONOS EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableEapol":true}'
+    elif [ $WITH_EAPOL == "no" ]; then
+      push_onos_config "json" "Disable VOLTHA ONOS EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableEapol":false}'
     fi
+    # Default value for "enableDhcpOnProvisioning" is false and for "enableDhcpV4" is true in OLT App
     if [ $WITH_DHCP == "yes" ]; then
       push_onos_config "json" "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":true,"enableDhcpV4":true}'
+    elif [ $WITH_DHCP == "no" ]; then
+      push_onos_config "json" "Disable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":false,"enableDhcpV4":false}'
     fi
+    # Default value for "enableIgmpOnProvisioning" is false in OLT App
     if [ $WITH_IGMP == "yes" ]; then
       push_onos_config "json" "Enable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":true}'
+    elif [ $WITH_IGMP == "no" ]; then
+      push_onos_config "json" "Disable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":false}'
     fi
     push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
     if [ -f onos-files/onos-sadis.json ]; then
