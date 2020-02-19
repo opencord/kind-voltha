@@ -382,15 +382,32 @@ push_onos_config() {
     local RESOURCE=$3
     local DATA=$4
 
+    # Thanks to the latest version of ONOS using the return code 207 this gets a
+    # whole lot nastier. Can't thank them enough for doing this. So in order to
+    # capture the command and the output in the log file as well as capture the
+    # status code to verify it is 200 and not 207 mutltiple files and a bit of
+    # hackery must be used. Thanks again ONOS.
+    local CMD_ECHO=$(mktemp -u)
+    local CMD_OUTPUT=$(mktemp -u)
+    local SC_OUTPUT=$(mktemp -u)
+
     bspin - "$MSG $GEAR"
     while true; do
         if [ $TYPE == "file" ]; then
-          (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >>$LOG 2>&1) >>$LOG 2>&1
+          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
         fi
         if [ $TYPE == "json" ]; then
-          (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data $DATA >>$LOG 2>&1) >>$LOG 2>&1
+          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data $DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
         fi
-        if [ $? -eq 0 ]; then
+        RESULT=$?
+        # Dump everything to the log
+        cat $CMD_ECHO >> $LOG
+        cat $CMD_OUTPUT >> $LOG
+        SC=$(cat $SC_OUTPUT)
+
+        # clean up temp files
+        rm -f $CMD_ECHO $CMD_OUTPUT $SC_OUTPUT
+        if [ $RESULT -eq 0 -a "$SC" == "200" ]; then
             break
         fi
         sleep 1
