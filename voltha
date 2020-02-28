@@ -100,6 +100,8 @@ VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
 ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=
+NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
+MAX_NUM_OF_BBSIM=10
 
 HAVE_GO=$(which go >/dev/null 2>&1 && echo "yes" || echo "no")
 HOSTOS=$(uname -s | tr "[:upper:]" "[:lower:"])
@@ -108,6 +110,18 @@ if [ $HOSTARCH == "x86_64" ]; then
     HOSTARCH="amd64"
 fi
 
+# check number (range) of bbsim, max bbsim must not exceed 10 instances!
+# note: instances will be numbered from 0 to 9
+if [ "$1" == "up" ]; then
+	if [ "$NUM_OF_BBSIM" -lt 1 ]; then 
+			>&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of BBSIM instances. NUM_OF_BBSIM is less than 1${NORMAL}"
+			exit 1
+	fi
+	if [ "$NUM_OF_BBSIM" -gt $MAX_NUM_OF_BBSIM ]; then 
+			>&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of BBSIM instances. NUM_OF_BBSIM is greater than $MAX_NUM_OF_BBSIM${NORMAL}"
+			exit 1
+	fi
+fi
 # Verify TYPE setting
 if [ $(echo ":minimal:full:" | grep -ic ":$TYPE:") -eq 0 ]; then
     >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$TYPE value of '$TYPE'. Should be 'minimal' or 'full'${NORMAL}"
@@ -608,10 +622,12 @@ if [ "$1" == "down" ]; then
         EXPECT="etcd-operator onos open-olt open-onu sim voltha bbsim radius"
         bspin "Remove Helm Deployments"
         for i in $EXISTS; do
-            if [ $(echo $EXPECT | grep -c $i) -eq 1 ]; then
+			for j in $EXPECT; do
+				if [[ $i =~ $j ]]; then
                 sspin "Remove Helm Deployments: $i$CEOL"
                 (set -x; ./bin/helm delete --no-hooks --purge $i >>$LOG 2>&1) >>$LOG 2>&1
             fi
+        done
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
         if [ "$WAIT_ON_DOWN" == "yes" ]; then
@@ -1235,13 +1251,20 @@ if [ $WITH_BBSIM == "yes" ]; then
     STIME=$(date +%s)
     echo -e "Verify BBSIM $PLUG"
     bspin - "Verify BBSIM Installed"
-    if [ $(helm list --deployed --short --namespace voltha "^bbsim\$" | wc -l) -ne 1 ]; then
-        espin - $NOT_VERIFIED
-        helm_install - voltha bbsim $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM"
-    else
-        espin - $VERIFIED
-    fi
-    wait_for_pods - "voltha" 1 "includes" -1 "Waiting for BBSIM to start" "bbsim-.*"
+	for instance in $(seq 0 $(($NUM_OF_BBSIM-1))); do
+		if [ $instance -eq 0 ]; then
+			instance_num=""
+		else
+			instance_num=$instance
+		fi
+		if [ $(helm list --deployed --short --namespace voltha "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
+			espin - $NOT_VERIFIED
+			helm_install - voltha bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
+		else
+			espin - $VERIFIED
+		fi
+	done
+    wait_for_pods - "voltha" $NUM_OF_BBSIM "includes" -1 "Waiting for BBSIM to start" "bbsim*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
