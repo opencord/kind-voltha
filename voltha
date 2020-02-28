@@ -176,6 +176,7 @@ ALL_OPTIONS="\
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
     VOLTHA_ETCD_PORT \
+    VOLTHA_KAFKA_PORT \
     VK_RELEASE \
     KIND_VERSION \
     VOLTCTL_VERSION \
@@ -207,6 +208,7 @@ if [ "$HAVE X" == " X" ]; then
     VOLTHA_API_PORT=${VOLTHA_API_PORT:-5$(expr 55 + $DELTA)55}
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$(expr 50 + $DELTA)22}
     VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(expr 23 + $DELTA)79}
+    VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(expr 90 + $DELTA)92}
 else
     VALUES=$(echo $HAVE | sed -e 's/\s//g' | cut -d= -f2)
     ONOS_API_PORT=${ONOS_API_PORT:-$(echo $VALUES | cut -d, -f1)}
@@ -214,11 +216,24 @@ else
     VOLTHA_API_PORT=${VOLTHA_API_PORT:-$(echo $VALUES | cut -d, -f3)}
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$(echo $VALUES | cut -d, -f4)}
     VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(echo $VALUES | cut -d, -f5)}
+    VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(echo $VALUES | cut -d, -f6)}
+
+    echo "$VOLTHA_KAFKA_PORT"
+
+
+    # A bit of a hueristic required here as the KAFKA port forward was
+    # added after the .voltha/ports files was created. Basically, if
+    # the VOLTHA_KAFKA_PORT isn't in the file then calculate the original
+    # DELTA from the VOLTHA_SSH_PORT and apply it to the VOLTHA_KAFKA_PORT
+    if [ -z "$VOLTHA_KAFKA_PORT" ]; then
+        DELTA=$((VOLTHA_SSH_PORT/100-50))
+        VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(expr 90 + $DELTA)92}
+    fi
 fi
 
 PORTTMP=$(mktemp -u)
 cat .voltha/ports | grep -v $NAME > $PORTTMP
-echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT" >> $PORTTMP
+echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT" >> $PORTTMP
 cp $PORTTMP .voltha/ports
 rm -f $PORTTMP
 
@@ -594,6 +609,8 @@ if [ "$1" == "down" ]; then
     kill_port_forward voltha-api
     sspin "Remove port-forwards: voltha-etcd-$NAME$CEOL"
     kill_port_forward voltha-etcd-cluster-client
+    sspin "Remove port-forwards: voltha-kafka-$NAME$CEOL"
+    kill_port_forward voltha-kafka
     espin "$VERIFIED Remove port-forwards$CEOL"
     if [ $DEPLOY_K8S == "yes" ]; then
         if [ -x ./bin/kind ]; then
@@ -1272,6 +1289,10 @@ bspin - "Forward VOLTHA ETCD port $FORWARD"
 kill_port_forward voltha-etcd-cluster-client
 port_forward voltha voltha-etcd-cluster-client $VOLTHA_ETCD_PORT 2379
 espin - $VERIFIED
+bspin - "Forward VOLTHA Kafka port $FORWARD"
+kill_port_forward voltha-kafka
+port_forward voltha voltha-kafka $VOLTHA_KAFKA_PORT 9092
+espin - $VERIFIED
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -1300,7 +1321,7 @@ fi
 
 bspin "Create voltctl configuration file"
 (set -x; mkdir -p $HOME/.volt >>$LOG 2>&1) >>$LOG 2>&1
-(set -x; voltctl -a v2 -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
+(set -x; voltctl -a v3 -k localhost:$VOLTHA_KAFKA_PORT -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
 espin $VERIFIED
 
 if [ ! -f "$NAME-env.sh" ]; then
