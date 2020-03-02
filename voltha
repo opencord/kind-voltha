@@ -218,9 +218,6 @@ else
     VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(echo $VALUES | cut -d, -f5)}
     VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(echo $VALUES | cut -d, -f6)}
 
-    echo "$VOLTHA_KAFKA_PORT"
-
-
     # A bit of a hueristic required here as the KAFKA port forward was
     # added after the .voltha/ports files was created. Basically, if
     # the VOLTHA_KAFKA_PORT isn't in the file then calculate the original
