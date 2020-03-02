@@ -78,6 +78,7 @@ WITH_CHAOS=${WITH_CHAOS:-no}
 WITH_ADAPTERS=${WITH_ADAPTERS:-yes}
 WITH_SIM_ADAPTERS=${WITH_SIM_ADAPTERS:-yes}
 WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
+WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 ONLY_ONE=${ONLY_ONE:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
@@ -114,6 +115,12 @@ if [ $(echo ":minimal:full:" | grep -ic ":$TYPE:") -eq 0 ]; then
     exit 1
 fi
 
+function get_service_ep() {
+    local NS=$1
+    local NAME=$2
+    kubectl -n $NS get service $NAME -o json | jq -r '.spec.clusterIP + ":" + (.spec.ports[0].port|tostring)'
+}
+
 # Used to verify configuration values are set to "yes" or "no" value or convert
 # equivalents to "yes" or "no"
 function verify_yes_no() {
@@ -144,6 +151,7 @@ ALL_YES_NO="\
     WITH_ADAPTERS \
     WITH_SIM_ADAPTERS \
     WITH_OPEN_ADAPTERS \
+    WITH_PORT_FORWARDS \
     CONFIG_SADIS \
     JUST_K8S \
     DEPLOY_K8S \
@@ -406,10 +414,10 @@ push_onos_config() {
     bspin - "$MSG $GEAR"
     while true; do
         if [ $TYPE == "file" ]; then
-          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data @$DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
+          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data @$DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
         fi
         if [ $TYPE == "json" ]; then
-          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://127.0.0.1:$ONOS_API_PORT/onos/v1/$RESOURCE --data $DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
+          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data $DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
         fi
         RESULT=$?
         # Dump everything to the log
@@ -433,7 +441,7 @@ check_onos_app_active() {
 
   bspin - "Checking that $APP_ID is active $CLOCK"
   while true; do
-      (set -x; curl --fail -sSL --user karaf:karaf -X GET http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$APP_ID | grep ACTIVE >>$LOG 2>&1) >>$LOG 2>&1
+      (set -x; curl --fail -sSL --user karaf:karaf -X GET http://$_ONOS_API_EP/onos/v1/applications/$APP_ID | grep ACTIVE >>$LOG 2>&1) >>$LOG 2>&1
       if [ $? -eq 0 ]; then
           break
       fi
@@ -450,12 +458,12 @@ override_onos_app() {
     while true; do
         sspin -
         # Attempt to delete old version (if it exists)
-        (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://$_ONOS_API_EP/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
         sspin -
         if [ $? -ne 0 ]; then
             continue
         fi
-        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST -H Content-Type:application/octet-stream http://$_ONOS_API_EP/onos/v1/applications?activate=true --data-binary @$APP >>$LOG 2>&1) >>$LOG 2>&1
         if [ $? -eq 0 ]; then
             break
         fi
@@ -470,7 +478,7 @@ activate_onos_app() {
     bspin - "$MSG $GO"
     while true; do
         sspin -
-        (set -x; curl --fail -sSL --user karaf:karaf -X POST http://127.0.0.1:$ONOS_API_PORT/onos/v1/applications/$APP/active >>$LOG 2>&1) >>$LOG 2>&1
+        (set -x; curl --fail -sSL --user karaf:karaf -X POST http://$_ONOS_API_EP/onos/v1/applications/$APP/active >>$LOG 2>&1) >>$LOG 2>&1
         if [ $? -eq 0 ]; then
             break
         fi
@@ -1097,14 +1105,19 @@ if [ $WITH_ONOS == "yes" ]; then
     fi
     wait_for_pods - "default" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
 
-    bspin - "Forward ONOS API port $FORWARD"
-    kill_port_forward onos-ui
-    port_forward default onos-ui $ONOS_API_PORT 8181
-    espin - $VERIFIED
-    bspin - "Forward ONOS SSH port $FORWARD"
-    kill_port_forward onos-ssh
-    port_forward default onos-ssh $ONOS_SSH_PORT 8101
-    espin - $VERIFIED
+    if [ $WITH_PORT_FORWARDS == "yes" ]; then
+        bspin - "Forward ONOS API port $FORWARD"
+        kill_port_forward onos-ui
+        port_forward default onos-ui $ONOS_API_PORT 8181
+        espin - $VERIFIED
+        bspin - "Forward ONOS SSH port $FORWARD"
+        kill_port_forward onos-ssh
+        port_forward default onos-ssh $ONOS_SSH_PORT 8101
+        espin - $VERIFIED
+        _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
+    else
+        _ONOS_API_EP=$(get_service_ep default onos-ui)
+    fi
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     ONOS_FILES="olt-onos-enableExtraneousRules.json onos-aaa.json \
         onos-dhcpl2relay.json onos-kafka.json onos-sadis-sample.json"
@@ -1277,26 +1290,28 @@ if [ $WITH_RADIUS == "yes" ]; then
     fi
 fi
 
-STIME=$(date +%s)
-bspin - "Forward VOLTHA API port $FORWARD"
-kill_port_forward voltha-api
-port_forward voltha voltha-api $VOLTHA_API_PORT 55555
-espin - $VERIFIED
-bspin - "Forward VOLTHA ETCD port $FORWARD"
-kill_port_forward voltha-etcd-cluster-client
-port_forward voltha voltha-etcd-cluster-client $VOLTHA_ETCD_PORT 2379
-espin - $VERIFIED
-bspin - "Forward VOLTHA Kafka port $FORWARD"
-kill_port_forward voltha-kafka
-port_forward voltha voltha-kafka $VOLTHA_KAFKA_PORT 9092
-espin - $VERIFIED
-if [ "$WITH_TIMINGS" == "yes" ]; then
-    printtime $(expr $(date +%s) - $STIME)
+if [ $WITH_PORT_FORWARDS == "yes" ]; then
+    STIME=$(date +%s)
+    bspin - "Forward VOLTHA API port $FORWARD"
+    kill_port_forward voltha-api
+    port_forward voltha voltha-api $VOLTHA_API_PORT 55555
+    espin - $VERIFIED
+    bspin - "Forward VOLTHA ETCD port $FORWARD"
+    kill_port_forward voltha-etcd-cluster-client
+    port_forward voltha voltha-etcd-cluster-client $VOLTHA_ETCD_PORT 2379
+    espin - $VERIFIED
+    bspin - "Forward VOLTHA Kafka port $FORWARD"
+    kill_port_forward voltha-kafka
+    port_forward voltha voltha-kafka $VOLTHA_KAFKA_PORT 9092
+    espin - $VERIFIED
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        printtime $(expr $(date +%s) - $STIME)
+    fi
 fi
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS == "yes" ]; then
     bspin "Configure ONOS RADIUS Connection $GEAR"
-    (set -x; cat onos-files/onos-aaa.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl --fail -sSL --user karaf:karaf -X POST http://127.0.0.1:$ONOS_API_PORT/onos/v1/network/configuration/apps/org.opencord.aaa -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; cat onos-files/onos-aaa.json | sed -e "s/:RADIUS_IP:/$(kubectl -n voltha get service/radius -o jsonpath={.spec.clusterIP})/g" | curl --fail -sSL --user karaf:karaf -X POST http://$_ONOS_API_EP/onos/v1/network/configuration/apps/org.opencord.aaa -H Content-type:application/json -d@- >>$LOG 2>&1) >>$LOG 2>&1
     espin $VERIFIED
 fi
 
@@ -1318,7 +1333,11 @@ fi
 
 bspin "Create voltctl configuration file"
 (set -x; mkdir -p $HOME/.volt >>$LOG 2>&1) >>$LOG 2>&1
-(set -x; voltctl -a v3 -k localhost:$VOLTHA_KAFKA_PORT -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
+if [ $WITH_PORT_FORWARDS == "yes" ]; then
+    (set -x; voltctl -a v3 -k localhost:$VOLTHA_KAFKA_PORT -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
+else
+    (set -x; voltctl -a v3 -k $(get_service_ep voltha voltha-kafka) -s $(get_service_ep voltha voltha-api) config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
+fi
 espin $VERIFIED
 
 if [ ! -f "$NAME-env.sh" ]; then
