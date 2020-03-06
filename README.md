@@ -5,10 +5,8 @@ Kubernetes cluster (physical or virtual) or can be start up a local
 docker-in-docker KinD Kuberentes cluster in which to deploy VOLTHA.
 
 When deploying VOLTHA there are several configuration options tha can be
-set as described in the *CONFIGURATION* section below. All configuration
+set as described in the [*CONFIGURATION*](#configuration) section below. All configuration
 options are specified as envirment variables.
-
-[CONFIGURATION](#markdown-header-configuration)
 
 ## PREREQUISITES
 The `voltha` script uses several standard Linux tools to deploy VOLTHA
@@ -124,8 +122,8 @@ configuration settings. This file will be named `$TYPE-env.sh`. The user can
 `source` this file to set the configuration as well as establish key environment
 variables in order to access VOLTHA, including:
 
-| VARIABLE   | DESCRIPTION |
-| ---------- |
+| VARIABLE   | DESCRIPTION                                                                  |
+| ---------- | ---------------------------------------------------------------------------- |
 | KUBECONFIG | Sets the configuration file for the Kubernetes control application `kubectl` |
 | VOLTCONFIG | Sets the configuration file for the VOLTHA control application `voltctl`     |
 | PATH       | Augments the `PATH` to include `kubectl` and `voltctl`                       |
