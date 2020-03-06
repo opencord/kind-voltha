@@ -10,7 +10,7 @@ options are specified as envirment variables.
 
 ## PREREQUISITES
 The `voltha` script uses several standard Linux tools to deploy VOLTHA
-including `go`, `curl`, `sed`, and `jq`. This tools must be installed before
+including `curl`, `sed`, and `jq`. This tools must be installed before
 using the script. The script checks for the presence of these tools before
 it deployes VOLTHA and will exit with an error if the tools are not present.
 

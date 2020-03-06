@@ -219,7 +219,7 @@ for VAR in $ALL_YES_NO; do
 done
 
 # Check for prerequiste tools
-TOOLS="go curl sed jq"
+TOOLS="curl sed jq"
 if [ $DEPLOY_K8S == "yes" ]; then
     TOOLS+=" docker"
 fi
