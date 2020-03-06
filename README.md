@@ -2,9 +2,9 @@
 This repository describes how to deploy a 4 node (one control plane and
 
 ## Prerequisites
-You must have both Docker and the Go programming language install for this
-test environment to function. How to get these working is beyond the scope
-of this document.
+You must have both Docker, the Go programming language, and various tools
+installed (including `curl`, `sed`, and `jq`) for this test environment to
+function. How to get these working is beyond the scope of this document.
 
 ## Fetch Tools
 ```bash
@@ -13,8 +13,9 @@ mkdir -p $GOPATH/bin
 curl -o $GOPATH/bin/kubectl -sSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(go env GOHOSTOS)/$(go env GOARCH)/kubectl
 curl -o $GOPATH/bin/kind \
 	-sSL https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-$(go env GOHOSTOS)-$(go env GOARCH)
+export VOLTCTL_VERSION=$(curl -sSL https://api.github.com/repos/opencord/voltctl/releases/latest | jq -r .tag_name | sed -e 's/^v//g')
 curl -o $GOPATH/bin/voltctl \
-	-sSL https://github.com/ciena/voltctl/releases/download/0.0.5-dev/voltctl-0.0.5_dev-$(go env GOHOSTOS)-$(go env GOARCH)
+	-sSL https://github.com/opencord/voltctl/releases/download/v$VOLTCTL_VERSION/voltctl-$VOLTCTL_VERSION-$(go env GOHOSTOS)-$(go env GOARCH)
 curl -sSL https://git.io/get_helm.sh | USE_SUDO=false HELM_INSTALL_DIR=$(go env GOPATH)/bin bash
 chmod 755 $GOPATH/bin/kind $GOPATH/bin/voltctl $GOPATH/bin/kubectl
 export PATH=$(go env GOPATH)/bin:$PATH
