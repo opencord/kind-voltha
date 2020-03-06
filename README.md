@@ -50,6 +50,15 @@ and the minimal cluster should start.
 
 To remove voltha use `DEPLOY_K8S=y ./voltha down`
 
+## RUN WITHOUT CLONING REPOSITORY
+The `voltha` script can be run without cloning the complete repository. To do
+so, download the script and run it.
+```bash
+curl -sSL https://raw.githubusercontent.com/ciena/kind-voltha/master/voltha --output ./voltha
+chmod +x ./voltha
+DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y  ./voltha up
+```
+
 ![Demo @ Speed](./resources/kind-voltha.gif "Demo @ Speed")
 _NOTE: Shown significantly sped up (20x), actual install was about 8 minutes._
 
