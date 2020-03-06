@@ -67,6 +67,8 @@ fi
 
 TYPE=${TYPE:-minimal}
 NAME=${NAME:-$TYPE}
+
+ENABLE_ONOS_EXTRANEOUS_RULES=${ENABLE_ONOS_EXTRANEOUS_RULES:-no}
 WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
@@ -140,6 +142,7 @@ function verify_yes_no() {
 }
 
 ALL_YES_NO="\
+    ENABLE_ONOS_EXTRANEOUS_RULES \
     WITH_TIMINGS \
     WITH_BBSIM \
     WITH_RADIUS \
@@ -1175,7 +1178,9 @@ if [ $WITH_ONOS == "yes" ]; then
     elif [ $WITH_IGMP == "no" ]; then
       push_onos_config "json" "Disable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":false}'
     fi
-    push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
+    if [ $ENABLE_ONOS_EXTRANEOUS_RULES == "yes" ]; then
+        push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
+    fi
     if [ -f onos-files/onos-sadis.json ]; then
         push_onos_config "file" "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
     elif [ "$CONFIG_SADIS" == "yes" ]; then
