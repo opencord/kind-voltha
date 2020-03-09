@@ -76,54 +76,55 @@ source releases/voltha-2.2 && voltha up
 ```
 Please check the `releases` folder to see the available ones.
 
-| OPTION                                  | DEFAULT                      | DESCRIPTION                                                                         |
-| --------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
-| `TYPE`                                  | minimal                      | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
-| `NAME`                                  | TYPE                         | Name of the KinD Cluster to be created                                              |
-| `DEPLOY_K8S`                            | yes                          | Should the KinD Kubernetes cluster be deployed?                                     |
-| `JUST_K8S`                              | no                           | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA)                |
-| `WITH_BBSIM`                            | no                           | Should the BBSIM POD be deployed?                                                   |
-| `NUM_OF_BBSIM`                          | 1                            | number of BBSIM POD to start (minimum = 1, maximum = 10)                            |
-| `WITH_ONOS`                             | yes                          | Should `ONOS` service be deployed?                                                  |
-| `WITH_RADIUS`                           | no                           | Should `freeradius` service be deployed?                                            |
-| `WITH_EAPOL`                            | no                           | Configure the OLT app to push EAPOL flows                                           |
-| `WITH_DHCP`                             | no                           | Configure the OLT app to push DCHP flows                                            |
-| `WITH_IGMP`                             | no                           | Configure the OLT app to push IGMP flows                                            |
-| `WITH_TIMINGS`                          | no                           | Outputs duration of various steps of the install                                    |
-| `WITH_CHAOS`                            | no                           | Starts kube-monkey to introduce chaos                                               |
-| `WITH_ADAPTERS`                         | yes                          | Should device adpters be installed, if no overrides options for specific adapters   |
-| `WITH_SIM_ADAPTERS`                     | no                           | Should simulated device adapters be deployed (simulated adpaters deprecated)        |
-| `WITH_OPEN_ADAPTERS`                    | yes                          | Should open OLT and ONU adapters be deployed                                        |
-| `WITH_PORT_FORWARDS`                    | yes                          | Forwards ports for some services from localhost into the K8s cluster                |
-| `CONFIG_SADIS`                          | no                           | Configure SADIS entries into ONOS, if WITH_ONOS set to yes                          |    
-| `INSTALL_ONOS_APPS`                     | no                           | Replaces/installs ONOS OAR files in onos-files/onos-apps                            |
-| `INSTALL_KUBECTL`                       | yes                          | Should a copy of `kubectl` be installed locally?                                    |
-| `INSTALL_HELM`                          | yes                          | Should a copy of `helm` be installed locallly?                                      |
-| `VOLTHA_LOG_LEVEL`                      | WARN                         | Log level to set for VOLTHA core processes                                          |
-| `ONOS_CHART`                            | onf/voltha                   | Helm chart to used to install ONOS                                                  |
-| `ONOS_CHART_VERSION`                    | latest                       | Version of helm chart for ONOS                                                      |
-| `VOLTHA_CHART`                          | onf/voltha                   | Helm chart to used to install voltha                                                |
-| `VOLTHA_CHART_VERSION`                  | latest                       | Version of Helm chart to install voltha                                             |
-| `VOLTHA_ADAPTER_SIM_CHART`              | onf/voltha-adapter-simulated | Helm chart to use to install simulated device adapter                               |
-| `VOLTHA_ADAPTER_SIM_CHART_VERSION`      | latest                       | Version of Helm chart to install simulated device adapter                           |
-| `VOLTHA_BBSIM_CHART`                    | onf/bbsim                    | Helm chart to use to install bbsim                                                  |
-| `VOLTHA_BBSIM_CHART_VERSION`            | latest                       | Version of Helm chart to install bbim                                               |
-| `VOLTHA_ADAPTER_OPEN_OLT_CHART`         | onf/voltha-adapter-openolt   | Helm chart to use to install OpenOlt adapter                                        |
-| `VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION` | latest                       | Version of Helm chart to install OpenOlt adapter                                    |
-| `VOLTHA_ADAPTER_OPEN_ONU_CHART`         | onf/voltha-adapter-openonu   | Helm chart to use to install OpenOnu adapter                                        |
-| `VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION` | latest                       | Version of Helm chart to install OpenOnu adapter                                    |
-| `ONLY_ONE`                              | yes                          | Run a single `rw-core`, no `api-server`, and no `ssh` CLI                           |
-| `ENABLE_ONOS_EXTRANEOUS_RULES`          | no                           | Set ONOS to allows flow rules not set via ONOS                                      |
-| `UPDATE_HELM_REPOS`                     | yes                          | Update the Helm repository with the latest charts before installing                 |
-| `WAIT_ON_DOWN`                          | yes                          | When tearing down the VOLTHA, don't exit script until all containers are stoped     |
-| `KIND_VERSION`                          | v0.5.1                       | Version of KinD to install if using a KinD cluster                                  |
-| `VOLTCTL_VERSION`                       | latest                       | Version of `voltctl` to install or up/downgrade to and use                          |
-| `ONOS_API_PORT`                         | dynamic                      | (advanced) Override dynamic port selection for port forward for ONOS API            |
-| `ONOS_SSH_PORT`                         | dynamic                      | (advanced) Override dynamic port selection for port forward for ONOS SSH            |
-| `VOLTHA_API_PORT`                       | dynamic                      | (advanced) Override dynamic port selection for port forward for VOLTHA API          |
-| `VOLTHA_SSH_PORT`                       | dynamic                      | (advanced) Override dynamic port selection for port forward for VOLTHA SSH          |
-| `VOLTHA_ETCD_PORT`                      | dynamic                      | (advanced) Override dynamic port selection for port forward for VOLTHA etcd         |
-| `VOLTHA_KAFKA_PORT`                     | dynamic                      | (advanced) Override dynamic port selection for port forward for VOLTHA Kafka API    |
+| OPTION                                  | DEFAULT                           | DESCRIPTION                                                                         |
+| --------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------- |
+| `TYPE`                                  | minimal                           | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
+| `NAME`                                  | TYPE                              | Name of the KinD Cluster to be created                                              |
+| `DEPLOY_K8S`                            | yes                               | Should the KinD Kubernetes cluster be deployed?                                     |
+| `JUST_K8S`                              | no                                | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA)                |
+| `WITH_BBSIM`                            | no                                | Should the BBSIM POD be deployed?                                                   |
+| `NUM_OF_BBSIM`                          | 1                                 | number of BBSIM POD to start (minimum = 1, maximum = 10)                            |
+| `WITH_ONOS`                             | yes                               | Should `ONOS` service be deployed?                                                  |
+| `WITH_RADIUS`                           | no                                | Should `freeradius` service be deployed?                                            |
+| `WITH_EAPOL`                            | no                                | Configure the OLT app to push EAPOL flows                                           |
+| `WITH_DHCP`                             | no                                | Configure the OLT app to push DCHP flows                                            |
+| `WITH_IGMP`                             | no                                | Configure the OLT app to push IGMP flows                                            |
+| `WITH_TIMINGS`                          | no                                | Outputs duration of various steps of the install                                    |
+| `WITH_CHAOS`                            | no                                | Starts kube-monkey to introduce chaos                                               |
+| `WITH_ADAPTERS`                         | yes                               | Should device adpters be installed, if no overrides options for specific adapters   |
+| `WITH_SIM_ADAPTERS`                     | no                                | Should simulated device adapters be deployed (simulated adpaters deprecated)        |
+| `WITH_OPEN_ADAPTERS`                    | yes                               | Should open OLT and ONU adapters be deployed                                        |
+| `WITH_PORT_FORWARDS`                    | yes                               | Forwards ports for some services from localhost into the K8s cluster                |
+| `CONFIG_SADIS`                          | no                                | Configure SADIS entries into ONOS, if WITH_ONOS set to yes                          |
+| `SADIS_CFG`                             | onos-files/onos-sadis-sample.json | SADIS Configuration File to push, if CONFIG_SADIS set                               |
+| `INSTALL_ONOS_APPS`                     | no                                | Replaces/installs ONOS OAR files in onos-files/onos-apps                            |
+| `INSTALL_KUBECTL`                       | yes                               | Should a copy of `kubectl` be installed locally?                                    |
+| `INSTALL_HELM`                          | yes                               | Should a copy of `helm` be installed locallly?                                      |
+| `VOLTHA_LOG_LEVEL`                      | WARN                              | Log level to set for VOLTHA core processes                                          |
+| `ONOS_CHART`                            | onf/voltha                        | Helm chart to used to install ONOS                                                  |
+| `ONOS_CHART_VERSION`                    | latest                            | Version of helm chart for ONOS                                                      |
+| `VOLTHA_CHART`                          | onf/voltha                        | Helm chart to used to install voltha                                                |
+| `VOLTHA_CHART_VERSION`                  | latest                            | Version of Helm chart to install voltha                                             |
+| `VOLTHA_ADAPTER_SIM_CHART`              | onf/voltha-adapter-simulated      | Helm chart to use to install simulated device adapter                               |
+| `VOLTHA_ADAPTER_SIM_CHART_VERSION`      | latest                            | Version of Helm chart to install simulated device adapter                           |
+| `VOLTHA_BBSIM_CHART`                    | onf/bbsim                         | Helm chart to use to install bbsim                                                  |
+| `VOLTHA_BBSIM_CHART_VERSION`            | latest                            | Version of Helm chart to install bbim                                               |
+| `VOLTHA_ADAPTER_OPEN_OLT_CHART`         | onf/voltha-adapter-openolt        | Helm chart to use to install OpenOlt adapter                                        |
+| `VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION` | latest                            | Version of Helm chart to install OpenOlt adapter                                    |
+| `VOLTHA_ADAPTER_OPEN_ONU_CHART`         | onf/voltha-adapter-openonu        | Helm chart to use to install OpenOnu adapter                                        |
+| `VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION` | latest                            | Version of Helm chart to install OpenOnu adapter                                    |
+| `ONLY_ONE`                              | yes                               | Run a single `rw-core`, no `api-server`, and no `ssh` CLI                           |
+| `ENABLE_ONOS_EXTRANEOUS_RULES`          | no                                | Set ONOS to allows flow rules not set via ONOS                                      |
+| `UPDATE_HELM_REPOS`                     | yes                               | Update the Helm repository with the latest charts before installing                 |
+| `WAIT_ON_DOWN`                          | yes                               | When tearing down the VOLTHA, don't exit script until all containers are stoped     |
+| `KIND_VERSION`                          | v0.5.1                            | Version of KinD to install if using a KinD cluster                                  |
+| `VOLTCTL_VERSION`                       | latest                            | Version of `voltctl` to install or up/downgrade to and use                          |
+| `ONOS_API_PORT`                         | dynamic                           | (advanced) Override dynamic port selection for port forward for ONOS API            |
+| `ONOS_SSH_PORT`                         | dynamic                           | (advanced) Override dynamic port selection for port forward for ONOS SSH            |
+| `VOLTHA_API_PORT`                       | dynamic                           | (advanced) Override dynamic port selection for port forward for VOLTHA API          |
+| `VOLTHA_SSH_PORT`                       | dynamic                           | (advanced) Override dynamic port selection for port forward for VOLTHA SSH          |
+| `VOLTHA_ETCD_PORT`                      | dynamic                           | (advanced) Override dynamic port selection for port forward for VOLTHA etcd         |
+| `VOLTHA_KAFKA_PORT`                     | dynamic                           | (advanced) Override dynamic port selection for port forward for VOLTHA Kafka API    |
 
 ## GENERATED CONFIGURATION
 When the voltha script is run it generates a file that contains the

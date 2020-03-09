@@ -83,6 +83,7 @@ WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
 WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 ONLY_ONE=${ONLY_ONE:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no}
+SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
@@ -201,6 +202,7 @@ ALL_OPTIONS="\
     ONOS_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
+    SADIS_CFG \
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
     VOLTHA_ETCD_PORT \
@@ -1220,9 +1222,8 @@ if [ $WITH_ONOS == "yes" ]; then
     if [ -f onos-files/onos-sadis.json ]; then
         push_onos_config "file" "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
     elif [ "$CONFIG_SADIS" == "yes" ]; then
-        SADIS_CFG=onos-files/onos-sadis-sample.json
         check_onos_app_active org.opencord.sadis
-        push_onos_config "file" "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
+        push_onos_config "file" "[optional] Push ONOS SADIS Configuration: $SADIS_CFG" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
     fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
