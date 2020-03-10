@@ -1235,7 +1235,7 @@ bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
     if [ "$ONLY_ONE" == "yes" ]; then
-        EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"=
+        EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"
     fi
     helm_install - voltha voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
     EXTRA_HELM_INSTALL_ARGS=
@@ -1312,7 +1312,10 @@ if [ $WITH_BBSIM == "yes" ]; then
         fi
         if [ $(helm list --deployed --short --namespace voltha "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
+            SAVED=$EXTRA_HELM_INSTALL_ARGS
+            EXTRA_HELM_INSTALL_ARGS+=" --set olt_id=$instance"
             helm_install - voltha bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
+            EXTRA_HELM_INSTALL_ARGS=$SAVED
         else
             espin - $VERIFIED
         fi
