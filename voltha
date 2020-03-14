@@ -82,7 +82,9 @@ WITH_SIM_ADAPTERS=${WITH_SIM_ADAPTERS:-no}
 WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
 WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 ONLY_ONE=${ONLY_ONE:-yes}
-CONFIG_SADIS=${CONFIG_SADIS:-no}
+CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | URL
+SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.voltha.svc:50074/v2/subscribers/%s}
+SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://bbsim.voltha.svc:50074/v2/bandwidthprofiles/%s}
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -171,7 +173,6 @@ ALL_YES_NO="\
     WITH_SIM_ADAPTERS \
     WITH_OPEN_ADAPTERS \
     WITH_PORT_FORWARDS \
-    CONFIG_SADIS \
     JUST_K8S \
     DEPLOY_K8S \
     INSTALL_ONOS_APPS \
@@ -202,6 +203,7 @@ ALL_OPTIONS="\
     ONOS_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
+    CONFIG_SADIS \
     SADIS_CFG \
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
@@ -453,16 +455,19 @@ push_onos_config() {
     bspin - "$MSG $GEAR"
     while true; do
         if [ $TYPE == "file" ]; then
-          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data @$DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
+            (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data @$DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
+            RESULT=$?
         fi
         if [ $TYPE == "json" ]; then
-          (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data $DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
+            (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data $DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
+            RESULT=$?
         fi
-        RESULT=$?
         # Dump everything to the log
         cat $CMD_ECHO >> $LOG
-        cat $CMD_OUTPUT >> $LOG
+        test -r $CMD_OUTPUT && cat $CMD_OUTPUT >> $LOG
         SC=$(cat $SC_OUTPUT)
+        echo "RESPONSE CODE: $SC" >> $LOG
+        echo "ERROR CODE: $RESULT" >> $LOG
 
         # clean up temp files
         rm -f $CMD_ECHO $CMD_OUTPUT $SC_OUTPUT
@@ -1219,11 +1224,67 @@ if [ $WITH_ONOS == "yes" ]; then
     if [ $ENABLE_ONOS_EXTRANEOUS_RULES == "yes" ]; then
         push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
     fi
-    if [ -f onos-files/onos-sadis.json ]; then
-        push_onos_config "file" "[optional] Push ONOS SADIS Configuration" "network/configuration/apps/org.opencord.sadis" "onos-files/onos-sadis.json"
-    elif [ "$CONFIG_SADIS" == "yes" ]; then
+    if [ $(echo ":yes:file:" | grep -c ":$CONFIG_SADIS:") -eq 1 ]; then
         check_onos_app_active org.opencord.sadis
         push_onos_config "file" "[optional] Push ONOS SADIS Configuration: $SADIS_CFG" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
+    elif [ "$CONFIG_SADIS" == "bbsim" ]; then
+        push_onos_config "json" \
+            "[optional] Push ONOS configuration for BBSIM SADIS servers" \
+            "network/configuration/apps/org.opencord.sadis" \
+            "$(echo $(cat <<EOJ
+{
+    "sadis": {
+        "integration": {
+            "url": "http://bbsim.voltha.svc.cluster.local:50074/v2/subscribers/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    },
+    "bandwidthprofile": {
+        "integration": {
+            "url": "http://bbsim.voltha.svc.cluster.local:50074/v2/bandwidthprofiles/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    }
+}
+EOJ
+) | tr -d '[:space:]')"
+    elif [ "$CONFIG_SADIS" == "url" ]; then
+        push_onos_config "json" \
+            "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
+            "network/configuration/apps/org.opencord.sadis" \
+            "$(echo $(cat <<EOJ
+{
+    "sadis": {
+        "integration": {
+            "url": "$SADIS_SUBSCRIBERS",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    },
+    "bandwidthprofile": {
+        "integration": {
+            "url": "$SADIS_BANDWIDTH_PROFILES",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    }
+}
+EOJ
+) | tr -d '[:space:]')"
     fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1385,11 +1446,23 @@ fi
 
 bspin "Create voltctl configuration file"
 (set -x; mkdir -p $HOME/.volt >>$LOG 2>&1) >>$LOG 2>&1
+MIN_VC_VERSION=$(echo -e "1.0.15\n$VC_VERSION" | sort -V | head -1)
 if [ $WITH_PORT_FORWARDS == "yes" ]; then
-    (set -x; voltctl -a v3 -k localhost:$VOLTHA_KAFKA_PORT -s localhost:$VOLTHA_API_PORT config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
+    KAFKA_FLAG="-k localhost:$VOLTHA_KAFKA_PORT"
+    SERVER_FLAG="-s localhost:$VOLTHA_API_PORT"
+    ETCD_FLAG=
+    if [ "$MIN_VC_VERSION" == "1.0.15" ]; then
+        ETCD_FLAG="-e localhost:$VOLTHA_ETCD_PORT"
+    fi
 else
-    (set -x; voltctl -a v3 -k $(get_service_ep voltha voltha-kafka) -s $(get_service_ep voltha voltha-api) config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
+    KAFKA_FLAG="-k $(get_service_ep voltha voltha-kafka)"
+    SERVER_FLAG="-s $(get_service_ep voltha voltha-api)"
+    ETCD_FLAG=
+    if [ "$MIN_VC_VERSION" == "1.0.15" ]; then
+        ETCD_FLAG="-e $(get_service_ep voltha voltha-etcd-client)"
+    fi
 fi
+(set -x; voltctl -a v3 $KAFKA_FLAG $SERVER_FLAG $ETCD_FLAG config > $HOME/.volt/config-$NAME 2>>$LOG) >>$LOG 2>&1
 espin $VERIFIED
 
 if [ ! -f "$NAME-env.sh" ]; then
