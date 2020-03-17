@@ -36,9 +36,6 @@ defaults:
 # information below (search for START_OFAGENT_GO).
 use_ofagent_go: true
 
-ofagent:
-  log_level: debug
-
 replicas:
   cli: ~
 
