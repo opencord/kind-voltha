@@ -27,10 +27,14 @@ defaults:
 # ----------------------
 # There are currently two implementations of OFAGENT: the original written in
 # Python and the reimplementation written in Go. The variable `use_ofagent_go`
-# can be used to optionally use the new Go implementation. This is done by
-# setting that value to `true`. Along with this change you will also need
-# to set the Docker image information below (search for START_OFAGENT_GO).
-use_ofagent_go: false
+# can be used to optionally select the implementation. The Go version is the
+# version to be part of the official release and is the default. The Python
+# verison has been deprecated and is no longer being actively workes, but is
+# being left as an option for this release.
+#
+# Along with this change you will also may need to set the Docker image
+# information below (search for START_OFAGENT_GO).
+use_ofagent_go: true
 
 ofagent:
   log_level: debug
@@ -63,33 +67,21 @@ images:
 #    tag: 2.1.0
 #  adapter_simulated_olt:
 #    repository: voltha/voltha-adapter-simulated-olt
-#    tag: master
+#    tag: 2.1.1
 #  adapter_simulated_onu:
 #    repository: voltha/voltha-adapter-simulated-onu
-#    tag: master
+#    tag: 2.1.1
 #  bbsim:
 #    repository: voltha/bbsim
 #    tag: master
-#  afrouter:
-#    repository: voltha/voltha-afrouter
-#    tag: master
-#  afrouterd:
-#    repository: voltha/voltha-afrouterd
-#    tag: master
-#  cli:
-#    repository: voltha/voltha-cli
-#    tag: 2.1.1
-# START_OFAGENT_GO - Uncomment the following block to use the Go implementation
+# START_OFAGENT_GO - Comment the following block to use the Python implementation
 # of the ofagent
-#  ofagent:
-#    repository: voltha/ofagent-go
-#    tag: master
+  ofagent:
+    repository: voltha/ofagent-go
+    tag: master
 # END_OFAGENT_GO
 #  ofagent:
-#    repository: volta/voltha-ofagent-go
-#    tag: 2.1.1
-#  ro_core:
-#    repository: voltha/voltha-ro-core
+#    repository: voltha/voltha-ofagent
 #    tag: 2.1.1
 #  rw_core:
 #    repository: voltha/voltha-rw-core
@@ -103,6 +95,12 @@ deployments:
 voltha-etcd-cluster:
   clusterSize: 1
   autoCompactionRetention: 1
+
+kafka:
+  configurationOverrides:
+    "default.replication.factor": 1
+    "offsets.topic.replication.factor": 1
+  replicas: 1
 
 onos_env:
 - name: POD_IP
@@ -155,20 +153,6 @@ dhcp: true
 #  kube-monkey/kill-value: 1
 #
 #rw_core_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
-#
-#ro_core_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
-#
-#ro_core_pod_labels:
 #  kube-monkey/enabled: enabled
 #  kube-monkey/identifier: monkey-victim
 #  kube-monkey/mtbf: 1

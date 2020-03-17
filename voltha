@@ -1307,9 +1307,9 @@ VOLTHA="voltha-ofagent-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
 if [ "$ONLY_ONE" == "yes" ]; then
-    EXPECT=$(test "$TYPE" == "minimal" && echo "5" || echo "7")
+    EXPECT=$(test "$TYPE" == "minimal" && echo "5" || echo "9")
 else
-    EXPECT=$(test "$TYPE" == "minimal" && echo "8" || echo "10")
+    EXPECT=$(test "$TYPE" == "minimal" && echo "8" || echo "12")
 fi
 wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then

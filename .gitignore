@@ -10,3 +10,5 @@ logger/*
 voltha-debug-dump-minimal*
 voltha-system-tests
 voltha-debug-dump-*
+minimal-env.sh
+full-env.sh

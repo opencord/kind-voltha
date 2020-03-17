@@ -23,6 +23,22 @@
 defaults:
   image_tag: master
 
+# OFAGENT IMPLEMENTATION
+# ----------------------
+# There are currently two implementations of OFAGENT: the original written in
+# Python and the reimplementation written in Go. The variable `use_ofagent_go`
+# can be used to optionally select the implementation. The Go version is the
+# version to be part of the official release and is the default. The Python
+# verison has been deprecated and is no longer being actively workes, but is
+# being left as an option for this release.
+#
+# Along with this change you will also may need to set the Docker image
+# information below (search for START_OFAGENT_GO).
+use_ofagent_go: true
+
+ofagent:
+  log_level: debug
+
 replicas:
   cli: ~
 
@@ -56,26 +72,35 @@ images:
 #    repository: voltha/voltha-adapter-simulated-onu
 #    tag: 2.1.1
 #  bbsim:
-#    repository: voltha/voltha-bbsim
-#    tag: 2.1.0
-#  afrouter:
-#    repository: voltha/voltha-afrouter
-#    tag: 2.1.1
-#  afrouterd:
-#    repository: voltha/voltha-afrouterd
-#    tag: 2.1.1
-#  cli:
-#    repository: voltha/voltha-cli
-#    tag: 2.1.1
+#    repository: voltha/bbsim
+#    tag: master
+# START_OFAGENT_GO - Comment the following block to use the Python implementation
+# of the ofagent
+  ofagent:
+    repository: voltha/ofagent-go
+    tag: master
+# END_OFAGENT_GO
 #  ofagent:
 #    repository: voltha/voltha-ofagent
-#    tag: 2.1.1
-#  ro_core:
-#    repository: voltha/voltha-ro-core
 #    tag: 2.1.1
 #  rw_core:
 #    repository: voltha/voltha-rw-core
 #    tag: 2.1.1
+
+deployments:
+  etcdOperator: true
+  backupOperator: true
+  restoreOperator: true
+
+voltha-etcd-cluster:
+  clusterSize: 3
+  autoCompactionRetention: 1
+
+kafka:
+  configurationOverrides:
+    "default.replication.factor": 3
+    "offsets.topic.replication.factor": 3
+  replicas: 3
 
 onos_env:
 - name: POD_IP
@@ -134,14 +159,14 @@ dhcp: true
 #  kube-monkey/kill-mode: fixed
 #  kube-monkey/kill-value: 1
 #
-#ro_core_deployment_labels:
+#ofagent_deployment_labels:
 #  kube-monkey/enabled: enabled
 #  kube-monkey/identifier: monkey-victim
 #  kube-monkey/mtbf: 1
 #  kube-monkey/kill-mode: fixed
 #  kube-monkey/kill-value: 1
 #
-#ro_core_pod_labels:
+#ofagent_pod_labels:
 #  kube-monkey/enabled: enabled
 #  kube-monkey/identifier: monkey-victim
 #  kube-monkey/mtbf: 1
