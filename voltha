@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -f
 TOTAL_START_TIME=$(date +%s)
 
 FANCY=${FANCY:-1}
@@ -538,9 +539,7 @@ count_pods() {
     else
         NAMESPACE="-n $NAMESPACE"
     fi
-    echo "$NAMESPACE" > /tmp/t
     local STATES=$1; shift
-    echo "$STATES" >> /tmp/t
     local PODS=$(kubectl get $NAMESPACE  pod -o go-template="{{range .items}}{{.metadata.name}}/{{.status.phase}}/_{{range .status.containerStatuses}}{{.ready}}_{{end}} {{end}}")
     local COUNT=0
     local PATTERNS="$*"
@@ -549,14 +548,11 @@ count_pods() {
         local STATE=$(echo $POD | cut -d/ -f 2)
         local CONTAINERS=$(echo $POD | cut -d/ -f 3 | sed -e 's/_/ /g')
         if [ "$STATES" == "*" -o $(echo "$STATES" | grep -c ":$STATE:") -ne 0 ]; then
-            echo "IN WITH $POD" >> /tmp/t
             local TOTAL=$(echo $CONTAINERS | wc -w)
             local FOUND=$(echo $CONTAINERS | grep -o true | wc -l)
             if [ $TOTAL -eq $FOUND ]; then
                 for PATTERN in $PATTERNS; do
-                    echo "TEST $PATTERN AGAINST $NAME" >> /tmp/t
                     if [[ $NAME =~ $PATTERN ]]; then
-                        echo "COUNT $NAME" >> /tmp/t
                         COUNT=$(expr $COUNT + 1)
                         break
                     fi
@@ -564,7 +560,6 @@ count_pods() {
             fi
         fi
     done
-    echo $COUNT >> /tmp/t
     echo $COUNT
 }
 
