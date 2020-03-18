@@ -107,7 +107,8 @@ VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
 ONOS_CHART=${ONOS_CHART:-onf/onos}
 ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
-EXTRA_HELM_INSTALL_ARGS=
+EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
+INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
 MAX_NUM_OF_BBSIM=10
 
@@ -808,14 +809,14 @@ helm_install() {
 
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
             (set -x; helm delete --purge $INAME >>$LOG 2>&1) >>$LOG 2>&1
-            (set -x; helm install -f $NAME-values.yaml $CHART_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
             SUCCESS=$?
             COUNT=$(expr 300 / 15)
         fi
@@ -1291,10 +1292,10 @@ bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
     if [ "$ONLY_ONE" == "yes" ]; then
-        EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"
     fi
     helm_install - voltha voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
-    EXTRA_HELM_INSTALL_ARGS=
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 else
     espin $VERIFIED
 fi
@@ -1368,10 +1369,9 @@ if [ $WITH_BBSIM == "yes" ]; then
         fi
         if [ $(helm list --deployed --short --namespace voltha "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            SAVED=$EXTRA_HELM_INSTALL_ARGS
-            EXTRA_HELM_INSTALL_ARGS+=" --set olt_id=$instance"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance"
             helm_install - voltha bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
-            EXTRA_HELM_INSTALL_ARGS=$SAVED
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin - $VERIFIED
         fi
