@@ -36,9 +36,6 @@ defaults:
 # information below (search for START_OFAGENT_GO).
 use_ofagent_go: true
 
-replicas:
-  cli: ~
-
 images:
   onos:
     repository: voltha/voltha-onos
@@ -73,12 +70,12 @@ images:
 #    tag: master
 # START_OFAGENT_GO - Comment the following block to use the Python implementation
 # of the ofagent
-  ofagent:
-    repository: voltha/ofagent-go
-    tag: master
+#  ofagent:
+#    repository: voltha/voltha-ofagent-go
+#    tag: master
 # END_OFAGENT_GO
 #  ofagent:
-#    repository: voltha/voltha-ofagent
+#    repository: voltha/voltha-ofagent-py
 #    tag: 2.1.1
 #  rw_core:
 #    repository: voltha/voltha-rw-core

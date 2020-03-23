@@ -119,6 +119,7 @@ Please check the `releases` folder to see the available ones.
 | `ENABLE_ONOS_EXTRANEOUS_RULES`          | no                                                   | Set ONOS to allows flow rules not set via ONOS                                       |
 | `UPDATE_HELM_REPOS`                     | yes                                                  | Update the Helm repository with the latest charts before installing                  |
 | `WAIT_ON_DOWN`                          | yes                                                  | When tearing down the VOLTHA, don't exit script until all containers are stoped      |
+| `WAIT_TIMEOUT`                          | 30m                                                  | Time to wait before timing out on lengthy operations                                 |
 | `KIND_VERSION`                          | v0.5.1                                               | Version of KinD to install if using a KinD cluster                                   |
 | `VOLTCTL_VERSION`                       | latest                                               | Version of `voltctl` to install or up/downgrade to and use                           |
 | `ONOS_API_PORT`                         | dynamic                                              | (advanced) Override dynamic port selection for port forward for ONOS API             |

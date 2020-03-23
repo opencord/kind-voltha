@@ -94,6 +94,8 @@ INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
 UPDATE_HELM_REPOS=${UPDATE_HELM_REPOS:-yes}
 WAIT_ON_DOWN=${WAIT_ON_DOWN:-yes}
+WAIT_TIMEOUT=${WAIT_TIMEOUT:-30m}
+VOLTHA_DOWN_ON_TIMEOUT=${VOLTHA_DOWN_ON_TIMEOUT:-no}
 VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
 VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
@@ -136,6 +138,34 @@ if [ $(echo ":minimal:full:" | grep -ic ":$TYPE:") -eq 0 ]; then
     >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$TYPE value of '$TYPE'. Should be 'minimal' or 'full'${NORMAL}"
     exit 1
 fi
+
+function parseDuration() {
+    local DUR=$1
+    local RESULT=0
+    local TERMS=$(echo $DUR | sed -e 's/\([sSmMhHdD]\)/\1 /g' -e 's/,$//g')
+    for TERM in $TERMS; do
+       local VALUE=$(echo $TERM | sed -e 's/\([0-9]\+\)[sSmMhHdD]/\1/')
+       local UNIT=$(echo $TERM | sed -e 's/[0-9]\+\([sSmMhHdD]\)/\1/')
+       case $UNIT in
+          s|S)
+             RESULT=$(($RESULT + $VALUE)) ;;
+          m|M)
+             RESULT=$(($RESULT + ($VALUE * 60))) ;;
+          h|H)
+             RESULT=$(($RESULT + ($VALUE * 3600))) ;;
+          d|D)
+             RESULT=$(($RESULT + ($VALUE * 86400))) ;;
+          *) ;;
+       esac
+    done
+    echo $RESULT
+}
+
+function doTimeout() {
+    local MSG=$1
+    2>&1 echo -e "\n${RED}${BOLD}${ERROR}TIMEOUT:${NORMAL}${RED} Operation timed out after '$WAIT_TIMEOUT': $MSG"
+    exit 125
+}
 
 function get_service_ep() {
     local NS=$1
@@ -183,12 +213,14 @@ ALL_YES_NO="\
     UPDATE_HELM_REPOS \
     WAIT_ON_DOWN \
     ONLY_ONE \
+    VOLTHA_DOWN_ON_TIMEOUT \
     "
 
 ALL_OPTIONS="\
     NAME \
     TYPE \
     $ALL_YES_NO \
+    WAIT_TIMEOUT \
     VOLTHA_LOG_LEVEL \
     VOLTHA_CHART \
     VOLTHA_CHART_VERSION \
@@ -240,6 +272,8 @@ if [ ! -z "$NOT_FOUND" ]; then
     >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} The following required tools where not found, please install them:$NOT_FOUND"
     exit 1
 fi
+
+TIMEOUT_SECONDS=$(parseDuration $WAIT_TIMEOUT)
 
 mkdir -p .voltha
 touch .voltha/ports
@@ -453,9 +487,14 @@ push_onos_config() {
     local CMD_ECHO=$(mktemp -u)
     local CMD_OUTPUT=$(mktemp -u)
     local SC_OUTPUT=$(mktemp -u)
+    local WAIT_START=$(date +%s)
 
     bspin - "$MSG $GEAR"
     while true; do
+        if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
+            espin - "$THEX"
+            doTimeout "waiting for ONOS config push on $RESOURCE"
+        fi
         if [ $TYPE == "file" ]; then
             (set -x; curl --fail -sSL --user karaf:karaf -w "%{http_code}" -o $CMD_OUTPUT -X POST -H Content-Type:application/json http://$_ONOS_API_EP/onos/v1/$RESOURCE --data @$DATA >$SC_OUTPUT 2>/dev/null) >>$CMD_ECHO 2>&1
             RESULT=$?
@@ -483,25 +522,36 @@ push_onos_config() {
 }
 
 check_onos_app_active() {
-  local APP_ID=$1
+    local APP_ID=$1
+    local WAIT_START=$(date +%s)
 
-  bspin - "Checking that $APP_ID is active $CLOCK"
-  while true; do
-      (set -x; curl --fail -sSL --user karaf:karaf -X GET http://$_ONOS_API_EP/onos/v1/applications/$APP_ID | grep ACTIVE >>$LOG 2>&1) >>$LOG 2>&1
-      if [ $? -eq 0 ]; then
-          break
-      fi
-      sleep 1
-      sspin -
-  done
-  sleep 5 # OSGI components take a little longer that the app to activate
-  espin - $VERIFIED
+    bspin - "Checking that $APP_ID is active $CLOCK"
+    while true; do
+        if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
+            espin - "$THEX"
+            doTimeout "waiting for ONOS application activation '$APP_ID'"
+        fi
+        (set -x; curl --fail -sSL --user karaf:karaf -X GET http://$_ONOS_API_EP/onos/v1/applications/$APP_ID | grep ACTIVE >>$LOG 2>&1) >>$LOG 2>&1
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        sleep 1
+        sspin -
+    done
+    sleep 5 # OSGI components take a little longer that the app to activate
+    espin - $VERIFIED
 }
 
 override_onos_app() {
     local APP=$1
     local NAME=$(basename $APP | sed -e 's/^[0-9][0-9]*-//g' -e 's/-.*$//g')
+    local WAIT_START=$(date +%s)
+
     while true; do
+        if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
+            espin - "$THEX"
+            doTimeout "waiting to overwrite ONOS application '$APP'"
+        fi
         sspin -
         # Attempt to delete old version (if it exists)
         (set -x; curl --fail -sSL --user karaf:karaf -X DELETE http://$_ONOS_API_EP/onos/v1/applications/$NAME >>$LOG 2>&1) >>$LOG 2>&1
@@ -520,9 +570,14 @@ override_onos_app() {
 activate_onos_app() {
     local MSG="$1"
     local APP=$2
+    local WAIT_START=$(date +%s)
 
     bspin - "$MSG $GO"
     while true; do
+        if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
+            espin - "$THEX"
+            doTimeout "waiting to activate ONOS application '$APP'"
+        fi
         sspin -
         (set -x; curl --fail -sSL --user karaf:karaf -X POST http://$_ONOS_API_EP/onos/v1/applications/$APP/active >>$LOG 2>&1) >>$LOG 2>&1
         if [ $? -eq 0 ]; then
@@ -585,10 +640,15 @@ wait_for_pods() {
         ALL=$(count_pods "all-namespaces" "*" ".*")
     fi
     COUNT=$(expr 300 / 15)
+    local WAIT_START=$(date +%s)
     bspin $INDENT $MESSAGE
     sspin $INDENT
     if [ $HAVE -ne $EXPECT -o $ALL -ne $HAVE ]; then
         while [ $HAVE -ne $EXPECT -o $ALL -ne $HAVE ]; do
+            if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
+                espin $INDENT "$THEX"
+                doTimeout "waiting for PODs to start"
+            fi
             sspin $INDENT
             COUNT=$(expr $COUNT - 1)
             if [ $COUNT -eq 0 ]; then
@@ -807,11 +867,16 @@ helm_install() {
         CHART_ARGS="-f ${INAME}-values.yaml"
     fi
 
+    local WAIT_START=$(date +%s)
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
     (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
+        if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
+            espin "$THEX"
+            doTimeout "waiting for helm install $CHART"
+        fi
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
