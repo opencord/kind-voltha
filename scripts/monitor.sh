@@ -15,6 +15,7 @@
 
 # This script sets up a watch with information that is valuable when
 # developing voltha with k8s
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 CMD_KEY=cmd
 if [ "$ARCH" == "Darwin" ]; then
@@ -23,5 +24,5 @@ fi
 
 kubectl get --all-namespaces pods,svc && echo "" \
     &&  kubectl  describe --all-namespaces  pods | grep Image: | grep voltha | sed -e "s/^ *//g" -e "s/: */: /g"  && echo "" \
-    && echo "DB SIZE: $(./scripts/etcd-db-size.sh)" && echo "" \
+    && echo "DB SIZE: $($SCRIPTPATH/etcd-db-size.sh)" && echo "" \
     && echo "RSS SIZE: $(ps -eo rss,pid,$CMD_KEY | grep /usr/local/bin/etcd | grep -v grep | cut -d\  -f1 | numfmt --to=iec | tr '\n' ' ' )"

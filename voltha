@@ -142,10 +142,10 @@ fi
 function parseDuration() {
     local DUR=$1
     local RESULT=0
-    local TERMS=$(echo $DUR | sed -e 's/\([sSmMhHdD]\)/\1 /g' -e 's/,$//g')
+    local TERMS=$(echo $DUR | sed -Ee 's/([sSmMhHdD])/\1 /g' -e 's/,$//g')
     for TERM in $TERMS; do
-       local VALUE=$(echo $TERM | sed -e 's/\([0-9]\+\)[sSmMhHdD]/\1/')
-       local UNIT=$(echo $TERM | sed -e 's/[0-9]\+\([sSmMhHdD]\)/\1/')
+       local VALUE=$(echo $TERM | sed -Ee 's/([0-9]+)[sSmMhHdD]/\1/')
+       local UNIT=$(echo $TERM | sed -Ee 's/[0-9]+([sSmMhHdD])/\1/')
        case $UNIT in
           s|S)
              RESULT=$(($RESULT + $VALUE)) ;;
