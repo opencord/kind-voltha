@@ -501,6 +501,7 @@ push_onos_config() {
     while true; do
         if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
             espin - "$THEX"
+            rm -f $CMD_ECHO $CMD_OUTPUT $SC_OUTPUT
             doTimeout "waiting for ONOS config push on $RESOURCE"
         fi
         if [ $TYPE == "file" ]; then
@@ -1160,6 +1161,7 @@ for i in $VALUES_FILES; do
         rm -rf $ERR_OUT
     fi
 done
+rm -rf $ERR_OUT
 espin $VERIFIED
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
@@ -1251,6 +1253,7 @@ if [ $WITH_ONOS == "yes" ]; then
             rm -rf $ERR_OUT
         fi
     done
+    rm -rf $ERR_OUT
     espin - $VERIFIED
 
     if [ $INSTALL_ONOS_APPS == "yes" ]; then
