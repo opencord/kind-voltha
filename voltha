@@ -256,6 +256,14 @@ for VAR in $ALL_YES_NO; do
     fi
 done
 
+# Special case for CONFIG_SADIS
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$CONFIG_SADIS:") -eq 1 ]; then
+    CONFIG_SADIS="yes"
+fi
+if [ $(echo ":n:no:false:0:" | grep -ic ":$CONFIG_SADIS:") -eq 1 ]; then
+    CONFIG_SADIS="no"
+fi
+
 # Check for prerequiste tools
 TOOLS="curl sed jq"
 if [ $DEPLOY_K8S == "yes" ]; then
