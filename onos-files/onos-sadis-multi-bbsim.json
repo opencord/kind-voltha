@@ -1,0 +1,252 @@
+{
+  "sadis": {
+    "integration": {
+      "cache": {
+        "enabled": false,
+        "maxsize": 50,
+        "ttl": "PT0m"
+      }
+    },
+    "entries": [
+      {
+        "id": "BBSIM_OLT_0",
+        "hardwareIdentifier": "0f:f1:ce:c0:ff:ee",
+        "nasId": "BBSIMOLT000",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00000001-1",
+        "nasPortId": "BBSM00000001-1",
+        "circuitId": "BBSM00000001-1",
+        "remoteId": "BBSM00000001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 900,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_1",
+        "hardwareIdentifier": "0f:f1:ce:c1:ff:ee",
+        "nasId": "BBSIMOLT001",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00010001-1",
+        "nasPortId": "BBSM00010001-1",
+        "circuitId": "BBSM00010001-1",
+        "remoteId": "BBSM00010001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 901,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_2",
+        "hardwareIdentifier": "0f:f1:ce:c2:ff:ee",
+        "nasId": "BBSIMOLT002",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00020001-1",
+        "nasPortId": "BBSM00020001-1",
+        "circuitId": "BBSM00020001-1",
+        "remoteId": "BBSM00020001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 902,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_3",
+        "hardwareIdentifier": "0f:f1:ce:c3:ff:ee",
+        "nasId": "BBSIMOLT003",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00030001-1",
+        "nasPortId": "BBSM00030001-1",
+        "circuitId": "BBSM00030001-1",
+        "remoteId": "BBSM00030001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 903,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_4",
+        "hardwareIdentifier": "0f:f1:ce:c4:ff:ee",
+        "nasId": "BBSIMOLT004",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00040001-1",
+        "nasPortId": "BBSM00040001-1",
+        "circuitId": "BBSM00040001-1",
+        "remoteId": "BBSM00040001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 904,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_5",
+        "hardwareIdentifier": "0f:f1:ce:c5:ff:ee",
+        "nasId": "BBSIMOLT005",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00050001-1",
+        "nasPortId": "BBSM00050001-1",
+        "circuitId": "BBSM00050001-1",
+        "remoteId": "BBSM00050001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 905,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_6",
+        "hardwareIdentifier": "0f:f1:ce:c6:ff:ee",
+        "nasId": "BBSIMOLT006",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00060001-1",
+        "nasPortId": "BBSM00060001-1",
+        "circuitId": "BBSM00060001-1",
+        "remoteId": "BBSM00060001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 906,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_7",
+        "hardwareIdentifier": "0f:f1:ce:c7:ff:ee",
+        "nasId": "BBSIMOLT007",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00070001-1",
+        "nasPortId": "BBSM00070001-1",
+        "circuitId": "BBSM00070001-1",
+        "remoteId": "BBSM00070001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 907,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_8",
+        "hardwareIdentifier": "0f:f1:ce:c8:ff:ee",
+        "nasId": "BBSIMOLT008",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00080001-1",
+        "nasPortId": "BBSM00080001-1",
+        "circuitId": "BBSM00080001-1",
+        "remoteId": "BBSM00080001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 908,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      },
+      {
+        "id": "BBSIM_OLT_9",
+        "hardwareIdentifier": "0f:f1:ce:c9:ff:ee",
+        "nasId": "BBSIMOLT009",
+        "uplinkPort": 1048576
+      },
+      {
+        "id": "BBSM00090001-1",
+        "nasPortId": "BBSM00090001-1",
+        "circuitId": "BBSM00090001-1",
+        "remoteId": "BBSM00090001-1",
+        "uniTagList": [
+          {
+            "ponCTag": 900,
+            "ponSTag": 909,
+            "technologyProfileId": 64,
+            "downstreamBandwidthProfile": "Default",
+            "upstreamBandwidthProfile": "Default",
+            "isDhcpRequired": true
+          }
+        ]
+      }
+    ]
+  },
+  "bandwidthprofile": {
+    "integration": {
+      "cache": {
+        "enabled": true,
+        "maxsize": 40,
+        "ttl": "PT1m"
+      }
+    },
+    "entries": [
+      {
+        "id": "Default",
+        "cir": 1000000,
+        "cbs": 1001,
+        "eir": 1002,
+        "ebs": 1003,
+        "air": 1004
+      }
+    ]
+  }
+}
