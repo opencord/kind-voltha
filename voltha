@@ -31,6 +31,7 @@ function ctrl_c() {
     exit
 }
 
+HELM_VERSION=${HELM_VERSION:-v2.14.3}
 VOLTCTL_VERSION=${VOLTCTL_VERSION:-latest}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
 VK_RELEASE=${VK_RELEASE:-master}
@@ -246,6 +247,7 @@ ALL_OPTIONS="\
     VK_RELEASE \
     KIND_VERSION \
     VOLTCTL_VERSION \
+    HELM_VERSION \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -960,12 +962,29 @@ if [ "$INSTALL_HELM" == "no" ]; then
     espin $NO_ENTRY
 else
     bspin "Verify Helm $HELM"
+    HELM_UPGRADE=0
+    HELM_UPGRADE_DESC="install"
     if [ -x $GOPATH/bin/helm ]; then
-        espin $VERIFIED
+        HAVE_VER=$($GOPATH/bin/helm version -c --template '{{.Client.SemVer}}')
+        HELM_UP_DOWN=$(echo -e "$HAVE_VER\n$HELM_VERSION" | sort -V | head -1)
+        if [ $HAVE_VER != $HELM_VERSION ]; then
+            if [ $HELM_UP_DOWN == $HELM_VERSION ]; then
+                HELM_UPGRADE_DESC="downgrade"
+            else
+                HELM_UPGRADE_DESC="upgrade"
+            fi
+            HELM_UPGRADE=1
+        else
+            espin $VERIFIED
+        fi
     else
+        HELM_UPGRADE=1
+    fi
+
+    if [ $HELM_UPGRADE -ne 0 ]; then
         espin $NOT_VERIFIED
-        bspin - "Download and install Helm $DOWNLOAD"
-        (set -x; curl -sSL https://git.io/get_helm.sh | DESIRED_VERSION=v2.14.3  USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>$LOG 2>&1) >>$LOG 2>&1
+        bspin - "Download and $HELM_UPGRADE_DESC Helm $DOWNLOAD"
+        (set -x; curl -sSL https://git.io/get_helm.sh | DESIRED_VERSION=$HELM_VERSION  USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>$LOG 2>&1) >>$LOG 2>&1
         espin - $VERIFIED
     fi
 fi
@@ -1109,7 +1128,15 @@ if [ $COUNT -ne 1 ]; then
     (set -x; kubectl -n kube-system scale deploy tiller-deploy --replicas=1 >>$LOG 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
 else
-    espin $VERIFIED
+    if [ $(helm version -s --template '{{.Server.SemVer}}') != $HELM_VERSION ]; then
+        espin $NOT_VERIFIED
+        bspin - "Sync Tiller server version with helm client"
+        (set -x; helm init --upgrade --force-upgrade --wait >>$LOG 2>&1) >>$LOG 2>&1
+        espin - $VERIFIED
+    else
+        espin $VERIFIED
+    fi
+
     if [ "$UPDATE_HELM_REPOS" == "yes" ]; then
         bspin - "Update Helm repository cache"
         (set -x; helm repo update >>$LOG 2>&1) >>$LOG 2>&1
