@@ -1472,7 +1472,8 @@ if [ $WITH_BBSIM == "yes" ]; then
         fi
         if [ $(helm list --deployed --short --namespace voltha "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance"
+            S_TAG=$((900+$instance))
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
             helm_install - voltha bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else

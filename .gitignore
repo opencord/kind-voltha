@@ -12,3 +12,4 @@ voltha-system-tests
 voltha-debug-dump-*
 minimal-env.sh
 full-env.sh
+.DS_Store
