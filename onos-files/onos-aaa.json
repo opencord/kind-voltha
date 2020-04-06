@@ -1,8 +1,8 @@
 {
   "AAA": {
-    "radiusIp": ":RADIUS_IP:",
-    "nasIp": ":RADIUS_IP:",
-    "radiusServerPort": "1812",
+    "radiusConnectionType" : "socket",
+    "radiusHost": ":RADIUS_SVC:",
+    "radiusServerPort": ":RADIUS_PORT:",
     "radiusSecret": "SECRET"
   }
 }
