@@ -82,9 +82,13 @@ Please check the `releases` folder to see the available ones.
 | `NAME`                                  | TYPE                                                  | Name of the KinD Cluster to be created |
 | `DEPLOY_K8S`                            | yes                                                   | Should the KinD Kubernetes cluster be deployed? |
 | `JUST_K8S`                              | no                                                    | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA) |
+| `VOLTHA_NS`                             | `voltha`                                                | K8s namespace into which to deploy voltha PODs |
+| `INFRA_NS`                              | `default`                                               | K8s namespace into which to deploy infrastructure PODs |
+| `BBSIM_NS`                              | `voltha`                                                | K8s namespace into which to deploy BBSIM PODs |
+| `ADAPTER_NS`                            | `voltha`                                                | K8s namespace into which to deploy VOLTHA adapters |
 | `WITH_BBSIM`                            | no                                                    | Should the BBSIM POD be deployed? |
 | `NUM_OF_BBSIM`                          | 1                                                     | number of BBSIM POD to start (minimum = 1, maximum = 10) |
-| `WITH_ONOS`                             | yes                                                   | Should `ONOS` service be deployed? |
+| `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
 | `WITH_KAFKA`                            | yes                                                   | Deploy private Kafka (yes/no) or k8s servce:port of external Kafka |
 | `WITH_ETCD`                             | yes                                                   | Deploy private etcd (yes/no) or k8s service:port of external etcd |
 | `WITH_RADIUS`                           | no                                                    | Deploy sample RADIUS server (yes/no) or a k8s service:port of external RADIUS |

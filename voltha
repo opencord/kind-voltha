@@ -71,6 +71,10 @@ TYPE=${TYPE:-minimal}
 NAME=${NAME:-$TYPE}
 
 ENABLE_ONOS_EXTRANEOUS_RULES=${ENABLE_ONOS_EXTRANEOUS_RULES:-no}
+INFRA_NS=${INFRA_NS:-default}
+VOLTHA_NS=${VOLTHA_NS:-voltha}
+BBSIM_NS=${BBSIM_NS:-voltha}
+ADAPTER_NS=${ADAPTER_NS:-voltha}
 WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
@@ -87,8 +91,8 @@ WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
 ONLY_ONE=${ONLY_ONE:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | URL
-SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.voltha.svc:50074/v2/subscribers/%s}
-SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://bbsim.voltha.svc:50074/v2/bandwidthprofiles/%s}
+SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
+SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://bbsim.$VOLTHA_NS.svc:50074/v2/bandwidthprofiles/%s}
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -201,7 +205,6 @@ ALL_YES_NO="\
     WITH_EAPOL \
     WITH_DHCP \
     WITH_IGMP \
-    WITH_ONOS \
     WITH_CHAOS \
     WITH_ADAPTERS \
     WITH_SIM_ADAPTERS \
@@ -252,6 +255,7 @@ ALL_OPTIONS="\
     WITH_RADIUS \
     WITH_KAFKA \
     WITH_ETCD \
+    WITH_ONOS \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -270,12 +274,15 @@ if [ $(echo ":n:no:false:0:" | grep -ic ":$CONFIG_SADIS:") -eq 1 ]; then
     CONFIG_SADIS="no"
 fi
 
-# Special case for WITH_KAFKA and WITH_ETCD
+# Special case for WITH_ONOS, WITH_RADIUS, WITH_KAFKA, and WITH_ETCD
 if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_KAFKA:") -eq 1 ]; then
     WITH_KAFKA="yes"
 fi
 if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_KAFKA:") -eq 1 ]; then
     WITH_KAFKA="no"
+fi
+if [ $(echo ":external:" | grep -ic ":$WITH_KAFKA:") -eq 1 ]; then
+    WITH_KAFKA="external"
 fi
 if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_ETCD:") -eq 1 ]; then
     WITH_ETCD="yes"
@@ -283,11 +290,20 @@ fi
 if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_ETCD:") -eq 1 ]; then
     WITH_ETCD="no"
 fi
+if [ $(echo ":external:" | grep -ic ":$WITH_ETCD:") -eq 1 ]; then
+    WITH_ETCD="external"
+fi
 if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
     WITH_RADIUS="yes"
 fi
 if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
     WITH_RADIUS="no"
+fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_ONOS:") -eq 1 ]; then
+    WITH_ONOS="yes"
+fi
+if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_ONOS:") -eq 1 ]; then
+    WITH_ONOS="no"
 fi
 
 # Check for prerequiste tools
@@ -749,7 +765,7 @@ if [ "$1" == "down" ]; then
     fi
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
     kill_port_forward voltha-api
-    if [ $WITH_ETCD == "yes" ]; then
+    if [ $WITH_ETCD == "yes" -o $WITH_ETCD == "external" ]; then
         sspin "Remove port-forwards: voltha-etcd-$NAME$CEOL"
         kill_port_forward voltha-etcd-cluster-client
     fi
@@ -769,7 +785,7 @@ if [ "$1" == "down" ]; then
         fi
     else
         EXISTS=$(helm list -q)
-        EXPECT="voltha etcd-operator"
+        EXPECT="voltha"
         if [ $WITH_ONOS == yes ]; then
             EXPECT+=" onos"
         fi
@@ -785,6 +801,14 @@ if [ "$1" == "down" ]; then
         if [ $WITH_SIM_ADAPTERS == "yes" ]; then
             EXPECT+=" sim"
         fi
+        if [ $WITH_ETCD == "external" ]; then
+            EXPECT+=" etcd-operator etcd-cluster"
+        elif [ $WITH_ETCD == "yes" ]; then
+            EXPECT+=" etcd-operator"
+        fi
+        if [ $WITH_KAFKA == "external" ]; then
+            EXPECT+=" kafka"
+        fi
         bspin "Remove Helm Deployments"
         for i in $EXISTS; do
             for j in $EXPECT; do
@@ -796,21 +820,40 @@ if [ "$1" == "down" ]; then
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
         if [ "$WAIT_ON_DOWN" == "yes" ]; then
-            PODS="voltha-kafka.* voltha-ofagent.* voltha-rw-core.* voltha-etcd.* etcd-operator.*"
+            PODS="voltha-kafka.* voltha-ofagent.* voltha-rw-core.* voltha-etcd.*"
+            INFRA_PODS=
+            ADAPT_PODS=
+            SIM_PODS=
             if [ $WITH_RADIUS == "yes" ]; then
                 PODS+=" radius.*"
             fi
             if [ $WITH_BBSIM == "yes" ]; then
-                PODS+=" bbsim.*"
+                SIM_PODS+=" bbsim.*"
             fi
             if [ $WITH_OPEN_ADAPTERS -o $WITH_SIM_ADAPTERS ]; then
-                PODS+=" adapter-*"
+                ADAPT_PODS+=" adapter-*"
             fi
-            if [ "$WITH_ONOS" == "yes" ]; then
-              ONOS_PODS="onos-.*"
-              wait_for_pods "default" 0 "not" -1 "Waiting for ONOS PODs to terminate" $ONOS_PODS
-            fi 
-            wait_for_pods "voltha" 0 "not" -1 "Waiting for VOLTHA PODs to terminate" $PODS
+            if [ $WITH_ONOS == "yes" ]; then
+                INFRA_PODS+=" onos-.*"
+            fi
+            if [ $WITH_ETCD == "external" ]; then
+                INFRA_PODS+=" etcd-operator.* etcd-cluster.*"
+            elif [ $WITH_ETCD == "yes" ]; then
+                PODS+=" etcd-operator.*"
+            fi
+            if [ $WITH_KAFKA == "external" ]; then
+                INFRA_PODS+=" kafka.*"
+            fi
+            if [ ! -z "$SIM_PODS" ]; then
+                wait_for_pods "$BBSIM_NS" 0 "not" -1 "Waiting for BBSIM PODs to terminate" $SIM_PODS
+            fi
+            if [ ! -z "$INFRA_PODS" ]; then
+                wait_for_pods "$INFRA_NS" 0 "not" -1 "Waiting for infrastructure PODs to terminate" $INFRA_PODS
+            fi
+            if [ ! -z "$ADAPT_PODS" ]; then
+                wait_for_pods "$ADAPTER_NS" 0 "not" -1 "Waiting for adapter  PODs to terminate" $ADAPT_PODS
+            fi
+            wait_for_pods "$VOLTHA_NS" 0 "not" -1 "Waiting for VOLTHA PODs to terminate" $PODS
         fi
     fi
     exit
@@ -844,7 +887,7 @@ if [ "$1" == "dump" ]; then
     (set -x; kubectl get --all-namespaces events >> $DATA/all-events.txt 2>&1) >>$LOG 2>&1
     espin - $VERIFIED
     bspin - "Dumping VOLTHA POD details"
-    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')"
+    PODS="$(kubectl -n $INFRA_NS get pod -o name | grep onos | sed -e 's/^/$INFRA_NS:/g') $(kubectl get -n $VOLTHA_NS pod -o name | sed -e 's/^/$VOLTHA_NS:/g')"
     SINCE=
     if [ ! -z "$DUMP_FROM" ]; then
         SINCE="--since-time=$DUMP_FROM"
@@ -1261,20 +1304,24 @@ if [ "$JUST_K8S" == "yes" ]; then
     exit 0
 fi
 
-if [ $WITH_ETCD != "yes" ]; then
+if [ $WITH_ETCD != "yes" -a $WITH_ETCD != "external" ]; then
     bspin "Skip ETCD Operator Deployment"
     espin $NO_ENTRY
 else
     STIME=$(date +%s)
+    NS=$VOLTHA_NS
+    if [ $WITH_ETCD == "external" ]; then
+        NS=$INFRA_NS
+    fi
     bspin "Verify ETCD Operator $OLD_KEY"
-    if [ $(helm list --deployed --short --namespace voltha "^etcd-operator\$" | wc -l) -ne 1 ]; then
+    if [ $(helm list --deployed --short --namespace $NS "^etcd-operator\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        helm_install - voltha etcd-operator stable/etcd-operator latest "Install ETCD Operator"
+        helm_install - $NS etcd-operator stable/etcd-operator latest "Install ETCD Operator"
     else
         espin $VERIFIED
     fi
     EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
-    wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
+    wait_for_pods - "$NS" $EXPECT "includes" -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1283,26 +1330,26 @@ fi
 STIME=$(date +%s)
 if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
-    if [ $(helm list --deployed --short --namespace default "^onos\$" | wc -l) -ne 1 ]; then
+    if [ $(helm list --deployed --short --namespace $INFRA_NS "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - default onos $ONOS_CHART $ONOS_CHART_VERSION "Install ONOS"
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - $INFRA_NS onos $ONOS_CHART $ONOS_CHART_VERSION "Install ONOS"
     else
         espin $VERIFIED
     fi
-    wait_for_pods - "default" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
+    wait_for_pods - "$INFRA_NS" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
 
     if [ $WITH_PORT_FORWARDS == "yes" ]; then
         bspin - "Forward ONOS API port $FORWARD"
         kill_port_forward onos-ui
-        port_forward default onos-ui $ONOS_API_PORT 8181
+        port_forward $INFRA_NS onos-ui $ONOS_API_PORT 8181
         espin - $VERIFIED
         bspin - "Forward ONOS SSH port $FORWARD"
         kill_port_forward onos-ssh
-        port_forward default onos-ssh $ONOS_SSH_PORT 8101
+        port_forward $INFRA_NS onos-ssh $ONOS_SSH_PORT 8101
         espin - $VERIFIED
         _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
     else
-        _ONOS_API_EP=$(get_service_ep default onos-ui)
+        _ONOS_API_EP=$(get_service_ep $INFRA_NS onos-ui)
     fi
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     ONOS_FILES="olt-onos-enableExtraneousRules.json onos-aaa.json \
@@ -1340,9 +1387,15 @@ if [ $WITH_ONOS == "yes" ]; then
 
     if [ $WITH_KAFKA != "no" ]; then
         check_onos_app_active org.opencord.kafka
-        _HOST=voltha-kafka.voltha.svc.cluster.local
+        _HOST=voltha-kafka.$INFRA_NS.svc.cluster.local
         _PORT=9092
-        if [ $WITH_KAFKA != "yes" ]; then
+        if [ $WITH_KAFKA == "yes" ]; then
+            _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
+            _PORT=9092
+        elif [ $WITH_KAFKA == "external" ]; then
+            _HOST=kafka.$INFRA_NS.svc.cluster.local
+            _PORT=9092
+        else
             _HOST=$(echo $WITH_KAFKA | cut -d: -f1)
             _PORT=$(echo $WITH_KAFKA | cut -s -d: -f2)
             _PORT=${_PORT:-9092}
@@ -1393,7 +1446,7 @@ EOJ
 {
     "sadis": {
         "integration": {
-            "url": "http://bbsim.voltha.svc.cluster.local:50074/v2/subscribers/%s",
+            "url": "http://bbsim.$BBSIM_NS.svc.cluster.local:50074/v2/subscribers/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -1403,7 +1456,7 @@ EOJ
     },
     "bandwidthprofile": {
         "integration": {
-            "url": "http://bbsim.voltha.svc.cluster.local:50074/v2/bandwidthprofiles/%s",
+            "url": "http://bbsim.$BBSIM_NS.svc.cluster.local:50074/v2/bandwidthprofiles/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -1449,6 +1502,58 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
 
+if [ $WITH_ETCD == "external" ]; then
+    STIME=$(date +%s)
+    bspin "Verify external ETCD cluster $OLD_KEY"
+    EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
+    if [ $(helm list --deployed --short --namespace $INFRA_NS "^etcd-cluster\$" | wc -l) -ne 1 ]; then
+        espin $NOT_VERIFIED
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+="--set clusterName=etcd-cluster --set autoCompactionRetention=1 --set clusterSize=$EXPECT"
+        helm_install - $INFRA_NS etcd-cluster onf/voltha-etcd-cluster latest "Install eternal ETCD cluster"
+    else
+        espin $VERIFIED
+    fi
+    wait_for_pods - "$INFRA_NS" $EXPECT "includes" -1 "Waiting for ETCD cluster to start" "etcd-cluster-.*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        printtime $(expr $(date +%s) - $STIME)
+    fi
+fi
+
+if [ $WITH_KAFKA == "external" ]; then
+    _TMP=$(mktemp -u)
+    _COUNT=$(test $TYPE == "minimal" && echo "1" || echo "3")
+    cat << EOC > $_TMP
+configurationOverrides:
+  "default.replication.factor": $_COUNT
+  "offsets.topic.replication.factor": $_COUNT
+  "log.retention.hours": 4
+  "log.message.timestamp.type": "LogAppendTime"
+persistence:
+  enabled: false
+zookeeper:
+  replicaCount: 1
+  persistence:
+    enabled: false
+replicas: $_COUNT
+EOC
+    STIME=$(date +%s)
+    bspin "Verify external Kafka cluster $OLD_KEY"
+    EXPECT=$(test "$TYPE" == "minimal" && echo "2" || echo "4")
+    if [ $(helm list --deployed --short --namespace $INFRA_NS "^kafka\$" | wc -l) -ne 1 ]; then
+        espin $NOT_VERIFIED
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
+        helm_install - $INFRA_NS kafka incubator/kafka latest "Install eternal Kafka cluster"
+    else
+        espin $VERIFIED
+    fi
+    # DKB
+    wait_for_pods - "$INFRA_NS" $EXPECT "includes" -1 "Waiting for Kafka cluster to start" "kafka-.*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        printtime $(expr $(date +%s) - $STIME)
+    fi
+    rm -rf $_TMP
+fi
+
 STIME=$(date +%s)
 EXPECT=1
 if [ "$ONLY_ONE" == "yes" ]; then
@@ -1457,53 +1562,76 @@ if [ "$ONLY_ONE" == "yes" ]; then
 else
     EXPECT=$((EXPECT+2))
 fi
-if [ $WITH_ETCD != "yes" ]; then
-    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false"
-    if [ $WITH_ETCD != "no" ]; then
+case $WITH_ETCD in 
+    no)
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false"
+        ;;
+    yes)
+        _HOST="voltha-etcd-cluster-client.$VOLTHA_NS.svc.cluster.local"
+        _PORT=2379
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        EXPECT=$((EXPECT+$(test "$TYPE" == "minimal" && echo "1" || echo "3")))
+        ;;
+    external)
+        _HOST="etcd-cluster-client.$INFRA_NS.svc.cluster.local"
+        _PORT=2379
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        ;;
+    *)
         _HOST=$(echo $WITH_ETCD | cut -d: -f1)
         _PORT=$(echo $WITH_ETCD | cut -s -d: -f2)
         _PORT=${_PORT:-2379}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
-    fi
-else
-    if [ $TYPE == "minimal" ]; then
-        EXPECT=$((EXPECT+1))
-    else
-        EXPECT=$((EXPECT+3))
-    fi
-fi
-if [ $WITH_KAFKA != "yes" ]; then
-    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false"
-    if [ $WITH_KAFKA != "no" ]; then
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        ;;
+esac
+case $WITH_KAFKA in
+    no)
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false"
+        ;;
+    yes)
+        _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
+        _PORT=9092
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        EXPECT=$((EXPECT+$(test "$TYPE" == "minimal" && echo "2" || echo "4")))
+        ;;
+    external)
+        _HOST=kafka.$INFRA_NS.svc.cluster.local
+        _PORT=9092
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        ;;
+    *)
         _HOST=$(echo $WITH_KAFKA | cut -d: -f1)
         _PORT=$(echo $WITH_KAFKA | cut -s -d: -f2)
         _PORT=${_PORT:-9092}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
-    fi
-else
-    if [ $TYPE == "minimal" ]; then
-        EXPECT=$((EXPECT+2))
-    else
-        EXPECT=$((EXPECT+6))
-    fi
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        ;;
+esac
+
+if [ $WITH_ONOS == "yes" ]; then
+    _HOST=onos-openflow.$INFRA_NS.svc.cluster.local
+    _PORT=6653
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
+elif [ $WITH_ONOS != "no" ]; then
+    _HOST=$(echo $WITH_ONOS | cut -d: -f1)
+    _PORT=$(echo $WITH_ONOS | cut -s -d: -f2)
+    _PORT=${_PORT:-6653}
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
 fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
-if [ $(helm list --deployed --short --namespace voltha "^voltha\$" | wc -l) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace $VOLTHA_NS "^$VOLTHA_NS\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
-    helm_install - voltha voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
+    helm_install - $VOLTHA_NS voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
 else
     espin $VERIFIED
 fi
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 
 VOLTHA="voltha-ofagent-.* \
-    ro-core.* \
     rw-core.* \
-    voltha-api-server-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
-wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
+wait_for_pods - "$VOLTHA_NS" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -1512,7 +1640,11 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     STIME=$(date +%s)
     EXPECT=0
     if [ $WITH_ETCD != "yes" ]; then
-        if [ $WITH_ETCD != "no" ]; then
+        if [ $WITH_ETCD == "external" ]; then
+            _HOST=etcd-cluster-client.$INFRA_NS.svc.cluster.local
+            _PORT=2379
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        elif [ $WITH_ETCD != "no" ]; then
             _HOST=$(echo $WITH_ETCD | cut -d: -f1)
             _PORT=$(echo $WITH_ETCD | cut -s -d: -f2)
             _PORT=${_PORT:-2379}
@@ -1520,7 +1652,11 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         fi
     fi
     if [ $WITH_KAFKA != "yes" ]; then
-        if [ $WITH_KAFKA != "no" ]; then
+        if [ $WITH_KAFKA == "external" ]; then
+            _HOST=kafka.$INFRA_NS.svc.cluster.local
+            _PORT=9092
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        elif [ $WITH_KAFKA != "no" ]; then
             _HOST=$(echo $WITH_KAFKA | cut -d: -f1)
             _PORT=$(echo $WITH_KAFKA | cut -s -d: -f2)
             _PORT=${_PORT:-9092}
@@ -1530,9 +1666,9 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     echo -e "Verify Adapters $PLUG"
     if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
         bspin - "Verify Simulated Adapters installed"
-        if [ $(helm list --deployed --short --namespace voltha "^sim\$" | wc -l) -ne 1 ]; then
+        if [ $(helm list --deployed --short --namespace $ADAPTER_NS  "^sim\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            helm_install - voltha sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "Install Simulated Adapters"
+            helm_install - $ADAPTER_NS  sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "Install Simulated Adapters"
         else
             espin - $VERIFIED
         fi
@@ -1541,16 +1677,16 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
 
     if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
-        if [ $(helm list --deployed --short --namespace voltha "^open-olt\$" | wc -l) -ne 1 ]; then
+        if [ $(helm list --deployed --short --namespace $ADAPTER_NS  "^open-olt\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            helm_install - voltha open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "Install OpenOLT Adapter"
+            helm_install - $ADAPTER_NS open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "Install OpenOLT Adapter"
         else
             espin - $VERIFIED
         fi
         bspin - "Verify OpenONU Adapter installed"
-        if [ $(helm list --deployed --short --namespace voltha "^open-onu\$" | wc -l) -ne 1 ]; then
+        if [ $(helm list --deployed --short --namespace $ADAPTER_NS  "^open-onu\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            helm_install - voltha open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "Install OpenONU Adapter"
+            helm_install - $ADAPTER_NS  open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "Install OpenONU Adapter"
         else
             espin - $VERIFIED
         fi
@@ -1559,7 +1695,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 
     ADAPTERS="adapter-.*"
-    wait_for_pods - "voltha" $EXPECT "includes" -1 "Waiting for adapters to start" $ADAPTERS
+    wait_for_pods - "$ADAPTER_NS " $EXPECT "includes" -1 "Waiting for adapters to start" $ADAPTERS
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1575,17 +1711,17 @@ if [ $WITH_BBSIM == "yes" ]; then
         else
             instance_num=$instance
         fi
-        if [ $(helm list --deployed --short --namespace voltha "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
+        if [ $(helm list --deployed --short --namespace $BBSIM_NS "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
             S_TAG=$((900+$instance))
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
-            helm_install - voltha bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
+            helm_install - $BBSIM_NS bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin - $VERIFIED
         fi
     done
-    wait_for_pods - "voltha" $NUM_OF_BBSIM "includes" -1 "Waiting for BBSIM to start" "bbsim*"
+    wait_for_pods - "$BBSIM_NS" $NUM_OF_BBSIM "includes" -1 "Waiting for BBSIM to start" "bbsim*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1595,13 +1731,13 @@ if [ $WITH_RADIUS == "yes" ]; then
     STIME=$(date +%s)
     echo -e "Verify RADIUS $LOCK"
     bspin - "Verify RADIUS Installed"
-    if [ $(helm list --deployed --short --namespace voltha "^radius\$" | wc -l) -ne 1 ]; then
+    if [ $(helm list --deployed --short --namespace $INFRA_NS "^radius\$" | wc -l) -ne 1 ]; then
         espin - $NOT_VERIFIED
-        helm_install - voltha radius onf/freeradius latest "Install RADIUS"
+        helm_install - $INFRA_NS radius onf/freeradius latest "Install RADIUS"
     else
         espin - $VERIFIED
     fi
-    wait_for_pods - "voltha" 1 "includes" -1 "Waiting for RADIUS to start" "radius-.*"
+    wait_for_pods - "$INFRA_NS" 1 "includes" -1 "Waiting for RADIUS to start" "radius-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1611,18 +1747,20 @@ if [ $WITH_PORT_FORWARDS == "yes" ]; then
     STIME=$(date +%s)
     bspin - "Forward VOLTHA API port $FORWARD"
     kill_port_forward voltha-api
-    port_forward voltha voltha-api $VOLTHA_API_PORT 55555
+    port_forward $VOLTHA_NS  voltha-api $VOLTHA_API_PORT 55555
     espin - $VERIFIED
-    if [ $WITH_ETCD == "yes" ]; then
+    if [ $WITH_ETCD == "yes" -o $WITH_ETCD == "external" ]; then
+        _NS=$(test $WITH_ETCD == "yes" && echo $VOLTHA_NS || echo $INFRA_NS)
         bspin - "Forward VOLTHA ETCD port $FORWARD"
         kill_port_forward voltha-etcd-cluster-client
-        port_forward voltha voltha-etcd-cluster-client $VOLTHA_ETCD_PORT 2379
+        port_forward $_NS voltha-etcd-cluster-client $VOLTHA_ETCD_PORT 2379
         espin - $VERIFIED
     fi
-    if [ $WITH_KAFKA == "yes" ]; then
+    if [ $WITH_KAFKA == "yes" -o $WITH_KAFKA == "external" ]; then
+        _NS=$(test $WITH_ETCD == "yes" && echo $VOLTHA_NS || echo $INFRA_NS)
         bspin - "Forward VOLTHA Kafka port $FORWARD"
         kill_port_forward voltha-kafka
-        port_forward voltha voltha-kafka $VOLTHA_KAFKA_PORT 9092
+        port_forward $_NS voltha-kafka $VOLTHA_KAFKA_PORT 9092
         espin - $VERIFIED
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1631,7 +1769,7 @@ if [ $WITH_PORT_FORWARDS == "yes" ]; then
 fi
 
 if [ $WITH_ONOS == "yes" -a $WITH_RADIUS != "no" ]; then
-    _HOST=radius.voltha.svc.cluster.local
+    _HOST=radius.$INFRA_NS.svc.cluster.local
     _PORT=1812
     if [ $WITH_RADIUS != "yes" ]; then
         _HOST=$(echo $WITH_RADIUS | cut -d: -f1)
@@ -1671,7 +1809,7 @@ if [ $WITH_PORT_FORWARDS == "yes" ]; then
     fi
 else
     KAFKA_FLAG="-k $(get_service_ep voltha voltha-kafka)"
-    SERVER_FLAG="-s $(get_service_ep voltha voltha-api)"
+    SERVER_FLAG="-s $(get_service_ep $VOLTHA_NS  voltha-api)"
     ETCD_FLAG=
     if [ "$MIN_VC_VERSION" == "1.0.15" ]; then
         ETCD_FLAG="-e $(get_service_ep voltha voltha-etcd-client)"
