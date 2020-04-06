@@ -283,6 +283,12 @@ fi
 if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_ETCD:") -eq 1 ]; then
     WITH_ETCD="no"
 fi
+if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
+    WITH_RADIUS="yes"
+fi
+if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_RADIUS:") -eq 1 ]; then
+    WITH_RADIUS="no"
+fi
 
 # Check for prerequiste tools
 TOOLS="curl sed jq"
