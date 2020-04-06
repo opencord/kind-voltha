@@ -1338,14 +1338,17 @@ if [ $WITH_ONOS == "yes" ]; then
         fi
     fi
 
-    check_onos_app_active org.opencord.kafka
     if [ $WITH_KAFKA != "no" ]; then
-        _HOST=$(echo $WITH_KAFKA | cut -d: -f1)
-        _PORT=$(echo $WITH_KAFKA | cut -s -d: -f2)
-        _PORT=${_PORT:-9092}
-    fi
-    push_onos_config "json" "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.sadis" \
-        "$(echo $(cat <<EOJ
+        check_onos_app_active org.opencord.kafka
+        _HOST=voltha-kafka.voltha.svc.cluster.local
+        _PORT=9092
+        if [ $WITH_KAFKA != "yes" ]; then
+            _HOST=$(echo $WITH_KAFKA | cut -d: -f1)
+            _PORT=$(echo $WITH_KAFKA | cut -s -d: -f2)
+            _PORT=${_PORT:-9092}
+        fi
+        push_onos_config "json" "Push ONOS Kafka Configuration" "network/configuration/apps/org.opencord.kafka" \
+            "$(echo $(cat <<EOJ
 {
     "kafka": {
         "bootstrapServers": "$_HOST:$_PORT"
@@ -1353,6 +1356,7 @@ if [ $WITH_ONOS == "yes" ]; then
 }
 EOJ
 ) | tr -d '[:space:]')"
+    fi
     check_onos_app_active org.opencord.dhcpl2relay
     push_onos_config "file" "Push ONOS DHCP L2 Relay Configuration" "network/configuration/apps/org.opencord.dhcpl2relay" "onos-files/onos-dhcpl2relay.json"
     check_onos_app_active org.opencord.olt
