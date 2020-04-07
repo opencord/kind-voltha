@@ -711,7 +711,7 @@ port_forward() {
     local TO_PORT=$4
     local TAG=$SVC-$NAME
 
-    (set -x; _TAG=$TAG bash -c "while true; do kubectl port-forward -n $NS service/$SVC $FROM_PORT:$TO_PORT; done" >>$LOG 2>&1 &) >>$LOG 2>&1
+    (set -x; _TAG=$TAG bash -c "while true; do kubectl port-forward --address 0.0.0.0 -n $NS service/$SVC $FROM_PORT:$TO_PORT; done" >>$LOG 2>&1 &) >>$LOG 2>&1
 }
 
 kill_port_forward() {
