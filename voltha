@@ -1484,7 +1484,7 @@ else
     if [ $TYPE == "minimal" ]; then
         EXPECT=$((EXPECT+2))
     else
-        EXPECT=$((EXPECT+6))
+        EXPECT=$((EXPECT+4))
     fi
 fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
@@ -1497,9 +1497,7 @@ fi
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 
 VOLTHA="voltha-ofagent-.* \
-    ro-core.* \
     rw-core.* \
-    voltha-api-server-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
