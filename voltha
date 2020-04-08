@@ -256,6 +256,10 @@ ALL_OPTIONS="\
     WITH_KAFKA \
     WITH_ETCD \
     WITH_ONOS \
+    VOLTHA_NS \
+    ADAPTER_NS \
+    INFRA_NS \
+    BBSIM_NS \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -1618,7 +1622,7 @@ elif [ $WITH_ONOS != "no" ]; then
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
 fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
-if [ $(helm list --deployed --short --namespace $VOLTHA_NS "^$VOLTHA_NS\$" | wc -l) -ne 1 ]; then
+if [ $(helm list --deployed --short --namespace $VOLTHA_NS "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
     helm_install - $VOLTHA_NS voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
 else
