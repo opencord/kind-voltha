@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "be3b2959_93cc32f8",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-09T22:48:59Z",
+      "side": 1,
+      "message": "wouldn\u0027t be better to start counting all the pod via labels instead of a combination of name and labels?",
+      "range": {
+        "startLine": 132,
+        "startChar": 0,
+        "endLine": 132,
+        "endChar": 8
+      },
+      "revId": "7ad78de4148aefdbb92d83510f747b3d4c33a98d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
