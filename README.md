@@ -1,5 +1,5 @@
 #  VOLTHA DEPLOYMENT TOOL
-Thie repository describes how to the the `voltha` script to install a 
+Thie repository describes how to the the `voltha` script to install a
 VOLTHA deployment. `voltha` can be used to deploy an instance into an existing
 Kubernetes cluster (physical or virtual) or can be start up a local
 docker-in-docker KinD Kuberentes cluster in which to deploy VOLTHA.
@@ -14,7 +14,7 @@ including `curl`, `sed`, and `jq`. This tools must be installed before
 using the script. The script checks for the presence of these tools before
 it deployes VOLTHA and will exit with an error if the tools are not present.
 
-_NOTE: If you are deploying a KinD Kubernetes cluster using the `voltha` 
+_NOTE: If you are deploying a KinD Kubernetes cluster using the `voltha`
 script, you must also also have Docker installed_
 
 ## INSTALL TYPE
@@ -42,7 +42,7 @@ export TYPE=minimal
 ## TL;DR
 OK, if you really don't care how it starts and you just want it started. After
 cloning the repository and making sure you have the prerequisites installed,
-just execute 
+just execute
 ```bash
 DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y  ./voltha up
 ```
@@ -77,18 +77,19 @@ source releases/voltha-2.3 && voltha up
 ```
 Please check the `releases` folder to see the available ones and pick the correct tag associatet do that release.
 
-| OPTION                                | DEFAULT                                               | DESCRIPTION |
-| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| OPTION                                  | DEFAULT                                               | DESCRIPTION |
+| --------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `TYPE`                                  | minimal                                               | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
 | `NAME`                                  | TYPE                                                  | Name of the KinD Cluster to be created |
 | `DEPLOY_K8S`                            | yes                                                   | Should the KinD Kubernetes cluster be deployed? |
 | `JUST_K8S`                              | no                                                    | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA) |
-| `VOLTHA_NS`                             | `voltha`                                                | K8s namespace into which to deploy voltha PODs |
-| `INFRA_NS`                              | `default`                                               | K8s namespace into which to deploy infrastructure PODs |
-| `BBSIM_NS`                              | `voltha`                                                | K8s namespace into which to deploy BBSIM PODs |
-| `ADAPTER_NS`                            | `voltha`                                                | K8s namespace into which to deploy VOLTHA adapters |
+| `VOLTHA_NS`                             | `voltha`                                              | K8s namespace into which to deploy voltha PODs |
+| `INFRA_NS`                              | `default`                                             | K8s namespace into which to deploy infrastructure PODs |
+| `BBSIM_NS`                              | `voltha`                                              | K8s namespace into which to deploy BBSIM PODs |
+| `ADAPTER_NS`                            | `voltha`                                              | K8s namespace into which to deploy VOLTHA adapters |
 | `WITH_BBSIM`                            | no                                                    | Should the BBSIM POD be deployed? |
 | `NUM_OF_BBSIM`                          | 1                                                     | number of BBSIM POD to start (minimum = 1, maximum = 10) |
+| `NUM_OF_OPENONU`                        | 1                                                     | number of OpenONU POD to start (minimum = 1, maximum = 10) |
 | `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
 | `WITH_KAFKA`                            | yes                                                   | Deploy private Kafka (yes/no) or k8s servce:port of external Kafka |
 | `WITH_ETCD`                             | yes                                                   | Deploy private etcd (yes/no) or k8s service:port of external etcd |
