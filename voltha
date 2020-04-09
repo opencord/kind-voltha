@@ -99,6 +99,7 @@ JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
+HELM_USE_UPGRADE=${HELM_USE_UPGRADE:-no}
 UPDATE_HELM_REPOS=${UPDATE_HELM_REPOS:-yes}
 WAIT_ON_DOWN=${WAIT_ON_DOWN:-yes}
 WAIT_TIMEOUT=${WAIT_TIMEOUT:-30m}
@@ -215,6 +216,7 @@ ALL_YES_NO="\
     INSTALL_ONOS_APPS \
     INSTALL_KUBECTL \
     INSTALL_HELM \
+    HELM_USE_UPGRADE \
     UPDATE_HELM_REPOS \
     WAIT_ON_DOWN \
     ONLY_ONE \
@@ -308,6 +310,12 @@ if [ $(echo ":y:yes:true:1:" | grep -ic ":$WITH_ONOS:") -eq 1 ]; then
 fi
 if [ $(echo ":n:no:false:0:" | grep -ic ":$WITH_ONOS:") -eq 1 ]; then
     WITH_ONOS="no"
+fi
+
+if [ $HELM_USE_UPGRADE == "yes" ]; then
+    _HELM_DESC="Upgrade/Install"
+else
+    _HELM_DESC="Install"
 fi
 
 # Check for prerequiste tools
@@ -965,7 +973,14 @@ helm_install() {
     local WAIT_START=$(date +%s)
     COUNT=$(expr 300 / 15)
     bspin $INDENT $MESSAGE
-    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+    if [ $HELM_USE_UPGRADE == "yes" ]; then
+        _HELM_COMMAND="upgrade --install"
+        _HELM_ARGS="$INAME"
+    else
+        _HELM_COMMAND="install"
+        _HELM_ARGS="--name $INAME"
+    fi
+    (set -x; helm $_HELM_COMMAND -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
     SUCCESS=$?
     while [ $SUCCESS -ne 0 ]; do
         if [ $(($(date +%s) - $WAIT_START)) -gt $TIMEOUT_SECONDS ]; then
@@ -975,8 +990,10 @@ helm_install() {
         sspin $INDENT
         COUNT=$(expr $COUNT - 1)
         if [ $COUNT -eq 0 ]; then
-            (set -x; helm delete --purge $INAME >>$LOG 2>&1) >>$LOG 2>&1
-    (set -x; helm install -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE --name $INAME $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
+            if [ $HELM_USE_UPGRADE == "no" ]; then
+                (set -x; helm delete --purge $INAME >>$LOG 2>&1) >>$LOG 2>&1
+            fi
+            (set -x; helm $_HELM_COMMAND -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS $CHART_VERSION $EXTRA_HELM_FLAGS $CHART >>$LOG 2>&1) >>$LOG 2>&1
             SUCCESS=$?
             COUNT=$(expr 300 / 15)
         fi
@@ -1318,9 +1335,9 @@ else
         NS=$INFRA_NS
     fi
     bspin "Verify ETCD Operator $OLD_KEY"
-    if [ $(helm list --deployed --short --namespace $NS "^etcd-operator\$" | wc -l) -ne 1 ]; then
+    if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $NS "^etcd-operator\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        helm_install - $NS etcd-operator stable/etcd-operator latest "Install ETCD Operator"
+        helm_install - $NS etcd-operator stable/etcd-operator latest "$_HELM_DESC ETCD Operator"
     else
         espin $VERIFIED
     fi
@@ -1334,9 +1351,9 @@ fi
 STIME=$(date +%s)
 if [ $WITH_ONOS == "yes" ]; then
     bspin "Verify ONOS installed $BIRD"
-    if [ $(helm list --deployed --short --namespace $INFRA_NS "^onos\$" | wc -l) -ne 1 ]; then
+    if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $INFRA_NS "^onos\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
-        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - $INFRA_NS onos $ONOS_CHART $ONOS_CHART_VERSION "Install ONOS"
+        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - $INFRA_NS onos $ONOS_CHART $ONOS_CHART_VERSION "$_HELM_DESC ONOS"
     else
         espin $VERIFIED
     fi
@@ -1510,10 +1527,10 @@ if [ $WITH_ETCD == "external" ]; then
     STIME=$(date +%s)
     bspin "Verify external ETCD cluster $OLD_KEY"
     EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
-    if [ $(helm list --deployed --short --namespace $INFRA_NS "^etcd-cluster\$" | wc -l) -ne 1 ]; then
+    if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $INFRA_NS "^etcd-cluster\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+="--set clusterName=etcd-cluster --set autoCompactionRetention=1 --set clusterSize=$EXPECT"
-        helm_install - $INFRA_NS etcd-cluster onf/voltha-etcd-cluster latest "Install eternal ETCD cluster"
+        helm_install - $INFRA_NS etcd-cluster onf/voltha-etcd-cluster latest "$_HELM_DESC external ETCD cluster"
     else
         espin $VERIFIED
     fi
@@ -1543,10 +1560,10 @@ EOC
     STIME=$(date +%s)
     bspin "Verify external Kafka cluster $OLD_KEY"
     EXPECT=$(test "$TYPE" == "minimal" && echo "2" || echo "4")
-    if [ $(helm list --deployed --short --namespace $INFRA_NS "^kafka\$" | wc -l) -ne 1 ]; then
+    if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $INFRA_NS "^kafka\$" | wc -l) -ne 1 ]; then
         espin $NOT_VERIFIED
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
-        helm_install - $INFRA_NS kafka incubator/kafka latest "Install eternal Kafka cluster"
+        helm_install - $INFRA_NS kafka incubator/kafka latest "$_HELM_DESC external Kafka cluster"
     else
         espin $VERIFIED
     fi
@@ -1622,9 +1639,9 @@ elif [ $WITH_ONOS != "no" ]; then
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
 fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
-if [ $(helm list --deployed --short --namespace $VOLTHA_NS "^voltha\$" | wc -l) -ne 1 ]; then
+if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $VOLTHA_NS "^voltha\$" | wc -l) -ne 1 ]; then
     espin $NOT_VERIFIED
-    helm_install - $VOLTHA_NS voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "Install VOLTHA Core"
+    helm_install - $VOLTHA_NS voltha $VOLTHA_CHART $VOLTHA_CHART_VERSION "$_HELM_DESC VOLTHA Core"
 else
     espin $VERIFIED
 fi
@@ -1674,9 +1691,9 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     echo -e "Verify Adapters $PLUG"
     if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
         bspin - "Verify Simulated Adapters installed"
-        if [ $(helm list --deployed --short --namespace $ADAPTER_NS  "^sim\$" | wc -l) -ne 1 ]; then
+        if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $ADAPTER_NS  "^sim\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            helm_install - $ADAPTER_NS  sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "Install Simulated Adapters"
+            helm_install - $ADAPTER_NS  sim $VOLTHA_ADAPTER_SIM_CHART $VOLTHA_ADAPTER_SIM_CHART_VERSION "$_HELM_DESC Simulated Adapters"
         else
             espin - $VERIFIED
         fi
@@ -1685,16 +1702,16 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
 
     if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
-        if [ $(helm list --deployed --short --namespace $ADAPTER_NS  "^open-olt\$" | wc -l) -ne 1 ]; then
+        if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $ADAPTER_NS  "^open-olt\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            helm_install - $ADAPTER_NS open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "Install OpenOLT Adapter"
+            helm_install - $ADAPTER_NS open-olt $VOLTHA_ADAPTER_OPEN_OLT_CHART $VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION "$_HELM_DESC OpenOLT Adapter"
         else
             espin - $VERIFIED
         fi
         bspin - "Verify OpenONU Adapter installed"
-        if [ $(helm list --deployed --short --namespace $ADAPTER_NS  "^open-onu\$" | wc -l) -ne 1 ]; then
+        if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $ADAPTER_NS  "^open-onu\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
-            helm_install - $ADAPTER_NS  open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "Install OpenONU Adapter"
+            helm_install - $ADAPTER_NS  open-onu $VOLTHA_ADAPTER_OPEN_ONU_CHART $VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION "$_HELM_DESC OpenONU Adapter"
         else
             espin - $VERIFIED
         fi
@@ -1719,11 +1736,11 @@ if [ $WITH_BBSIM == "yes" ]; then
         else
             instance_num=$instance
         fi
-        if [ $(helm list --deployed --short --namespace $BBSIM_NS "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
+        if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $BBSIM_NS "^bbsim${instance_num}\$" | wc -l) -ne 1 ]; then
             espin - $NOT_VERIFIED
             S_TAG=$((900+$instance))
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
-            helm_install - $BBSIM_NS bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "Install BBSIM${instance_num}"
+            helm_install - $BBSIM_NS bbsim${instance_num} $VOLTHA_BBSIM_CHART $VOLTHA_BBSIM_CHART_VERSION "$_HELM_DESC BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin - $VERIFIED
@@ -1739,9 +1756,9 @@ if [ $WITH_RADIUS == "yes" ]; then
     STIME=$(date +%s)
     echo -e "Verify RADIUS $LOCK"
     bspin - "Verify RADIUS Installed"
-    if [ $(helm list --deployed --short --namespace $INFRA_NS "^radius\$" | wc -l) -ne 1 ]; then
+    if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace $INFRA_NS "^radius\$" | wc -l) -ne 1 ]; then
         espin - $NOT_VERIFIED
-        helm_install - $INFRA_NS radius onf/freeradius latest "Install RADIUS"
+        helm_install - $INFRA_NS radius onf/freeradius latest "$_HELM_DESC RADIUS"
     else
         espin - $VERIFIED
     fi
@@ -1793,9 +1810,9 @@ if [ "$WITH_CHAOS" == "yes" ]; then
     STIME=$(date +%s)
     echo -e "Verify kube-monkey $LOCK"
     bspin - "Verify kube-monkey Installed"
-    if [ $(helm list --deployed --short --namespace kube-monkey "^monkey\$" | wc -l) -ne 1 ]; then
+    if [ $HELM_USE_UPGRADE == "yes" -o $(helm list --deployed --short --namespace kube-monkey "^monkey\$" | wc -l) -ne 1 ]; then
         espin - $NOT_VERIFIED
-        helm_install - kube-monkey monkey ./kube-monkey/helm/kubemonkey latest "Install Chaos Monkey"
+        helm_install - kube-monkey monkey ./kube-monkey/helm/kubemonkey latest "$_HELM_DESC Chaos Monkey"
     else
         espin - $VERIFIED
     fi
