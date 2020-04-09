@@ -70,11 +70,12 @@ following command:
 WITH_BBSIM=yes WITH_RADIUS=y CONFIG_SADIS=y  voltha up
 ```
 
-To start a specific version of VOLTHA, e.g. 2.2, you could use the following command:
+To start a specific version of VOLTHA, e.g. 2.3, you could use the following commands:
 ```bash
-source releases/voltha-2.2 && voltha up
+git checkout tags/3.0.3 -b 3.0.3
+source releases/voltha-2.3 && voltha up
 ```
-Please check the `releases` folder to see the available ones.
+Please check the `releases` folder to see the available ones and pick the correct tag associatet do that release.
 
 | OPTION                                | DEFAULT                                               | DESCRIPTION |
 | ------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -82,9 +83,13 @@ Please check the `releases` folder to see the available ones.
 | `NAME`                                  | TYPE                                                  | Name of the KinD Cluster to be created |
 | `DEPLOY_K8S`                            | yes                                                   | Should the KinD Kubernetes cluster be deployed? |
 | `JUST_K8S`                              | no                                                    | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA) |
+| `VOLTHA_NS`                             | `voltha`                                                | K8s namespace into which to deploy voltha PODs |
+| `INFRA_NS`                              | `default`                                               | K8s namespace into which to deploy infrastructure PODs |
+| `BBSIM_NS`                              | `voltha`                                                | K8s namespace into which to deploy BBSIM PODs |
+| `ADAPTER_NS`                            | `voltha`                                                | K8s namespace into which to deploy VOLTHA adapters |
 | `WITH_BBSIM`                            | no                                                    | Should the BBSIM POD be deployed? |
 | `NUM_OF_BBSIM`                          | 1                                                     | number of BBSIM POD to start (minimum = 1, maximum = 10) |
-| `WITH_ONOS`                             | yes                                                   | Should `ONOS` service be deployed? |
+| `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
 | `WITH_KAFKA`                            | yes                                                   | Deploy private Kafka (yes/no) or k8s servce:port of external Kafka |
 | `WITH_ETCD`                             | yes                                                   | Deploy private etcd (yes/no) or k8s service:port of external etcd |
 | `WITH_RADIUS`                           | no                                                    | Deploy sample RADIUS server (yes/no) or a k8s service:port of external RADIUS |
@@ -130,6 +135,33 @@ Please check the `releases` folder to see the available ones.
 | `VOLTHA_SSH_PORT`                       | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA SSH |
 | `VOLTHA_ETCD_PORT`                      | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA etcd |
 | `VOLTHA_KAFKA_PORT`                     | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA Kafka API |
+
+### Custom Namespaces
+
+Separate namespaces can be specified for various components
+  - `VOLTHA_NS`  (default: `voltha`)  for cores, ofagent, Etcd (yes), Kafka (yes)
+  - `ADAPTER_NS` (default: `voltha`)  for device adapters
+  - `INFRA_NS`   (default: `default`) for RADIUS, ONOS, Etcd (external), Kafka (external)
+  - `BBSIM_NS`   (default: `voltha`)  for BBSIM instances
+
+As an example `BBSIM_NS=devices` deployes BBSim in the `devices` namespace.
+
+### External Kafka, Etcd and ONOS
+`WITH_ETCD`,  `WITH_KAFKA` and `WITH_ONOS` can have different values depending on the deployment needs:
+
+| VALUE            | DESCRIPTION |
+| ---------------- | --------------- |
+| `yes` or `y`     | installs Etcd and Kafka in the `voltha` namespace |
+| `external`       | installs Etcd and Kafka in the `default` namespace |
+| `<endpoint>`     | connects the deployment to pre-deployed instance of the service |
+
+When specifying the `<endpoint>` of the service the format for each of these is `service-name`[`:port`]. Port is optional and will default to the standard port for the given service. For example, `WITH_KAFA=kafka.infra.svc.cluster.local`
+
+Specifying the endpoint enable to use `./voltha up` incrementally, for example:
+```
+DEPLOY_K8S=n WITH_BBSIM=y WITH_RADIUS=no CONFIG_SADIS=no  WITH_ONOS=onos-openflow.infra.svc.cluster.local  WITH_ETCD=etcd-cluster-client.infra.svc.cluster.local WITH_KAFKA=kafka.infra.svc.cluster.local  INFRA_NS=infra BBSIM_NS=devices ADAPTER_NS=adapters ./voltha up
+```
+starts VOLTHA with external ONOS,KAFKA,ETCD in the `infra` namespace.
 
 ### `CONFIG_SADIS` Values
 
