@@ -128,6 +128,8 @@ HOSTARCH=$(uname -m | tr "[:upper:]" "[:lower:"])
 if [ $HOSTARCH == "x86_64" ]; then
     HOSTARCH="amd64"
 fi
+BBSIM_LABEL="-l app=bbsim"
+NO_LABEL=""
 
 # check number (range) of bbsim, max bbsim must not exceed 10 instances!
 # note: instances will be numbered from 0 to 9
@@ -262,6 +264,8 @@ ALL_OPTIONS="\
     ADAPTER_NS \
     INFRA_NS \
     BBSIM_NS \
+    SADIS_BANDWIDTH_PROFILES \
+    SADIS_SUBSCRIBERS \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -659,7 +663,8 @@ count_pods() {
         NAMESPACE="-n $NAMESPACE"
     fi
     local STATES=$1; shift
-    local PODS=$(kubectl get $NAMESPACE  pod -o go-template="{{range .items}}{{.metadata.name}}/{{.status.phase}}/_{{range .status.containerStatuses}}{{.ready}}_{{end}} {{end}}")
+    local LABELS=$1; shift
+    local PODS=$(kubectl get $NAMESPACE $LABELS pod -o go-template="{{range .items}}{{.metadata.name}}/{{.status.phase}}/_{{range .status.containerStatuses}}{{.ready}}_{{end}} {{end}}")
     local COUNT=0
     local PATTERNS="$*"
     for POD in $PODS; do
@@ -692,12 +697,13 @@ wait_for_pods() {
     local TYPE=$1; shift
     local RETRY=$1; shift
     local MESSAGE=$1; shift
+    local LABELS=$1; shift
     local PATTERNS=$*
     local STATES=":Running:"
     if [ "$TYPE" == "not" ]; then
         STATES="*"
     fi
-    local HAVE=$(count_pods $NAMESPACE "$STATES" $PATTERNS)
+    local HAVE=$(count_pods $NAMESPACE "$STATES" "$LABELS" $PATTERNS)
     local ALL=$HAVE
     if [ "$TYPE" == "only" ]; then
         ALL=$(count_pods "all-namespaces" "*" ".*")
@@ -715,7 +721,7 @@ wait_for_pods() {
             sspin $INDENT
             COUNT=$(expr $COUNT - 1)
             if [ $COUNT -eq 0 ]; then
-                HAVE=$(count_pods $NAMESPACE "$STATES" $PATTERNS)
+                HAVE=$(count_pods $NAMESPACE "$STATES" "$LABELS" $PATTERNS)
                 ALL=$HAVE
                 if [ "$TYPE" == "only" ]; then
                     ALL=$(count_pods "all-namespaces" "*" ".*")
@@ -857,15 +863,15 @@ if [ "$1" == "down" ]; then
                 INFRA_PODS+=" kafka.*"
             fi
             if [ ! -z "$SIM_PODS" ]; then
-                wait_for_pods "$BBSIM_NS" 0 "not" -1 "Waiting for BBSIM PODs to terminate" $SIM_PODS
+                wait_for_pods "$BBSIM_NS" 0 "not" -1 "Waiting for BBSIM PODs to terminate" "$BBSIM_LABEL" $SIM_PODS
             fi
             if [ ! -z "$INFRA_PODS" ]; then
-                wait_for_pods "$INFRA_NS" 0 "not" -1 "Waiting for infrastructure PODs to terminate" $INFRA_PODS
+                wait_for_pods "$INFRA_NS" 0 "not" -1 "Waiting for infrastructure PODs to terminate" "$NO_LABEL" $INFRA_PODS
             fi
             if [ ! -z "$ADAPT_PODS" ]; then
-                wait_for_pods "$ADAPTER_NS" 0 "not" -1 "Waiting for adapter  PODs to terminate" $ADAPT_PODS
+                wait_for_pods "$ADAPTER_NS" 0 "not" -1 "Waiting for adapter  PODs to terminate" "$NO_LABEL" $ADAPT_PODS
             fi
-            wait_for_pods "$VOLTHA_NS" 0 "not" -1 "Waiting for VOLTHA PODs to terminate" $PODS
+            wait_for_pods "$VOLTHA_NS" 0 "not" -1 "Waiting for VOLTHA PODs to terminate" "$NO_LABEL" $PODS
         fi
     fi
     exit
@@ -1171,7 +1177,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         kube-scheduler-voltha-$NAME-control-plane"
 
     EXPECT=$(test "$TYPE" == "minimal" && echo "12" || echo "14")
-    wait_for_pods - "kube-system" $EXPECT "includes" -1 "Waiting for system PODs to start" $P
+    wait_for_pods - "kube-system" $EXPECT "includes" -1 "Waiting for system PODs to start" "$NO_LABEL" $P
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
@@ -1190,7 +1196,7 @@ if [ $COUNT -ne 1 ]; then
         bspin - "Initialize Helm"
         (set -x; helm init --upgrade >>$LOG 2>&1) >>$LOG 2>&1
         espin - $VERIFIED
-        wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
+        wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "$NO_LABEL" "tiller-deploy-.*"
     fi
     bspin - "Add Google Incubator repository to Helm"
     (set -x; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com >>$LOG 2>&1) >>$LOG 2>&1
@@ -1244,7 +1250,7 @@ else
         espin - $VERIFIED
     fi
 fi
-wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "tiller-deploy-.*"
+wait_for_pods - "kube-system" 1 "includes" -1 "Waiting for Tiller POD to start" "$NO_LABEL" "tiller-deploy-.*"
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -1342,7 +1348,7 @@ else
         espin $VERIFIED
     fi
     EXPECT=$(test "$TYPE" == "minimal" && echo "1" || echo "3")
-    wait_for_pods - "$NS" $EXPECT "includes" -1 "Waiting for ETCD Operator to start" "etcd-operator-.*"
+    wait_for_pods - "$NS" $EXPECT "includes" -1 "Waiting for ETCD Operator to start" "$NO_LABEL" "etcd-operator-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1357,7 +1363,7 @@ if [ $WITH_ONOS == "yes" ]; then
     else
         espin $VERIFIED
     fi
-    wait_for_pods - "$INFRA_NS" 1 "includes" -1 "Waiting for ONOS to start" "onos-.*"
+    wait_for_pods - "$INFRA_NS" 1 "includes" -1 "Waiting for ONOS to start" "$NO_LABEL" "onos-.*"
 
     if [ $WITH_PORT_FORWARDS == "yes" ]; then
         bspin - "Forward ONOS API port $FORWARD"
@@ -1534,7 +1540,7 @@ if [ $WITH_ETCD == "external" ]; then
     else
         espin $VERIFIED
     fi
-    wait_for_pods - "$INFRA_NS" $EXPECT "includes" -1 "Waiting for ETCD cluster to start" "etcd-cluster-.*"
+    wait_for_pods - "$INFRA_NS" $EXPECT "includes" -1 "Waiting for ETCD cluster to start" "$NO_LABEL" "etcd-cluster-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1568,7 +1574,7 @@ EOC
         espin $VERIFIED
     fi
     # DKB
-    wait_for_pods - "$INFRA_NS" $EXPECT "includes" -1 "Waiting for Kafka cluster to start" "kafka-.*"
+    wait_for_pods - "$INFRA_NS" $EXPECT "includes" -1 "Waiting for Kafka cluster to start" "$NO_LABEL" "kafka-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1652,7 +1658,7 @@ VOLTHA="voltha-ofagent-.* \
     voltha-etcd-cluster-.* \
     voltha-kafka-.* \
     voltha-zookeeper-.*"
-wait_for_pods - "$VOLTHA_NS" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" $VOLTHA
+wait_for_pods - "$VOLTHA_NS" $EXPECT "includes" -1 "Waiting for VOLTHA Core to start" "$NO_LABEL" $VOLTHA
 if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $(expr $(date +%s) - $STIME)
 fi
@@ -1720,7 +1726,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 
     ADAPTERS="adapter-.*"
-    wait_for_pods - "$ADAPTER_NS " $EXPECT "includes" -1 "Waiting for adapters to start" $ADAPTERS
+    wait_for_pods - "$ADAPTER_NS " $EXPECT "includes" -1 "Waiting for adapters to start" "$NO_LABEL" $ADAPTERS
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1746,7 +1752,7 @@ if [ $WITH_BBSIM == "yes" ]; then
             espin - $VERIFIED
         fi
     done
-    wait_for_pods - "$BBSIM_NS" $NUM_OF_BBSIM "includes" -1 "Waiting for BBSIM to start" "bbsim*"
+    wait_for_pods - "$BBSIM_NS" $NUM_OF_BBSIM "includes" -1 "Waiting for BBSIM to start" "$BBSIM_LABEL" "bbsim*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1762,7 +1768,7 @@ if [ $WITH_RADIUS == "yes" ]; then
     else
         espin - $VERIFIED
     fi
-    wait_for_pods - "$INFRA_NS" 1 "includes" -1 "Waiting for RADIUS to start" "radius-.*"
+    wait_for_pods - "$INFRA_NS" 1 "includes" -1 "Waiting for RADIUS to start" "$NO_LABEL" "radius-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
@@ -1816,7 +1822,7 @@ if [ "$WITH_CHAOS" == "yes" ]; then
     else
         espin - $VERIFIED
     fi
-    wait_for_pods - "kube-monkey" 1 "includes" -1 "Waiting for Chaos to start" "monkey-.*"
+    wait_for_pods - "kube-monkey" 1 "includes" -1 "Waiting for Chaos to start" "$NO_LABEL" "monkey-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         printtime $(expr $(date +%s) - $STIME)
     fi
