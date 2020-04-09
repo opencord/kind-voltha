@@ -1,6 +1,6 @@
 # April 7, 2020
 - Etcd and Kafka can be installed independently of VOLTHA, with `WITH_ETCD` and/or `WITH_KAFKA` set to `experimental`
-- Separate namespaces can be specified for various components 
+- Separate namespaces can be specified for various components
   - `VOLTHA_NS` (default: `voltha`) for cores, ofagent, Etcd (yes), Kafka (yes)
   - `ADAPTER_NS` (default: `voltha`) for device adapters
   - `INFRA_NS` (default: `default`) for RADIUS, ONOS, Etcd (external), Kafka (external)
