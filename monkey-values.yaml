@@ -1,3 +1,7 @@
+---
+# SPDX-FileCopyrightText: © 2020 kind-voltha contributors
+# SPDX-License-Identifier: Apache-2.0
+
 config:
   dryRun: false
   whitelistedNamespaces: voltha

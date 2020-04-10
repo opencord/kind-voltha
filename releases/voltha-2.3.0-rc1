@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2020 kind-voltha contributors
+# SPDX-License-Identifier: Apache-2.0
+
 export VOLTHA_CHART_VERSION=2.2.3
 export VOLTHA_BBSIM_CHART_VERSION=3.0.15
 export VOLTHA_ADAPTER_SIM_CHART_VERSION=2.2.4
