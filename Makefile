@@ -6,10 +6,9 @@
 SHELL = bash -eu -o pipefail
 
 .DEFAULT_GOAL := help
-.PHONY: test shellcheck yamllint jsonlint help
+.PHONY: test shellcheck yamllint lint-json help
 
-test: ## run all tests
-	@echo "No tests enabled yet"
+test: lint-json yamllint ## run all tests
 
 SHELL_FILES := voltha $(wildcard releases/*) $(wildcard scripts/*)
 shellcheck: ## check shell scripts with shellcheck
@@ -24,11 +23,14 @@ yamllint: ## lint check YAML files with yamllint
     -s $(YAML_FILES)
 
 JSON_FILES ?= $(shell find . -type f -name '*.json' -print )
-jsonlint: ## lint check JSON files with yamllint
-	echo "Not supported yet, would check these files: $(JSON_FILES)"
+lint-json: ## lint check JSON files by loading them with python
+	for jsonfile in $(JSON_FILES); do \
+		echo "Validating json file: $$jsonfile" ;\
+		python -m json.tool $$jsonfile > /dev/null ;\
+	done
 
-help: ## Print help for each target
+help: ## Print help for each Makefile target
 	@echo kind-voltha Makefile targets
 	@echo
-	@grep '^[[:alpha:]_-]*:.* ##' $(MAKEFILE_LIST) \
+	@grep '^[[:alnum:]_-]*:.* ##' $(MAKEFILE_LIST) \
     | sort | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s %s\n", $$1, $$2};'

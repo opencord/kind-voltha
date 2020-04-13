@@ -1,3 +1,4 @@
+---
 # Copyright 2019 Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -97,16 +98,16 @@ kafka:
   replicas: 3
 
 onos_env:
-- name: POD_IP
-  valueFrom:
-  fieldRef:
-    fieldPath: status.podIP
-- name: NAMESPACE
-  valueFrom:
-  fieldRef:
-    fieldPath: metadata.namespace
-- name: ONOS_APPS
-  value: "drivers,openflow-base,hostprovider"
+  - name: POD_IP
+    valueFrom:
+    fieldRef:
+      fieldPath: status.podIP
+  - name: NAMESPACE
+    valueFrom:
+    fieldRef:
+      fieldPath: metadata.namespace
+  - name: ONOS_APPS
+    value: "drivers,openflow-base,hostprovider"
 
 # Customization for BBSIM
 kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
@@ -125,100 +126,100 @@ dhcp: true
 # If you want to be more selected then comment the blocks that pertain to the
 # targets you care about.
 
-#extra_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# extra_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#extra_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# extra_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#rw_core_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# rw_core_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#rw_core_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# rw_core_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#ofagent_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# ofagent_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#ofagent_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# ofagent_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#openolt_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# openolt_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#openolt_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# openolt_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#openonu_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# openonu_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#openonu_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# openonu_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#simolt_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# simolt_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#simolt_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# simolt_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#simonu_deployment_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# simonu_deployment_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
 #
-#simonu_pod_labels:
-#  kube-monkey/enabled: enabled
-#  kube-monkey/identifier: monkey-victim
-#  kube-monkey/mtbf: 1
-#  kube-monkey/kill-mode: fixed
-#  kube-monkey/kill-value: 1
+# simonu_pod_labels:
+#   kube-monkey/enabled: enabled
+#   kube-monkey/identifier: monkey-victim
+#   kube-monkey/mtbf: 1
+#   kube-monkey/kill-mode: fixed
+#   kube-monkey/kill-value: 1
