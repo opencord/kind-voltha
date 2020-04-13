@@ -1101,7 +1101,7 @@ else
             espin - "$THEX"
             >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kubectl: $(tail "$ERR_OUT")${NORMAL}"
             cat "$ERR_OUT" >> "$LOG"
-            rm -rf $"ERR_OUT" "$GOPATH/bin/kubectl"
+            rm -rf "$ERR_OUT" "$GOPATH/bin/kubectl"
             exit 1
         fi
         (set -x; chmod 755 "$GOPATH/bin/kubectl" >>"$LOG" 2>&1) >>"$LOG" 2>&1
@@ -1139,7 +1139,7 @@ else
             espin - "$THEX"
             >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kind: $(tail "$ERR_OUT")${NORMAL}"
             cat "$ERR_OUT" >> "$LOG"
-            rm -rf $"ERR_OUT" "$GOPATH/bin/kind"
+            rm -rf "$ERR_OUT" "$GOPATH/bin/kind"
             exit 1
         fi
         (set -x; chmod 755 "$GOPATH/bin/kind" >>"$LOG" 2>&1) >>"$LOG" 2>&1
