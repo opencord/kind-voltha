@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "13e971a0_913bcec5",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-14T20:00:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3b4eea07_073f31d6",
+      "range": {
+        "startLine": 149,
+        "startChar": 116,
+        "endLine": 149,
+        "endChar": 119
+      },
+      "revId": "e49763ae0229009c2b75857032e9b73add481c7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "35d9cbba_fc97dc14",
         "filename": "voltha",
         "patchSetId": 5
@@ -36,6 +60,30 @@
       "writtenOn": "2020-04-14T19:55:59Z",
       "side": 1,
       "message": "I\u0027d ADD the $NUM_OF_OPENONU",
+      "range": {
+        "startLine": 153,
+        "startChar": 117,
+        "endLine": 153,
+        "endChar": 119
+      },
+      "revId": "e49763ae0229009c2b75857032e9b73add481c7e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba512566_ec6d9b19",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-14T20:00:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "35d9cbba_fc97dc14",
       "range": {
         "startLine": 153,
         "startChar": 117,
