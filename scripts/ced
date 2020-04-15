@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -x
-NAME=${1:-bbsim}
-exec voltctl device enable $(voltctl device create -t openolt -H bbsim.voltha.svc:50060)
+BBSIM=$(kubectl get --all-namespaces -l app=bbsim svc -o json | jq -r '.items[] | .metadata.name + "." + .metadata.namespace + ".svc:50060"' | head -1)
+exec voltctl device enable "$(voltctl device create -t openolt -H "$BBSIM")"

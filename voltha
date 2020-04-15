@@ -110,6 +110,7 @@ VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
 ONOS_CHART=${ONOS_CHART:-onf/onos}
 ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
+KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=0.15.3}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
@@ -250,6 +251,7 @@ ALL_OPTIONS="\
     VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION \
     ONOS_CHART \
     ONOS_CHART_VERSION \
+    KAFKA_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
     CONFIG_SADIS \
@@ -1585,7 +1587,7 @@ EOC
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^kafka\$" | wc -l)" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
-        helm_install - "$INFRA_NS" kafka incubator/kafka latest "$_HELM_DESC external Kafka cluster"
+        helm_install - "$INFRA_NS" kafka incubator/kafka "$KAFKA_CHART_VERSION" "$_HELM_DESC external Kafka cluster"
     else
         espin "$VERIFIED"
     fi
