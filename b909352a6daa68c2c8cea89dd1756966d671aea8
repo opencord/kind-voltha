@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1b771593_d8185e13",
+        "filename": "scripts/ced",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-15T22:10:06Z",
+      "side": 1,
+      "message": "is this file needed?",
+      "revId": "b909352a6daa68c2c8cea89dd1756966d671aea8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
