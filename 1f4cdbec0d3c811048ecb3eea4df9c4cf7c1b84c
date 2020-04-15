@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3b7e4389_4237a3fd",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 1729,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-15T15:56:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0da693bc_47f5435c",
+      "range": {
+        "startLine": 1727,
+        "startChar": 0,
+        "endLine": 1729,
+        "endChar": 1
+      },
+      "revId": "1f4cdbec0d3c811048ecb3eea4df9c4cf7c1b84c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6ec0aa11_c69d2ee1",
         "filename": "voltha",
         "patchSetId": 7
@@ -36,6 +60,30 @@
       "writtenOn": "2020-04-15T15:53:36Z",
       "side": 1,
       "message": "EXPECT\u003d$((EXPECT + NUM_OF_OPENONU))",
+      "range": {
+        "startLine": 1747,
+        "startChar": 15,
+        "endLine": 1747,
+        "endChar": 52
+      },
+      "revId": "1f4cdbec0d3c811048ecb3eea4df9c4cf7c1b84c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d4deb6ed_c9e458ad",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 1747,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-15T15:56:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6ec0aa11_c69d2ee1",
       "range": {
         "startLine": 1747,
         "startChar": 15,
