@@ -1242,7 +1242,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
             espin - "$NOT_VERIFIED"
             bspin - "Download cluster configuration: $TYPE-cluster.cfg to $NAME-cluster.cfg $DOWNLOAD"
             ERR_OUT="$(mktemp)"
-            if ! (set -x; curl --fail -o "./$NAME-cluster.cfg" -sSL "https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-cluster.cfg" >>"$LOG" 2>>"$ERR_OUT") >>"$LOG" 2>&1; then
+            if ! (set -x; curl --fail -o "./$NAME-cluster.cfg" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/$TYPE-cluster.cfg" >>"$LOG" 2>>"$ERR_OUT") >>"$LOG" 2>&1; then
                 espin - "$THEX"
                 echo -e "${RED}${BOLD}${ERROR}ERROR: $NAME-cluster.cfg${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
                 echo "ERROR: $(cat "$ERR_OUT")" >>"$LOG"
@@ -1372,7 +1372,7 @@ if [ ! -r "./$NAME-values.yaml" ]; then
     espin "$NOT_VERIFIED"
     bspin - "Download Helm values file: $TYPE-values.yaml to $NAME-values.yaml $DOWNLOAD"
     ERR_OUT="$(mktemp)"
-    if ! (set -x; curl --fail -o "./$NAME-values.yaml" -sSL "https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$TYPE-values.yaml" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
+    if ! (set -x; curl --fail -o "./$NAME-values.yaml" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/$TYPE-values.yaml" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
         espin - "$THEX"
         echo -e "${RED}${BOLD}${ERROR}ERROR: $NAME-values.yaml${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
         echo "ERROR: $(cat "$ERR_OUT")" >>"$LOG"
@@ -1395,7 +1395,7 @@ VALUES_FILES="monkey-values.yaml"
 ERR_OUT="$(mktemp)"
 for i in $VALUES_FILES; do
     if [ ! -r ./$i ]; then
-        if ! (set -x; curl --fail -o "./$i" -sSL "https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/$i" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
+        if ! (set -x; curl --fail -o "./$i" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/$i" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
             espin "$THEX"
             echo -e "${RED}${BOLD}${ERROR}ERROR: $i${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
             echo "ERROR: $i - $(cat "$ERR_OUT")" >>"$LOG"
@@ -1497,7 +1497,7 @@ if [ "$WITH_ONOS" == "yes" ]; then
     ERR_OUT="$(mktemp)"
     for i in $ONOS_FILES; do
         if [ ! -r "./onos-files/$i" ]; then
-            if ! (set -x; curl --fail -o "./onos-files/$i" -sSL "https://raw.githubusercontent.com/ciena/kind-voltha/$VK_RELEASE/onos-files/$i" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
+            if ! (set -x; curl --fail -o "./onos-files/$i" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/onos-files/$i" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
                 espin - "$THEX"
                 echo -e "${RED}${BOLD}${ERROR}ERROR: $i${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
                 echo "ERROR: $(cat "$ERR_OUT")" >>"$LOG"
