@@ -778,6 +778,18 @@ kill_port_forward() {
     fi
 }
 
+# Compares two semver-formatted version strings (e.g. 2.4.3)
+# Returns 0 if $1 == $2, returns 1 if $1 > $2 and returns 2 if $1 < $2
+compare_versions() {
+    [ "$1" == "$2" ] && return 0
+    [ "$1" == "latest" ] && return 1
+    [ "$2" == "latest" ] && return 2
+    local lowest
+    lowest=$(echo -e "$1\n$2" | sort -V | head -1)
+    [ "$lowest" == "$1" ] && return 2
+    return 1
+}
+
 if [ "$1" == "down" ]; then
     echo "Tearing down voltha cluster $NAME"
     LOG="down-$NAME.log"
@@ -1715,13 +1727,20 @@ esac
 if [ "$WITH_ONOS" == "yes" ]; then
     _HOST=onos-openflow.$INFRA_NS.svc.cluster.local
     _PORT=6653
-    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
 elif [ "$WITH_ONOS" != "no" ]; then
     _HOST="$(echo "$WITH_ONOS" | cut -d: -f1)"
     _PORT="$(echo "$WITH_ONOS" | cut -s -d: -f2)"
     _PORT=${_PORT:-6653}
+fi
+compare_versions "$VOLTHA_CHART_VERSION" 2.4.2
+if [ "$?" == "1" ]; then
+    # voltha chart > 2.4.2 uses list of controllers
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[0].service=$_HOST --set services.controller[0].port=$_PORT"
+else
+    # voltha chart <= 2.4.2 uses single controller
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
 fi
+
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^voltha\$" | wc -l)" -ne 1 ]; then
     espin "$NOT_VERIFIED"
