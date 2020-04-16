@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "adc1a592_ad0a3f70",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 1663,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-04-16T21:36:43Z",
+      "side": 1,
+      "message": "should that change here too?",
+      "range": {
+        "startLine": 1663,
+        "startChar": 65,
+        "endLine": 1663,
+        "endChar": 73
+      },
+      "revId": "1b945ef9917251daee7dfe877757aceb82d3923f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
