@@ -1655,7 +1655,7 @@ esac
 if [ "$WITH_ONOS" == "yes" ]; then
     _HOST=onos-openflow.$INFRA_NS.svc.cluster.local
     _PORT=6653
-    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[0].service=$_HOST --set services.controller[0].port=$_PORT"
 elif [ "$WITH_ONOS" != "no" ]; then
     _HOST="$(echo "$WITH_ONOS" | cut -d: -f1)"
     _PORT="$(echo "$WITH_ONOS" | cut -s -d: -f2)"
