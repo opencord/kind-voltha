@@ -8,13 +8,12 @@ SHELL = bash -eu -o pipefail
 .DEFAULT_GOAL := help
 .PHONY: test shellcheck yamllint jsonlint help
 
-test: ## run all tests
-	@echo "No tests enabled yet"
+test: shellcheck ## run all tests
 
-SHELL_FILES := voltha $(wildcard releases/*) $(wildcard scripts/*)
+SHELL_FILES := voltha
 shellcheck: ## check shell scripts with shellcheck
 	shellcheck --version
-	echo shellcheck $(SHELL_FILES)
+	shellcheck $(SHELL_FILES)
 
 YAML_FILES ?= $(shell find . -type f \( -name '*.yaml' -o -name '*.yml' -o -name '*.cfg' \) -print )
 yamllint: ## lint check YAML files with yamllint
