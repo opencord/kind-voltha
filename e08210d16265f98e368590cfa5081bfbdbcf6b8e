@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "29ed6a69_bc92ea39",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-21T02:22:43Z",
+      "side": 1,
+      "message": "I considered it but wasn\u0027t sure how widely available it is - I didn\u0027t want to add an unnecessary dependency.",
+      "parentUuid": "b335ab49_4f6b0f76",
+      "range": {
+        "startLine": 795,
+        "startChar": 0,
+        "endLine": 803,
+        "endChar": 12
+      },
+      "revId": "e08210d16265f98e368590cfa5081bfbdbcf6b8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "84990c07_d7881d86",
         "filename": "voltha",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2020-04-21T00:19:19Z",
       "side": 1,
       "message": "if `WITH_ONOS` is an endpoint specification, I wonder if we should assume if it a comma-separated list. then fi chart \u003e 2.4.2 we could set multiple end points. if chart \u003c\u003d 2.4.2 then we just use the first if it is a list.",
+      "range": {
+        "startLine": 1683,
+        "startChar": 8,
+        "endLine": 1683,
+        "endChar": 18
+      },
+      "revId": "e08210d16265f98e368590cfa5081bfbdbcf6b8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b5d30aa2_8ac3acf2",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 1683,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-21T02:22:43Z",
+      "side": 1,
+      "message": "Yeah there\u0027s another step to move to the new ONOS helm chart and add the changes to support multiple ONOS instances. I\u0027m working on this now.",
+      "parentUuid": "84990c07_d7881d86",
       "range": {
         "startLine": 1683,
         "startChar": 8,
