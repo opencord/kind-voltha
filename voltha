@@ -1041,7 +1041,7 @@ else
         RESULT=$?
         if [ "$RESULT" -ne 0 ]; then
             espin - "$THEX"
-            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kubectl: $(tail $ERR_OUT)${NORMAL}"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kubectl: $(tail "$ERR_OUT")${NORMAL}"
             cat "$ERR_OUT" >> "$LOG"
             rm -rf $"ERR_OUT" "$GOPATH/bin/kubectl"
             exit 1
@@ -1079,7 +1079,7 @@ else
         RESULT=$?
         if [ $RESULT -ne 0 ]; then
             espin - "$THEX"
-            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kind: $(tail $ERR_OUT)${NORMAL}"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kind: $(tail "$ERR_OUT")${NORMAL}"
             cat "$ERR_OUT" >> "$LOG"
             rm -rf $"ERR_OUT" "$GOPATH/bin/kind"
             exit 1
@@ -1129,7 +1129,7 @@ else
         RESULT=$?
         if [ $RESULT -ne 0 ]; then
             espin - "$THEX"
-            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download helm installer: $(tail $ERR_OUT)${NORMAL}"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download helm installer: $(tail "$ERR_OUT")${NORMAL}"
             cat "$ERR_OUT" >> "$LOG"
             rm -rf "$INSTALL_HELM_BIN" "$ERR_OUT" "$GOPATH/bin/helm" "$GOPATH/bin/tiller"
             exit 1
