@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b335ab49_4f6b0f76",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 803,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-04-21T00:19:19Z",
+      "side": 1,
+      "message": "could `sort -V` be used here?",
+      "range": {
+        "startLine": 795,
+        "startChar": 0,
+        "endLine": 803,
+        "endChar": 12
+      },
+      "revId": "e08210d16265f98e368590cfa5081bfbdbcf6b8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "84990c07_d7881d86",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 1683,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-04-21T00:19:19Z",
+      "side": 1,
+      "message": "if `WITH_ONOS` is an endpoint specification, I wonder if we should assume if it a comma-separated list. then fi chart \u003e 2.4.2 we could set multiple end points. if chart \u003c\u003d 2.4.2 then we just use the first if it is a list.",
+      "range": {
+        "startLine": 1683,
+        "startChar": 8,
+        "endLine": 1683,
+        "endChar": 18
+      },
+      "revId": "e08210d16265f98e368590cfa5081bfbdbcf6b8e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
