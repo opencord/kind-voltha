@@ -1034,11 +1034,21 @@ else
     if [ -x "$GOPATH/bin/kubectl" ]; then
         espin "$VERIFIED"
     else
+        ERR_OUT="$(mktemp)"
         espin "$NOT_VERIFIED"
         bspin - "Download and install Kubernetes/kubectl $DOWNLOAD"
-        (set -x; curl -o "$GOPATH/bin/kubectl" -sSL "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$HOSTOS/$HOSTARCH/kubectl" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        (set -x; curl --fail -o "$GOPATH/bin/kubectl" -sSL "https://storage.googleapis.com/kubernetes-release/release/$(curl --fail -sSL https://storage.googleapis.com/kubernetes-release/release/stable.txt 2>>"$ERR_OUT")/bin/$HOSTOS/$HOSTARCH/kubectl" >>"$LOG" 2>>"$ERR_OUT") >>"$LOG" 2>&1
+        RESULT=$?
+        if [ "$RESULT" -ne 0 ]; then
+            espin - "$THEX"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kubectl: $(tail $ERR_OUT)${NORMAL}"
+            cat "$ERR_OUT" >> "$LOG"
+            rm -rf $"ERR_OUT" "$GOPATH/bin/kubectl"
+            exit 1
+        fi
         (set -x; chmod 755 "$GOPATH/bin/kubectl" >>"$LOG" 2>&1) >>"$LOG" 2>&1
         espin - "$VERIFIED"
+        rm -rf "$ERR_OUT"
     fi
 fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1062,10 +1072,20 @@ else
         fi
     fi
     if [ "$IS_INSTALLED" -eq 0 ]; then
+        ERR_OUT="$(mktemp)"
         espin "$NOT_VERIFIED"
         bspin - "Download and $OP_TYPE Kubernetes/kind $DOWNLOAD"
-        (set -x; curl -o "$GOPATH/bin/kind" -sSL "https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$HOSTOS-$HOSTARCH" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        (set -x; curl -o "$GOPATH/bin/kind" --fail -sSL "https://github.com/kubernetes-sigs/kind/releases/download/$KIND_VERSION/kind-$HOSTOS-$HOSTARCH" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            espin - "$THEX"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download kind: $(tail $ERR_OUT)${NORMAL}"
+            cat "$ERR_OUT" >> "$LOG"
+            rm -rf $"ERR_OUT" "$GOPATH/bin/kind"
+            exit 1
+        fi
         (set -x; chmod 755 "$GOPATH/bin/kind" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        rm -rf "$ERR_OUT"
         espin - "$VERIFIED"
     fi
 fi
@@ -1101,13 +1121,33 @@ else
     fi
 
     if [ "$HELM_UPGRADE" -ne 0 ]; then
+        ERR_OUT="$(mktemp)"
+        INSTALL_HELM_BIN=$(mktemp)
         espin "$NOT_VERIFIED"
         bspin - "Download and $HELM_UPGRADE_DESC Helm $DOWNLOAD"
-        (set -x; curl -sSL https://git.io/get_helm.sh | DESIRED_VERSION=$HELM_VERSION  USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin bash >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        (set -x; curl -o "$INSTALL_HELM_BIN" --fail -sSL https://git.io/get_helm.sh >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            espin - "$THEX"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download helm installer: $(tail $ERR_OUT)${NORMAL}"
+            cat "$ERR_OUT" >> "$LOG"
+            rm -rf "$INSTALL_HELM_BIN" "$ERR_OUT" "$GOPATH/bin/helm" "$GOPATH/bin/tiller"
+            exit 1
+        fi
+        rm -rf "$ERR_OUT"
+        chmod +x "$INSTALL_HELM_BIN"
+        (set -x; PATH="$GOPATH/bin:$PATH" DESIRED_VERSION=$HELM_VERSION  USE_SUDO=false HELM_INSTALL_DIR=$GOPATH/bin "$INSTALL_HELM_BIN" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            espin - "$THEX"
+            >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to install helm, see install log for details${NORMAL}"
+            rm -rf "$INSTALL_HELM_BIN" "$ERR_OUT" "$GOPATH/bin/helm" "$GOPATH/bin/tiller"
+            exit 1
+        fi
+        rm -rf "$INSTALL_HELM_BIN" "$ERR_OUT"
         espin - "$VERIFIED"
     fi
 fi
-
 if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
@@ -1117,12 +1157,24 @@ STIME="$(date +%s)"
 bspin "Verify voltctl $HIGH_VOLTAGE"
 VOK=0
 VMESSAGE="install"
+ERR_OUT=$(mktemp)
 export VC_VERSION="$VOLTCTL_VERSION"
 if [ "$VC_VERSION" == "latest" ]; then
-    VC_VERSION="$(curl -sSL https://api.github.com/repos/opencord/voltctl/releases/latest | jq -r .tag_name | sed -e 's/^v//g')"; export VC_VERSION
+    set -o pipefail # TODO: would be nice to run all in pipefail mode
+    VC_VERSION="$(curl --fail -sSL https://api.github.com/repos/opencord/voltctl/releases/latest 2>"$ERR_OUT" | jq -r .tag_name | sed -e 's/^v//g')"
+    RESULT=$?
+    set +o pipefail
+    if [ "$RESULT" -ne 0 ]; then
+        espin - "$THEX"
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to determine released version of voltctl: $(cat "$ERR_OUT")${NORMAL}"
+        rm -rf "$ERR_OUT" "$GOPATH/bin/voltctl"
+        exit 1
+    fi
+    export VC_VERSION
 fi
+
 if [ -x "$GOPATH/bin/voltctl" ]; then
-    VHAVE="$("$GOPATH/bin/voltctl" version --clientonly -o json | jq -r .version)"
+    VHAVE="$("$GOPATH/bin/voltctl" version --clientonly -o json 2>/dev/null | jq -r .version)"
     RESULT=$?
     if [ $RESULT -eq 0 ] && [ "$VHAVE" == "$VC_VERSION" ]; then
         VOK=1
@@ -1140,10 +1192,18 @@ fi
 if [ "$VOK" -eq 0 ]; then
     espin "$NOT_VERIFIED"
     bspin - "Download and $VMESSAGE voltctl $DOWNLOAD"
-    (set -x; curl -o "$GOPATH/bin/voltctl" -sSL "https://github.com/opencord/voltctl/releases/download/v$VC_VERSION/voltctl-$VC_VERSION-$HOSTOS-$HOSTARCH" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    (set -x; curl --fail -o "$GOPATH/bin/voltctl" -sSL "https://github.com/opencord/voltctl/releases/download/v$VC_VERSION/voltctl-$VC_VERSION-$HOSTOS-$HOSTARCH" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1
+    RESULT=$?
+    if [ $RESULT -ne 0 ]; then
+        espin - "$THEX"
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: unable to download voltctl (version $VC_VERSION): $(cat "$ERR_OUT")${NORMAL}"
+        rm -rf "$ERR_OUT" "$GOPATH/bin/voltctl"
+        exit 1
+    fi
     (set -x; chmod 755 "$GOPATH/bin/voltctl" >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
 fi
+rm -rf "$ERR_OUT"
 if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
