@@ -110,6 +110,7 @@ VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
 ONOS_CHART=${ONOS_CHART:-onf/onos}
 ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
+KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=0.15.3}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
@@ -251,6 +252,7 @@ ALL_OPTIONS="\
     VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION \
     ONOS_CHART \
     ONOS_CHART_VERSION \
+    KAFKA_CHART \
     KAFKA_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
@@ -778,12 +780,15 @@ kill_port_forward() {
     fi
 }
 
+resolve_chart_version() {
+    [ "$2" != "latest" ] && echo "$2" && return
+    helm inspect chart "$1" | grep "^version:" | awk '{print $2}'
+}
+
 # Compares two semver-formatted version strings (e.g. 2.4.3)
 # Returns 0 if $1 == $2, returns 1 if $1 > $2 and returns 2 if $1 < $2
 compare_versions() {
     [ "$1" == "$2" ] && return 0
-    [ "$1" == "latest" ] && return 1
-    [ "$2" == "latest" ] && return 2
     local lowest
     lowest=$(echo -e "$1\n$2" | sort -V | head -1)
     [ "$lowest" == "$1" ] && return 2
@@ -1342,6 +1347,24 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
 fi
+# Resolve chart versions and log them for debug/support
+RESOLVED_VOLTHA_CHART_VERSION=$(resolve_chart_version "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION")
+RESOLVED_VOLTHA_BBSIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION")
+RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION")
+RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION")
+RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION")
+RESOLVED_ONOS_CHART_VERSION=$(resolve_chart_version "$ONOS_CHART" "$ONOS_CHART_VERSION")
+RESOLVED_KAFKA_CHART_VERSION=$(resolve_chart_version "$KAFKA_CHART" "$KAFKA_CHART_VERSION")
+cat <<EOV >>"$LOG"
+Resolved helm charts and versions:
+    $VOLTHA_CHART:$RESOLVED_VOLTHA_CHART_VERSION
+    $VOLTHA_BBSIM_CHART:$RESOLVED_VOLTHA_BBSIM_CHART_VERSION
+    $VOLTHA_ADAPTER_SIM_CHART:$RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION
+    $VOLTHA_ADAPTER_OPEN_OLT_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION
+    $VOLTHA_ADAPTER_OPEN_ONU_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION
+    $ONOS_CHART:$RESOLVED_ONOS_CHART_VERSION
+    $KAFKA_CHART:$RESOLVED_KAFKA_CHART_VERSION
+EOV
 
 STIME="$(date +%s)"
 bspin "Verify Helm values file: $NAME-values.yaml"
@@ -1659,7 +1682,7 @@ EOC
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^kafka\$" | wc -l)" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
-        helm_install - "$INFRA_NS" kafka incubator/kafka "$KAFKA_CHART_VERSION" "$_HELM_DESC external Kafka cluster"
+        helm_install - "$INFRA_NS" kafka "$KAFKA_CHART" "$KAFKA_CHART_VERSION" "$_HELM_DESC external Kafka cluster"
     else
         espin "$VERIFIED"
     fi
@@ -1732,7 +1755,7 @@ elif [ "$WITH_ONOS" != "no" ]; then
     _PORT="$(echo "$WITH_ONOS" | cut -s -d: -f2)"
     _PORT=${_PORT:-6653}
 fi
-compare_versions "$VOLTHA_CHART_VERSION" 2.4.2
+compare_versions "$RESOLVED_VOLTHA_CHART_VERSION" 2.4.2
 if [ "$?" == "1" ]; then
     # voltha chart > 2.4.2 uses list of controllers
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[0].service=$_HOST --set services.controller[0].port=$_PORT"
