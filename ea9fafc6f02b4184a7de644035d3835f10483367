@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "a117bc77_eef89fbb",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 805,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-27T19:19:44Z",
+      "side": 1,
+      "message": "Fair enough",
+      "parentUuid": "b1e84a89_c3d5f1e1",
+      "range": {
+        "startLine": 805,
+        "startChar": 0,
+        "endLine": 805,
+        "endChar": 48
+      },
+      "revId": "ea9fafc6f02b4184a7de644035d3835f10483367",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9f20ce98_6a73e535",
         "filename": "voltha",
         "patchSetId": 5
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "457bf39e_b2a0bf45",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 812,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-27T19:19:44Z",
+      "side": 1,
+      "message": "It\u0027s not even micro-onos v classic at this point, both charts deploy onos-classic but the new chart is a more fleshed-out deployment that supports multiple instances + newer versions of onos-classic with external Atomix cluster.\n\nSo the options would have to be [old-onos-chart|new-onos-chart|...]\nIt\u0027s not as elegant and not obvious to the user what the differences between the charts are. But the condition is about knowing which chart we are using so that we know which interface we are working against.",
+      "parentUuid": "9f20ce98_6a73e535",
+      "range": {
+        "startLine": 812,
+        "startChar": 14,
+        "endLine": 812,
+        "endChar": 18
+      },
+      "revId": "ea9fafc6f02b4184a7de644035d3835f10483367",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "24a3f14a_36100d56",
         "filename": "voltha",
         "patchSetId": 5
@@ -59,6 +107,30 @@
       "writtenOn": "2020-04-25T05:05:19Z",
       "side": 1,
       "message": "i suspect we need a WITH_ATOMIX option to deploy/not deploy onos or use an existing atomix deployment like we point to kafka.",
+      "range": {
+        "startLine": 1484,
+        "startChar": 0,
+        "endLine": 1484,
+        "endChar": 22
+      },
+      "revId": "ea9fafc6f02b4184a7de644035d3835f10483367",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bea10656_9fcd327d",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 1484,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-27T19:19:44Z",
+      "side": 1,
+      "message": "I feel like that could be added later if there\u0027s a use-case for a more complex Atomix deployment. Right now people using voltha probably don\u0027t know what atomix is or care how it\u0027s deployed, so makes sense to me that the script chooses appropriate defaults.",
+      "parentUuid": "24a3f14a_36100d56",
       "range": {
         "startLine": 1484,
         "startChar": 0,
