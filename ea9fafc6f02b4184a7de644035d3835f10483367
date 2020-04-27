@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "23f3fa82_be7ac3be",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 812,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-04-27T20:36:42Z",
+      "side": 1,
+      "message": "Attempting to enumerate the options\n1. classic-onos /w internal store\n2. classic-onos w/external store (atomix)\n\nwhen deploying 2, deploying atomix is optional as part of the chart or pointing at a pre-existing deployment (service) for atomix?",
+      "parentUuid": "457bf39e_b2a0bf45",
+      "range": {
+        "startLine": 812,
+        "startChar": 14,
+        "endLine": 812,
+        "endChar": 18
+      },
+      "revId": "ea9fafc6f02b4184a7de644035d3835f10483367",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "24a3f14a_36100d56",
         "filename": "voltha",
         "patchSetId": 5
@@ -131,6 +155,30 @@
       "side": 1,
       "message": "I feel like that could be added later if there\u0027s a use-case for a more complex Atomix deployment. Right now people using voltha probably don\u0027t know what atomix is or care how it\u0027s deployed, so makes sense to me that the script chooses appropriate defaults.",
       "parentUuid": "24a3f14a_36100d56",
+      "range": {
+        "startLine": 1484,
+        "startChar": 0,
+        "endLine": 1484,
+        "endChar": 22
+      },
+      "revId": "ea9fafc6f02b4184a7de644035d3835f10483367",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c62f5290_fb2a5bdf",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 1484,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-04-27T20:36:42Z",
+      "side": 1,
+      "message": "the script isn\u0027t meant to be intelligent, i.e. just deploy what it is told. i think the right move is to treat atomix as a separate install, i.e. WITH_ATOMIX. we could set the value of WITH_ATOMIX to y|n|auto|url, where auto means the value is set based on if onos is being deployed and depends on atomix.\n\nwe could use ONOS_CHART and ONOS_CHART_VERSION to potentially get the \"app version\" from helm chart inspect and use that to understand if we are using onos with or without atomix.",
+      "parentUuid": "bea10656_9fcd327d",
       "range": {
         "startLine": 1484,
         "startChar": 0,
