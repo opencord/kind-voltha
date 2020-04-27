@@ -120,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "21f8d4aa_52711615",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 812,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-27T21:26:54Z",
+      "side": 1,
+      "message": "I think the options in terms of features are:\n1. single instance onos-classic with internal store\n2. multiple instance (1 or more) onos-classic with external store\nas you say, when deploying 2 the atomix could be preexisting (although I doubt anyone wants this right now).\n\nThese options are all supported by the new chart so in theory we could simply switch to using the new chart (new chart has a superset of functionality of old chart). The only reason to have a condition to support the old chart is that is what was used in the 2.3 release.",
+      "parentUuid": "23f3fa82_be7ac3be",
+      "range": {
+        "startLine": 812,
+        "startChar": 14,
+        "endLine": 812,
+        "endChar": 18
+      },
+      "revId": "ea9fafc6f02b4184a7de644035d3835f10483367",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "24a3f14a_36100d56",
         "filename": "voltha",
         "patchSetId": 5
