@@ -22,6 +22,30 @@
       "revId": "0a56a5f73c589be2282189b115bd42e25373d3a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "414c3adb_574cbba6",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1541,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-04-28T23:52:37Z",
+      "side": 1,
+      "message": "the charts.onosproject.org/onos-classic chart reads the image from the yaml paths `image.repository` and `image.tag` where in the *-values.yaml where we have image references for multiple containers we use images.\u003ccomponent\u003e.{repository,tag}. The voltha charts were created with this in mind so a single yaml file can specify images for everything. we can\u0027t put the ones-classic path in the shared yaml file as things like Kafka and etcd then get broken. so this basically parses the yaml values out of our shared yaml file and then sets them at the appropriate level for the onos-classic chart. make sense? hope that was explained ok.",
+      "parentUuid": "29f8fbed_19141c7d",
+      "range": {
+        "startLine": 1539,
+        "startChar": 12,
+        "endLine": 1541,
+        "endChar": 23
+      },
+      "revId": "0a56a5f73c589be2282189b115bd42e25373d3a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
