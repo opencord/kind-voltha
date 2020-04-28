@@ -56,7 +56,7 @@ images:
     # there is a need to specify the exact image repository and image tag.
     # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
-    tag: master
+    tag: onos-2.2
 
 # IMAGE_SELECTION
 # ---------------
