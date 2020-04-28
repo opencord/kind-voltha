@@ -14,6 +14,7 @@
 # limitations under the License.
 set -f
 unalias -a
+shopt -s extglob
 TOTAL_START_TIME="$(date +%s)"
 
 FANCY=${FANCY:-1}
@@ -36,6 +37,7 @@ HELM_VERSION=${HELM_VERSION:-v2.14.3}
 VOLTCTL_VERSION=${VOLTCTL_VERSION:-latest}
 KIND_VERSION=${KIND_VERSION:-v0.5.1}
 VK_RELEASE=${VK_RELEASE:-master}
+EXTRA_TOOLS=
 
 RED=
 GREEN=
@@ -75,6 +77,8 @@ WITH_EAPOL=${WITH_EAPOL:-yes}
 WITH_DHCP=${WITH_DHCP:-yes}
 WITH_IGMP=${WITH_IGMP:-no}
 WITH_ONOS=${WITH_ONOS:-yes}
+NUM_OF_ONOS=${NUM_OF_ONOS:-1}
+NUM_OF_ATOMIX=${NUM_OF_ATOMIX:-0}
 WITH_CHAOS=${WITH_CHAOS:-no}
 WITH_ADAPTERS=${WITH_ADAPTERS:-yes}
 WITH_SIM_ADAPTERS=${WITH_SIM_ADAPTERS:-no}
@@ -110,6 +114,8 @@ VOLTHA_ADAPTER_OPEN_ONU_CHART=${VOLTHA_ADAPTER_OPEN_ONU_CHART:-onf/voltha-adapte
 VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=${VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION:-latest}
 ONOS_CHART=${ONOS_CHART:-onf/onos}
 ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
+ONOS_CLASSIC_CHART=${ONOS_CLASSIC_CHART:-onos/onos-classic}
+ONOS_CLASSIC_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
 KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=0.15.3}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
@@ -154,6 +160,16 @@ if [ "$(echo ":minimal:full:" | grep -ic ":$TYPE:")" -eq 0 ]; then
     exit 1
 fi
 
+# checks to see if a given WORD is in the given LIST of words
+function is_in() {
+    local WORD LIST
+    WORD="$1"; shift
+    LIST="$*"
+    LIST=${LIST//+([[:space:],|])/:}
+
+    [ "$(echo ":$LIST:" | grep -ic ":$WORD:")" -ne 0 ]
+}
+
 function parseDuration() {
     local DUR RESULT TERM TERMS VALUE UNIT
     DUR=$1
@@ -191,16 +207,40 @@ function get_service_ep() {
 
 # Used to verify configuration values are set to "yes" or "no" value or convert
 # equivalents to "yes" or "no"
+YES="y,yes,t,true,1"
+NO="n,no,f,false,0"
+YES_OR_NO="$YES,$NO"
+
+# If the given VAR matches a truth value then normalize that
+# value, else return original value
+function normalize_yes_no() {
+    local VAR VAL
+    VAR=$1
+    VAL="$(eval echo "\$$VAR")"
+    if ! is_in "$VAL" "$YES_OR_NO"; then
+        echo "$VAL"
+        return 1
+    fi
+    if is_in "$VAL" "$YES"; then
+        echo "yes"
+    else
+        echo "no"
+    fi
+    return 0
+}
+
+# If the given VAR matches a truth value then normalize that
+# value, else display an error
 function verify_yes_no() {
     local VAR VAL
     VAR=$1
     VAL="$(eval echo "\$$VAR")"
-    if [ "$(echo ":y:yes:true:n:no:false:1:0:" | grep -ic ":$VAL:")" -eq 0 ]; then
+    if ! is_in "$VAL" "$YES_OR_NO"; then
         >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid '$VAR' value of '$VAL'. Should be 'yes' or 'no'${NORMAL}"
         echo "INVALID"
         return 1
     fi
-    if [ "$(echo ":y:yes:true:1:" | grep -ic ":$VAL:")" -eq 1 ]; then
+    if is_in "$VAL" "$YES"; then
         echo "yes"
     else
         echo "no"
@@ -232,10 +272,19 @@ ALL_YES_NO="\
     VOLTHA_DOWN_ON_TIMEOUT \
     "
 
+OPT_YES_NO="\
+    CONFIG_SADIS \
+    WITH_KAFKA \
+    WITH_RADIUS \
+    WITH_ETCD \
+    WITH_ONOS \
+    "
+
 ALL_OPTIONS="\
     NAME \
     TYPE \
     $ALL_YES_NO \
+    $OPT_YES_NO \
     WAIT_TIMEOUT \
     VOLTHA_LOG_LEVEL \
     VOLTHA_CHART \
@@ -252,11 +301,12 @@ ALL_OPTIONS="\
     VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION \
     ONOS_CHART \
     ONOS_CHART_VERSION \
+    ONOS_CLASSIC_CHART \
+    ONOS_CLASSIC_CHART_VERSION \
     KAFKA_CHART \
     KAFKA_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
-    CONFIG_SADIS \
     SADIS_CFG \
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
@@ -266,10 +316,8 @@ ALL_OPTIONS="\
     KIND_VERSION \
     VOLTCTL_VERSION \
     HELM_VERSION \
-    WITH_RADIUS \
-    WITH_KAFKA \
-    WITH_ETCD \
-    WITH_ONOS \
+    NUM_OF_ONOS \
+    NUM_OF_ATOMIX \
     VOLTHA_NS \
     ADAPTER_NS \
     INFRA_NS \
@@ -286,44 +334,36 @@ for VAR in $ALL_YES_NO; do
     fi
 done
 
-# Special case for CONFIG_SADIS
-if [ "$(echo ":y:yes:true:1:" | grep -ic ":$CONFIG_SADIS:")" -eq 1 ]; then
-    CONFIG_SADIS="yes"
-fi
-if [ "$(echo ":n:no:false:0:" | grep -ic ":$CONFIG_SADIS:")" -eq 1 ]; then
-    CONFIG_SADIS="no"
-fi
+# Iterate over optional yes/no configuration options and
+# normalize values if they are truth values
+for VAR in $OPT_YES_NO; do
+    eval "$VAR"="$(normalize_yes_no "$VAR")"
+done
 
-# Special case for WITH_ONOS, WITH_RADIUS, WITH_KAFKA, and WITH_ETCD
-if [ "$(echo ":y:yes:true:1:" | grep -ic ":$WITH_KAFKA:")" -eq 1 ]; then
-    WITH_KAFKA="yes"
-fi
-if [ "$(echo ":n:no:false:0:" | grep -ic ":$WITH_KAFKA:")" -eq 1 ]; then
-    WITH_KAFKA="no"
-fi
-if [ "$(echo ":external:" | grep -ic ":$WITH_KAFKA:")" -eq 1 ]; then
+# normalize non-truth value options
+if is_in "$WITH_KAFKA" "e,external"; then
     WITH_KAFKA="external"
 fi
-if [ "$(echo ":y:yes:true:1:" | grep -ic ":$WITH_ETCD:")" -eq 1 ]; then
-    WITH_ETCD="yes"
-fi
-if [ "$(echo ":n:no:false:0:" | grep -ic ":$WITH_ETCD:")" -eq 1 ]; then
-    WITH_ETCD="no"
-fi
-if [ "$(echo ":external:" | grep -ic ":$WITH_ETCD:")" -eq 1 ]; then
+if is_in "$WITH_ETCD" "e,external"; then
     WITH_ETCD="external"
 fi
-if [ "$(echo ":y:yes:true:1:" | grep -ic ":$WITH_RADIUS:")" -eq 1 ]; then
-    WITH_RADIUS="yes"
+if is_in "$WITH_ONOS" "l,legacy"; then
+    WITH_ONOS="legacy"
+elif is_in "$WITH_ONOS" "c,classic"; then
+    WITH_ONOS="classic"
+elif is_in "$WITH_ONOS" "u,m,micro"; then
+    WITH_ONOS="micro"
 fi
-if [ "$(echo ":n:no:false:0:" | grep -ic ":$WITH_RADIUS:")" -eq 1 ]; then
-    WITH_RADIUS="no"
+
+if [ "$WITH_ONOS" == "micro" ]; then
+    >&2 echo -e "${YELLOW}${BOLD}${ERROR}WARNING:${NORMAL}${YELLOW} The value specified as WITH_ONOS, '$WITH_ONOS', is not valid.${NORMAL}"
+    exit 1
 fi
-if [ "$(echo ":y:yes:true:1:" | grep -ic ":$WITH_ONOS:")" -eq 1 ]; then
-    WITH_ONOS="yes"
-fi
-if [ "$(echo ":n:no:false:0:" | grep -ic ":$WITH_ONOS:")" -eq 1 ]; then
-    WITH_ONOS="no"
+
+if is_in "$WITH_ONOS" "yes,classic"; then
+    # there is an extra utility required if we are using ONOS CLASSIC as
+    # the chart for classic specifies images differently
+    EXTRA_TOOLS+=" yq"
 fi
 
 if [ "$HELM_USE_UPGRADE" == "yes" ]; then
@@ -342,7 +382,7 @@ if [ "$WITH_KAFKA" == "yes" ]; then
 fi
 
 # Check for prerequiste tools
-TOOLS="curl sed jq"
+TOOLS="curl sed jq $EXTRA_TOOLS"
 if [ "$DEPLOY_K8S" == "yes" ]; then
     TOOLS+=" docker"
 fi
@@ -532,7 +572,7 @@ if [ "$1" == "get" ] && [ "$2" == "voltconfig" ]; then
     exit
 fi
 
-if [ $# -ne 1 ] || [ "$(echo ":up:down:dump:" | grep -c ":$1:")" -ne 1 ]; then
+if [ $# -ne 1 ] || ! is_in "$1" "up,down,dump"; then
     >&2 echo "What wouild you like to do today:"
     >&2 echo "  up   - bring up voltha"
     >&2 echo "  down - tear down voltha"
@@ -749,13 +789,12 @@ wait_for_pods() {
 }
 
 port_forward() {
-    local NS=$1
-    local SVC=$2
-    local FROM_PORT=$3
-    local TO_PORT=$4
+    local NS=$1; shift
+    local SVC=$1; shift
+    local PORTS="$*"
     local TAG=$SVC-$NAME
 
-    (set -x; _TAG="$TAG" bash -c "while true; do kubectl port-forward --address 0.0.0.0 -n $NS service/$SVC $FROM_PORT:$TO_PORT; done" >>"$LOG" 2>&1 &) >>"$LOG" 2>&1
+    (set -x; _TAG="$TAG" bash -c "while true; do kubectl port-forward --address 0.0.0.0 -n $NS service/$SVC $PORTS; done" >>"$LOG" 2>&1 &) >>"$LOG" 2>&1
 }
 
 kill_port_forward() {
@@ -799,11 +838,13 @@ if [ "$1" == "down" ]; then
     echo "Tearing down voltha cluster $NAME"
     LOG="down-$NAME.log"
     date -u +"%Y%m%dT%H%M%SZ" >"$LOG"
-    if [ "$WITH_ONOS" == "yes" ]; then
+    if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         bspin "Remove port-forwards: onos-ui-$NAME"
         kill_port_forward onos-ui
         sspin "Remove port-forwards: onos-ssh-$NAME$CEOL"
         kill_port_forward onos-ssh
+        bspin "Remove port-forwards: onos-onos-classic-hs-$NAME$CEOL"
+        kill_port_forward onos-onos-classic-hs
     fi
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
     kill_port_forward voltha-api
@@ -828,7 +869,7 @@ if [ "$1" == "down" ]; then
     else
         EXISTS="$(helm list -q)"
         EXPECT="voltha"
-        if [ "$WITH_ONOS" == yes ]; then
+        if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             EXPECT+=" onos"
         fi
         if [ "$WITH_RADIUS" == "yes" ]; then
@@ -875,7 +916,7 @@ if [ "$1" == "down" ]; then
             if [ "$WITH_OPEN_ADAPTERS" ] || [ "$WITH_SIM_ADAPTERS" ]; then
                 ADAPT_PODS+=" adapter-*"
             fi
-            if [ "$WITH_ONOS" == "yes" ]; then
+            if is_in "$WITH_ONOS" "yes,legacy,classic"; then
                 INFRA_PODS+=" onos-.*"
             fi
             if [ "$WITH_ETCD" == "external" ]; then
@@ -1306,8 +1347,14 @@ if [ "$COUNT" -ne 1 ]; then
     bspin - "Add Google Stable repository to Helm"
     (set -x; helm repo add stable https://kubernetes-charts.storage.googleapis.com >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
-    bspin - "Add ONF repository to Helm"
+    bspin - "Add ONF VOLTHA repository to Helm"
     (set -x; helm repo add onf https://charts.opencord.org >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
+    bspin - "Add ONF ONOS repository to Helm"
+    (set -x; helm repo add onos https://charts.onosproject.org >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
+    bspin - "Add ONF Atomix repository to Helm"
+    (set -x; helm repo add atomix https://charts.atomix.io >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
     bspin - "Update Helm repository cache"
     (set -x; helm repo update >>"$LOG" 2>&1) >>"$LOG" 2>&1
@@ -1354,6 +1401,7 @@ RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPT
 RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION")
 RESOLVED_ONOS_CHART_VERSION=$(resolve_chart_version "$ONOS_CHART" "$ONOS_CHART_VERSION")
+RESOLVED_ONOS_CLASSIC_CHART_VERSION=$(resolve_chart_version "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
 RESOLVED_KAFKA_CHART_VERSION=$(resolve_chart_version "$KAFKA_CHART" "$KAFKA_CHART_VERSION")
 cat <<EOV >>"$LOG"
 Resolved helm charts and versions:
@@ -1363,6 +1411,7 @@ Resolved helm charts and versions:
     $VOLTHA_ADAPTER_OPEN_OLT_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION
     $VOLTHA_ADAPTER_OPEN_ONU_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION
     $ONOS_CHART:$RESOLVED_ONOS_CHART_VERSION
+    $ONOS_CLASSIC_CHART:$RESOLVED_ONOS_CLASSIC_CHART_VERSION
     $KAFKA_CHART:$RESOLVED_KAFKA_CHART_VERSION
 EOV
 
@@ -1467,28 +1516,64 @@ else
 fi
 
 STIME="$(date +%s)"
-if [ "$WITH_ONOS" == "yes" ]; then
-    bspin "Verify ONOS installed $BIRD"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
-        espin "$NOT_VERIFIED"
-        EXTRA_HELM_FLAGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" "$_HELM_DESC ONOS"
-    else
-        espin "$VERIFIED"
-    fi
-    wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for ONOS to start" "$NO_LABEL" "onos-.*"
+if is_in "$WITH_ONOS" "yes,legacy,classic"; then
+    if is_in "$WITH_ONOS" "legacy"; then
+        bspin "Verify ONOS LEGACY installed $BIRD"
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
+            espin "$NOT_VERIFIED"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" "$_HELM_DESC ONOS LEGACY"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+        else
+            espin "$VERIFIED"
+        fi
+        wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for ONOS to start" "$NO_LABEL" "onos-.*"
 
-    if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
-        bspin - "Forward ONOS API port $FORWARD"
-        kill_port_forward onos-ui
-        port_forward "$INFRA_NS" onos-ui "$ONOS_API_PORT" 8181
-        espin - "$VERIFIED"
-        bspin - "Forward ONOS SSH port $FORWARD"
-        kill_port_forward onos-ssh
-        port_forward "$INFRA_NS" onos-ssh "$ONOS_SSH_PORT" 8101
-        espin - "$VERIFIED"
-        _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
-    else
-        _ONOS_API_EP="$(get_service_ep "$INFRA_NS" onos-ui)"
+        if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+            bspin - "Forward ONOS API port $FORWARD"
+            kill_port_forward onos-ui
+            port_forward "$INFRA_NS" onos-ui "$ONOS_API_PORT:8181"
+            espin - "$VERIFIED"
+            bspin - "Forward ONOS SSH port $FORWARD"
+            kill_port_forward onos-ssh
+            port_forward "$INFRA_NS" onos-ssh "$ONOS_SSH_PORT:8101"
+            espin - "$VERIFIED"
+            _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
+        else
+            _ONOS_API_EP="$(get_service_ep "$INFRA_NS" onos-ui)"
+        fi
+    elif is_in "$WITH_ONOS" "yes,classic"; then
+        bspin "Verify ONOS CLASSIC installed $BIRD"
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
+            espin "$NOT_VERIFIED"
+            # ONOS CLASSIC identifies its image repo/tag differently, so yq is used to grab the values from the
+            # values value
+            _ONOS_REPO="$(cat onos-values.yaml "$NAME-values.yaml" 2>/dev/null | yq read - images.onos.repository)"
+            _ONOS_TAG="$(cat onos-values.yaml "$NAME-values.yaml" 2>/dev/null | yq read - images.onos.tag)"
+            _TAG_DEFAULT="$(cat onos-values.yaml "$NAME-values.yaml" 2>/dev/null | yq read - defaults.image_tag)"
+            if [ -z "$_ONOS_TAG" ]; then
+                _ONOS_TAG="$_TAG_DEFAULT"
+            fi
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set image.repository=$_ONOS_REPO --set image.tag=$_ONOS_TAG --set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
+                helm_install - "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION" "$_HELM_DESC ONOS CLASSIC"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+        else
+            espin "$VERIFIED"
+        fi
+        wait_for_pods - "$INFRA_NS" $((NUM_OF_ONOS + NUM_OF_ATOMIX)) "includes" "Waiting for ONOS CLASSIC to start" "$NO_LABEL" "onos-.*"
+        if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+            bspin - "Forward ONOS API port $FORWARD"
+            kill_port_forward onos-onos-classic-hs
+            port_forward "$INFRA_NS" onos-onos-classic-hs "$ONOS_API_PORT:8181" "$ONOS_SSH_PORT:8101"
+            espin - "$VERIFIED"
+            _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
+        else
+            _ONOS_API_EP="$(get_service_ep "$INFRA_NS" onos-onos-classic-hs)"
+        fi
+    elif [ "$WITH_ONOS" == "micro" ]; then
+        bspin "Verify micro-ONOS installed $BIRD"
+        # We should never get here
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Micro ONOS not currently supported${NORMAL}"
+        exit 1
     fi
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     ONOS_FILES="olt-onos-enableExtraneousRules.json onos-aaa.json \
@@ -1573,7 +1658,7 @@ EOJ
     if [ "$ENABLE_ONOS_EXTRANEOUS_RULES" == "yes" ]; then
         push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
     fi
-    if [ "$(echo ":yes:file:" | grep -c ":$CONFIG_SADIS:")" -eq 1 ]; then
+    if is_in "$CONFIG_SADIS" "yes,file"; then
         check_onos_app_active org.opencord.sadis
         push_onos_config "file" "[optional] Push ONOS SADIS Configuration: $SADIS_CFG" "network/configuration/apps/org.opencord.sadis" "$SADIS_CFG"
     elif [ "$CONFIG_SADIS" == "bbsim" ]; then
@@ -1747,14 +1832,18 @@ case $WITH_KAFKA in
         ;;
 esac
 
-if [ "$WITH_ONOS" == "yes" ]; then
+if is_in "$WITH_ONOS" "legacy"; then
     _HOST=onos-openflow.$INFRA_NS.svc.cluster.local
+    _PORT=6653
+elif is_in "$WITH_ONOS" "yes,classic"; then
+    _HOST=onos-onos-classic-hs.$INFRA_NS.svc.cluster.local
     _PORT=6653
 elif [ "$WITH_ONOS" != "no" ]; then
     _HOST="$(echo "$WITH_ONOS" | cut -d: -f1)"
     _PORT="$(echo "$WITH_ONOS" | cut -s -d: -f2)"
     _PORT=${_PORT:-6653}
 fi
+
 compare_versions "$RESOLVED_VOLTHA_CHART_VERSION" 2.4.2
 if [ "$?" == "1" ]; then
     # voltha chart > 2.4.2 uses list of controllers
@@ -1906,20 +1995,20 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
     STIME="$(date +%s)"
     bspin - "Forward VOLTHA API port $FORWARD"
     kill_port_forward voltha-api
-    port_forward "$VOLTHA_NS"  voltha-api "$VOLTHA_API_PORT" 55555
+    port_forward "$VOLTHA_NS"  voltha-api "$VOLTHA_API_PORT:55555"
     espin - "$VERIFIED"
     if [ "$WITH_ETCD" == "yes" ] || [ "$WITH_ETCD" == "external" ]; then
         _NS="$(test "$WITH_ETCD" == "yes" && echo "$VOLTHA_NS" || echo "$INFRA_NS")"
         bspin - "Forward VOLTHA ETCD port $FORWARD"
         kill_port_forward "${ETCD_PREFIX}etcd-cluster-client"
-        port_forward "$_NS" "${ETCD_PREFIX}etcd-cluster-client" "$VOLTHA_ETCD_PORT" 2379
+        port_forward "$_NS" "${ETCD_PREFIX}etcd-cluster-client" "$VOLTHA_ETCD_PORT:2379"
         espin - "$VERIFIED"
     fi
     if [ "$WITH_KAFKA" == "yes" ] || [ $WITH_KAFKA == "external" ]; then
         _NS="$(test "$WITH_ETCD" == "yes" && echo "$VOLTHA_NS" || echo "$INFRA_NS")"
         bspin - "Forward VOLTHA Kafka port $FORWARD"
         kill_port_forward "${KAFKA_PREFIX}kafka"
-        port_forward "$_NS" ${KAFKA_PREFIX}kafka "$VOLTHA_KAFKA_PORT" 9092
+        port_forward "$_NS" ${KAFKA_PREFIX}kafka "$VOLTHA_KAFKA_PORT:9092"
         espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -1928,7 +2017,7 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
     fi
 fi
 
-if [ "$WITH_ONOS" == "yes" ] && [ "$WITH_RADIUS" != "no" ]; then
+if is_in "$WITH_ONOS" "yes,legacy,classic" && [ "$WITH_RADIUS" != "no" ]; then
     _HOST=radius.$INFRA_NS.svc.cluster.local
     _PORT=1812
     if [ "$WITH_RADIUS" != "yes" ]; then
