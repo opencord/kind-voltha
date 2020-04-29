@@ -46,6 +46,30 @@
       "revId": "0a56a5f73c589be2282189b115bd42e25373d3a3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1aa374ac_dfc0c8fd",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1541,
+      "author": {
+        "id": 1000005
+      },
+      "writtenOn": "2020-04-29T23:05:05Z",
+      "side": 1,
+      "message": "Yeah I get what is happening. But there\u0027s currently no way to override arbitrary values on ONOS chart because we are not passing a values file to helm install like we used to be. So is it possibly to add a way to pass a values file?\n\nIn the automated testing we want to turn off persistent volumes for atomix because it\u0027s harder to clean up volumes that get left behind after helm delete. TBH probably most deployments will want to do this unless they are production deployments.",
+      "parentUuid": "414c3adb_574cbba6",
+      "range": {
+        "startLine": 1539,
+        "startChar": 12,
+        "endLine": 1541,
+        "endChar": 23
+      },
+      "revId": "0a56a5f73c589be2282189b115bd42e25373d3a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
