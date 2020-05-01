@@ -1961,6 +1961,16 @@ if [ "$WITH_BBSIM" == "yes" ]; then
             espin - "$NOT_VERIFIED"
             S_TAG="$((900+instance))"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
+            if [ "$WITH_EAPOL" == "yes" ]; then
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=true"
+            else
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=false"
+            fi
+            if [ "$WITH_DHCP" == "yes" ]; then
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=true"
+            else
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
+            fi
             helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" "$_HELM_DESC BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else

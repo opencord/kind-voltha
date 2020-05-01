@@ -130,8 +130,6 @@ onos_env:
 kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
 pon: 1
 onu: 1
-auth: true
-dhcp: true
 
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
