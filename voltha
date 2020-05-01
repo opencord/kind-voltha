@@ -1952,11 +1952,9 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     echo -e "Verify BBSIM $PLUG"
     bspin - "Verify BBSIM Installed"
     for instance in $(seq 0 $((NUM_OF_BBSIM-1))); do
-        if [ "$instance" -eq 0 ]; then
-            instance_num=""
-        else
-            instance_num=$instance
-        fi
+
+        instance_num=$instance
+
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim${instance_num}\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
             S_TAG="$((900+instance))"
