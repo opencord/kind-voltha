@@ -22,6 +22,30 @@
       "revId": "c2f61b736ad5cc3a06a1352fc7ed327e1571adc7",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "46a80c23_41b6329b",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-01T16:35:50Z",
+      "side": 1,
+      "message": "fair point, will change to be consistent.",
+      "parentUuid": "75babc0d_7b2f2453",
+      "range": {
+        "startLine": 80,
+        "startChar": 0,
+        "endLine": 80,
+        "endChar": 14
+      },
+      "revId": "c2f61b736ad5cc3a06a1352fc7ed327e1571adc7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
