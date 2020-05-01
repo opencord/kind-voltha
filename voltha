@@ -124,6 +124,7 @@ NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
 NUM_OF_OPENONU=${NUM_OF_OPENONU:-1}
 MAX_NUM_OF_BBSIM=10
 MAX_NUM_OF_OPENONU=10
+LEGACY_BBSIM_INDEX=${LEGACY_BBSIM_INDEX:-no}
 
 HOSTOS="$(uname -s | tr "[:upper:]" "[:lower:"])"
 HOSTARCH="$(uname -m | tr "[:upper:]" "[:lower:"])"
@@ -270,6 +271,7 @@ ALL_YES_NO="\
     WAIT_ON_DOWN \
     ONLY_ONE \
     VOLTHA_DOWN_ON_TIMEOUT \
+    LEGACY_BBSIM_INDEX \
     "
 
 OPT_YES_NO="\
@@ -1983,11 +1985,18 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     echo -e "Verify BBSIM $PLUG"
     bspin - "Verify BBSIM Installed"
     for instance in $(seq 0 $((NUM_OF_BBSIM-1))); do
-        if [ "$instance" -eq 0 ]; then
-            instance_num=""
+
+        if [ "$LEGACY_BBSIM_INDEX" == "yes" ]; then
+            if [ "$instance" -eq 0 ]; then
+                instance_num=""
+            else
+                instance_num=$instance
+            fi
         else
             instance_num=$instance
         fi
+
+
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim${instance_num}\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
             S_TAG="$((900+instance))"
