@@ -46,6 +46,30 @@
       "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7d2336a0_0e8decdf",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1956,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-02T05:48:00Z",
+      "side": 1,
+      "message": "Also, this really isn\u0027t a chart version issue, so I am not sure we want to branch on a chart version. This is a behavioral difference, i.e. we want something more like WITH_BBSIM_INDEX_0\u003dy|n. The for the 2.3 release file set this to n and default it to yes.",
+      "parentUuid": "1deafca5_72c6173a",
+      "range": {
+        "startLine": 1956,
+        "startChar": 13,
+        "endLine": 1956,
+        "endChar": 54
+      },
+      "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
