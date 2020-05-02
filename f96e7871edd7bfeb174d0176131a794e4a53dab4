@@ -22,6 +22,30 @@
       "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1deafca5_72c6173a",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1956,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-02T04:57:40Z",
+      "side": 1,
+      "message": "Ok, I\u0027ll revert the patch on voltha-system-tests and update them Monday morning",
+      "parentUuid": "2e438f9c_ab92854a",
+      "range": {
+        "startLine": 1956,
+        "startChar": 13,
+        "endLine": 1956,
+        "endChar": 54
+      },
+      "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
