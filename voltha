@@ -1019,6 +1019,34 @@ for O in $ALL_OPTIONS; do
     fi
 done
 
+helm_values() {
+    local NAMESPACE=$1; shift
+    local INAME=$1; shift
+    local CHART=$1; shift
+    local CHART_VERSION=$1; shift
+
+    if [ "$CHART_VERSION X" != " X" ] && [ "$CHART_VERSION" != "latest" ]; then
+        CHART_VERSION="--version $CHART_VERSION"
+    else
+        CHART_VERSION=
+    fi
+
+    local CHART_ARGS=
+    if [ -r "${INAME}-values.yaml" ]; then
+        CHART_ARGS="-f ${INAME}-values.yaml"
+    fi
+
+    if [ "$HELM_USE_UPGRADE" == "yes" ]; then
+        _HELM_COMMAND="upgrade --install"
+        _HELM_ARGS="xxxdryrunxxx"
+    else
+        _HELM_COMMAND="install"
+        _HELM_ARGS="--name xxxdryrunxxx"
+    fi
+    CMD=("helm $_HELM_COMMAND --debug --dry-run -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $CHART")
+   ${CMD[*]} 2>/dev/null | awk 'PRINT==1 {print}; /^USER-SUPPLIED VALUES:/ {PRINT = 1}; /^$/ {PRINT = 0}'
+}
+
 helm_install() {
     local INDENT NOW
     if [ "$1" == "-" ]; then
@@ -1547,12 +1575,15 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             espin "$NOT_VERIFIED"
             # ONOS CLASSIC identifies its image repo/tag differently, so yq is used to grab the values from the
             # values value
-            _ONOS_REPO="$(cat onos-values.yaml "$NAME-values.yaml" 2>/dev/null | yq read - images.onos.repository)"
-            _ONOS_TAG="$(cat onos-values.yaml "$NAME-values.yaml" 2>/dev/null | yq read - images.onos.tag)"
-            _TAG_DEFAULT="$(cat onos-values.yaml "$NAME-values.yaml" 2>/dev/null | yq read - defaults.image_tag)"
+            YAML_VALUES=$(INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
+                helm_values "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
+            _ONOS_REPO="$(echo "$YAML_VALUES" | yq read - images.onos.repository)"
+            _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
+            _TAG_DEFAULT="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
             if [ -z "$_ONOS_TAG" ]; then
                 _ONOS_TAG="$_TAG_DEFAULT"
             fi
+
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set image.repository=$_ONOS_REPO --set image.tag=$_ONOS_TAG --set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
                 helm_install - "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION" "$_HELM_DESC ONOS CLASSIC"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
