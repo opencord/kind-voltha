@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2e438f9c_ab92854a",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1956,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-02T00:30:22Z",
+      "side": 1,
+      "message": "this needs to do a simver check with \u003c i suspect as opposed to an \u003d\u003d",
+      "range": {
+        "startLine": 1956,
+        "startChar": 13,
+        "endLine": 1956,
+        "endChar": 54
+      },
+      "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
