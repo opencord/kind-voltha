@@ -70,6 +70,30 @@
       "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "26808a28_72f47d0f",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1956,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-04T15:13:43Z",
+      "side": 1,
+      "message": "And that\u0027s why I think it was worthy to branch kind-voltha, any update we\u0027ll do moving forward we\u0027ll have to go back create a new variable to support 2.3...\n\nPatch coming",
+      "parentUuid": "7d2336a0_0e8decdf",
+      "range": {
+        "startLine": 1956,
+        "startChar": 13,
+        "endLine": 1956,
+        "endChar": 54
+      },
+      "revId": "f96e7871edd7bfeb174d0176131a794e4a53dab4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
