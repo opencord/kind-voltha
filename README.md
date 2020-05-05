@@ -103,7 +103,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `WITH_SIM_ADAPTERS`                     | no                                                    | Should simulated device adapters be deployed (simulated adpaters deprecated) |
 | `WITH_OPEN_ADAPTERS`                    | yes                                                   | Should open OLT and ONU adapters be deployed |
 | `WITH_PORT_FORWARDS`                    | yes                                                   | Forwards ports for some services from localhost into the K8s cluster |
-| `CONFIG_SADIS`                          | no                                                    | Configure SADIS entries into ONOS. Values: `yes`, `no`, `file`, `url`, or `bbsim` |
+| `CONFIG_SADIS`                          | no                                                    | Configure SADIS entries into ONOS. Values: `yes`, `no`, `file`, `url`, `bbsim`, or `external` |
 | `SADIS_SUBSCRIBERS`                     | http://bbsim.voltha.svc:50074/v2/subscribers/%s       | URL for ONOS to use to query subsriber information if `CONFIG_SADIS` is set to `url` |
 | `SADIS_BANDWIDTH_PROFILES`              | http://bbsim.voltha.svc:50074/v2/bandwidthprofiles/%s | URL for ONOS to use to query bandwidth profiles if `CONFIG_SADIS` is set to `url` |
 | `SADIS_CFG`                             | onos-files/onos-sadis-sample.json                     | SADIS Configuration File to push, if CONFIG_SADIS set |
@@ -176,6 +176,7 @@ starts VOLTHA with external ONOS,KAFKA,ETCD in the `infra` namespace.
 | `no`             | do not configure ONOS for SADIS usage |
 | `url`            | configure ONOS to use SADIS via a URL. The URL used for subscriber information<br> is specified in the variable `SADIS_SUBSCRIBERS` and the URL used for bandwidth<br> profiles is specified in the variable `SADIS_BANDWIDTH_PROFILES` |
 | `bbsim`          | configure ONOS use use the SADIS servers that are part of BBSIM |
+| `external`       | an additional helm chart will be installed (`bbsim-sadis-server`) and ONOS will be configured to use that service for SADIS queries |
 
 ### Controlling volthawith and ONOS cluster
 
