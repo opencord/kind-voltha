@@ -86,6 +86,7 @@ WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
 WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
+WITH_PPROF=${WITH_PPROF:-no}
 ONLY_ONE=${ONLY_ONE:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
@@ -263,6 +264,7 @@ ALL_YES_NO="\
     WITH_SIM_ADAPTERS \
     WITH_OPEN_ADAPTERS \
     WITH_PORT_FORWARDS \
+    WITH_PPROF \
     JUST_K8S \
     DEPLOY_K8S \
     INSTALL_ONOS_APPS \
@@ -316,6 +318,8 @@ ALL_OPTIONS="\
     VOLTHA_SSH_PORT \
     VOLTHA_ETCD_PORT \
     VOLTHA_KAFKA_PORT \
+    VOLTHA_PPROF_PORT \
+    OPENOLT_PPROF_PORT \
     VK_RELEASE \
     KIND_VERSION \
     VOLTCTL_VERSION \
@@ -423,6 +427,8 @@ if [ "$HAVE X" == " X" ]; then
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$((50 + DELTA))22}
     VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$((23 + DELTA))79}
     VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
+    VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
+    OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
 else
     VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
     ONOS_API_PORT=${ONOS_API_PORT:-$(echo "$VALUES" | cut -d, -f1)}
@@ -431,20 +437,29 @@ else
     VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$(echo "$VALUES" | cut -d, -f4)}
     VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(echo "$VALUES" | cut -d, -f5)}
     VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(echo "$VALUES" | cut -d, -f6)}
+    VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f7)}
+    OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f8)}
 
-    # A bit of a hueristic required here as the KAFKA port forward was
-    # added after the .voltha/ports files was created. Basically, if
-    # the VOLTHA_KAFKA_PORT isn't in the file then calculate the original
-    # DELTA from the VOLTHA_SSH_PORT and apply it to the VOLTHA_KAFKA_PORT
+    # Some ports were added after the .voltha/ports files was created.
+    # Calculate the original DELTA from the VOLTHA_SSH_PORT so that it can
+    # be used to set up newer port-forwards.
+    DELTA="$((VOLTHA_SSH_PORT/100-50))"
+
     if [ -z "$VOLTHA_KAFKA_PORT" ]; then
-        DELTA="$((VOLTHA_SSH_PORT/100-50))"
         VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
+    fi
+
+    if [ -z "$VOLTHA_PPROF_PORT" ]; then
+      VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
+    fi
+    if [ -z "$OPENOLT_PPROF_PORT" ]; then
+      OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
     fi
 fi
 
 PORTTMP="$(mktemp -u)"
 grep -v "$NAME" .voltha/ports > "$PORTTMP"
-echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT" >> "$PORTTMP"
+echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT" >> "$PORTTMP"
 cp "$PORTTMP" .voltha/ports
 rm -f "$PORTTMP"
 
@@ -860,6 +875,15 @@ if [ "$1" == "down" ]; then
         sspin "Remove port-forwards: ${KAFKA_PREFIX}kafka-$NAME$CEOL"
         kill_port_forward "${KAFKA_PREFIX}kafka"
     fi
+
+    if [ "$WITH_PPROF" == "yes" ]; then
+      sspin "Remove port-forwards: *-profiler$CEOL"
+      kill_port_forward voltha-rw-core-profiler
+      if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
+        kill_port_forward adapter-open-olt-profiler
+      fi
+    fi
+
     espin "$VERIFIED Remove port-forwards$CEOL"
     if [ "$DEPLOY_K8S" == "yes" ]; then
         if [ -x ./bin/kind ]; then
@@ -2122,6 +2146,14 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
         kill_port_forward "${KAFKA_PREFIX}kafka"
         port_forward "$_NS" ${KAFKA_PREFIX}kafka "$VOLTHA_KAFKA_PORT:9092"
         espin - "$VERIFIED"
+    fi
+    if [ "$WITH_PPROF" == "yes" ]; then
+      bspin - "Forward PProf ports port $FORWARD"
+      kill_port_forward voltha-rw-core-profiler
+      kill_port_forward adapter-open-olt-profiler
+      port_forward "$VOLTHA_NS" voltha-rw-core-profiler "$VOLTHA_PPROF_PORT:6060"
+      port_forward "$VOLTHA_NS" adapter-open-olt-profiler "$OPENOLT_PPROF_PORT:6060"
+      espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
