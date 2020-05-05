@@ -86,6 +86,7 @@ WITH_OPEN_ADAPTERS=${WITH_OPEN_ADAPTERS:-yes}
 WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
+WITH_PPROF=${WITH_PPROF:-no}
 ONLY_ONE=${ONLY_ONE:-yes}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
@@ -263,6 +264,7 @@ ALL_YES_NO="\
     WITH_SIM_ADAPTERS \
     WITH_OPEN_ADAPTERS \
     WITH_PORT_FORWARDS \
+    WITH_PPROF \
     JUST_K8S \
     DEPLOY_K8S \
     INSTALL_ONOS_APPS \
@@ -274,6 +276,7 @@ ALL_YES_NO="\
     ONLY_ONE \
     VOLTHA_DOWN_ON_TIMEOUT \
     LEGACY_BBSIM_INDEX \
+    WITH_PPROF \
     "
 
 OPT_YES_NO="\
@@ -860,6 +863,13 @@ if [ "$1" == "down" ]; then
         sspin "Remove port-forwards: ${KAFKA_PREFIX}kafka-$NAME$CEOL"
         kill_port_forward "${KAFKA_PREFIX}kafka"
     fi
+
+    if [ "$WITH_PPROF" == "yes" ]; then
+      sspin "Remove port-forwards: *-profiler$CEOL"
+      kill_port_forward voltha-rw-core-profiler
+      kill_port_forward adapter-open-olt-profiler
+    fi
+
     espin "$VERIFIED Remove port-forwards$CEOL"
     if [ "$DEPLOY_K8S" == "yes" ]; then
         if [ -x ./bin/kind ]; then
@@ -2122,6 +2132,14 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
         kill_port_forward "${KAFKA_PREFIX}kafka"
         port_forward "$_NS" ${KAFKA_PREFIX}kafka "$VOLTHA_KAFKA_PORT:9092"
         espin - "$VERIFIED"
+    fi
+    if [ "$WITH_PPROF" == "yes" ]; then
+      bspin - "Forward PProf ports port $FORWARD"
+      kill_port_forward voltha-rw-core-profiler
+      kill_port_forward adapter-open-olt-profiler
+      port_forward "$VOLTHA_NS" voltha-rw-core-profiler "6060:6060"
+      port_forward "$VOLTHA_NS" adapter-open-olt-profiler "6061:6060"
+      espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
