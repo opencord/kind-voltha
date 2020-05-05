@@ -103,6 +103,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `WITH_SIM_ADAPTERS`                     | no                                                    | Should simulated device adapters be deployed (simulated adpaters deprecated) |
 | `WITH_OPEN_ADAPTERS`                    | yes                                                   | Should open OLT and ONU adapters be deployed |
 | `WITH_PORT_FORWARDS`                    | yes                                                   | Forwards ports for some services from localhost into the K8s cluster |
+| `WITH_PPROF`                            | no                                                    | Forwards ports for Golang pprof webserver in rw-core and openolt-adapter (does not automatically include profiled images) |
 | `CONFIG_SADIS`                          | no                                                    | Configure SADIS entries into ONOS. Values: `yes`, `no`, `file`, `url`, or `bbsim` |
 | `SADIS_SUBSCRIBERS`                     | http://bbsim.voltha.svc:50074/v2/subscribers/%s       | URL for ONOS to use to query subsriber information if `CONFIG_SADIS` is set to `url` |
 | `SADIS_BANDWIDTH_PROFILES`              | http://bbsim.voltha.svc:50074/v2/bandwidthprofiles/%s | URL for ONOS to use to query bandwidth profiles if `CONFIG_SADIS` is set to `url` |
