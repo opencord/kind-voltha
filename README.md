@@ -113,6 +113,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `VOLTHA_LOG_LEVEL`                      | WARN                                                  | Log level to set for VOLTHA core processes |
 | `ONOS_CHART`                            | onf/voltha                                            | Helm chart to used to install ONOS |
 | `ONOS_CHART_VERSION`                    | latest                                                | Version of helm chart for ONOS |
+| `ONOS_CLASSIC_CHART`                    | onos/onos-classic                                     | Helm chart to used to install clustered ONOS |
+| `ONOS_CLASSIC_CHART_VERSION`            | latest                                                | Version of helm chart for clustered ONOS |
 | `VOLTHA_CHART`                          | onf/voltha                                            | Helm chart to used to install voltha |
 | `VOLTHA_CHART_VERSION`                  | latest                                                | Version of Helm chart to install voltha |
 | `VOLTHA_ADAPTER_SIM_CHART`              | onf/voltha-adapter-simulated                          | Helm chart to use to install simulated device adapter |
@@ -130,6 +132,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `WAIT_TIMEOUT`                          | 30m                                                   | Time to wait before timing out on lengthy operations |
 | `KIND_VERSION`                          | v0.5.1                                                | Version of KinD to install if using a KinD cluster |
 | `VOLTCTL_VERSION`                       | latest                                                | Version of `voltctl` to install or up/downgrade to and use |
+| `NUM_OF_ONOS`                           | 1                                                     | Number of ONOS instances in the cluster |
+| `NUM_OF_ATOMIX`                         | 0                                                     | Number of atomix nodes for the ONOS cluster |
 | `ONOS_API_PORT`                         | dynamic                                               | (advanced) Override dynamic port selection for port forward for ONOS API |
 | `ONOS_SSH_PORT`                         | dynamic                                               | (advanced) Override dynamic port selection for port forward for ONOS SSH |
 | `VOLTHA_API_PORT`                       | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA API |
@@ -173,6 +177,17 @@ starts VOLTHA with external ONOS,KAFKA,ETCD in the `infra` namespace.
 | `url`            | configure ONOS to use SADIS via a URL. The URL used for subscriber information<br> is specified in the variable `SADIS_SUBSCRIBERS` and the URL used for bandwidth<br> profiles is specified in the variable `SADIS_BANDWIDTH_PROFILES` |
 | `bbsim`          | configure ONOS use use the SADIS servers that are part of BBSIM |
 
+### Controlling volthawith and ONOS cluster
+
+To provide HA, resilinecy and failover ONOS can be configured in cluster mode.
+A 3 node ONOS deployment for example can be achieved via the `full` configuration:
+```bash
+TYPE=full WITH_ONOS=classic NUM_OF_ONOS=3 NUM_OF_ATOMIX=3 ./voltha up
+```
+Please note the `TYPE=full` that deploys a 3 worker nodes for k8s and `WITH_ONOS=classic` that uses the
+cluster-enabled [helm chart](https://charts.onosproject.org) for ONOS (version 2.2).
+The `NUM_OF_ONOS=3 NUM_OF_ATOMIX=3` flags set the number of Atomix nodes and ONOS nodes.
+As usual one can add as many other options, for example `CONFIG_SADIS=y`.
 
 ## GENERATED CONFIGURATION
 When the voltha script is run it generates a file that contains the

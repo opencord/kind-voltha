@@ -109,6 +109,11 @@ onos_env:
   - name: ONOS_APPS
     value: "drivers,openflow-base,hostprovider"
 
+# No persistent volume in Atomix to have clean state for each re-deploy of ONOS
+atomix:
+  persistence:
+    enabled: false
+
 # Customization for BBSIM
 kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
 pon: 1
