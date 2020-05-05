@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d85d0b84_9025f610",
+        "filename": "README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-05T15:23:28Z",
+      "side": 1,
+      "message": "spaces at end of lines",
+      "range": {
+        "startLine": 182,
+        "startChar": 78,
+        "endLine": 182,
+        "endChar": 79
+      },
+      "revId": "31eec6eeac6bd84261facf7c06111c63615147dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1128ff6d_5ba10373",
+        "filename": "full-values.yaml",
+        "patchSetId": 1
+      },
+      "lineNbr": 112,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-05T15:23:28Z",
+      "side": 1,
+      "message": "clean-slate?\n\nis the trick for making things work with atomix to have persistence off? if so this same change is likely needed in the minimal-values.yaml as you can start a single instance of onos with a single instance of atomix.",
+      "range": {
+        "startLine": 112,
+        "startChar": 36,
+        "endLine": 112,
+        "endChar": 45
+      },
+      "revId": "31eec6eeac6bd84261facf7c06111c63615147dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
