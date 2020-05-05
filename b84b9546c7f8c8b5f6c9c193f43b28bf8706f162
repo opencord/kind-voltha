@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cdbb31be_4c5deb5d",
+        "filename": "README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2020-05-05T22:03:24Z",
+      "side": 1,
+      "message": "typo ... golang?",
+      "revId": "b84b9546c7f8c8b5f6c9c193f43b28bf8706f162",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
