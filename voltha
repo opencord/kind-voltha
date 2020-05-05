@@ -87,7 +87,7 @@ WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
 ONLY_ONE=${ONLY_ONE:-yes}
-CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | URL
+CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
 SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://bbsim.$VOLTHA_NS.svc:50074/v2/bandwidthprofiles/%s}
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
@@ -118,6 +118,8 @@ ONOS_CLASSIC_CHART=${ONOS_CLASSIC_CHART:-onos/onos-classic}
 ONOS_CLASSIC_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
 KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=0.15.3}
+BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-server}
+BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
@@ -858,7 +860,6 @@ if [ "$1" == "down" ]; then
         sspin "Remove port-forwards: ${KAFKA_PREFIX}kafka-$NAME$CEOL"
         kill_port_forward "${KAFKA_PREFIX}kafka"
     fi
-
     espin "$VERIFIED Remove port-forwards$CEOL"
     if [ "$DEPLOY_K8S" == "yes" ]; then
         if [ -x ./bin/kind ]; then
@@ -869,6 +870,11 @@ if [ "$1" == "down" ]; then
             espin "$NO_ENTRY Delete Kubernetes Kind Cluster: kind command not found"
         fi
     else
+        if [ "$CONFIG_SADIS" == "external" ]; then
+            bspin "Remove configmap for BBSIM SADIS server"
+            (set -x; kubectl -n "$BBSIM_NS" delete --ignore-not-found configmap kube-config >>"$LOG" 2>&1) >>"$LOG" 2>&1
+            espin "$VERIFIED"
+        fi
         EXISTS="$(helm list -q)"
         EXPECT="voltha"
         if is_in "$WITH_ONOS" "yes,legacy,classic"; then
@@ -876,6 +882,9 @@ if [ "$1" == "down" ]; then
         fi
         if [ "$WITH_RADIUS" == "yes" ]; then
             EXPECT+=" radius"
+        fi
+        if [ "$CONFIG_SADIS" == "external" ]; then
+            EXPECT+=" bbsim-sadis-server"
         fi
         if [ "$WITH_BBSIM" == "yes" ]; then
             EXPECT+=" bbsim"
@@ -1386,6 +1395,9 @@ if [ "$COUNT" -ne 1 ]; then
     bspin - "Add ONF Atomix repository to Helm"
     (set -x; helm repo add atomix https://charts.atomix.io >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
+    bspin - "Add Custom BBSIM SADIS Server repository to Helm"
+    (set -x; helm repo add bbsim-sadis https://ciena.github.io/bbsim-sadis-server/charts >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
     bspin - "Update Helm repository cache"
     (set -x; helm repo update >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
@@ -1723,6 +1735,35 @@ EOJ
 }
 EOJ
 )"
+    elif [ "$CONFIG_SADIS" == "external" ]; then
+        push_onos_config "json" \
+            "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
+            "network/configuration/apps/org.opencord.sadis" \
+            "$(cat <<EOJ | tr -d '[:space:]'
+{
+    "sadis": {
+        "integration": {
+            "url": "http://bbsim-sadis-server.$BBSIM_NS.svc:58080/subscribers/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    },
+    "bandwidthprofile": {
+        "integration": {
+            "url": "http://bbsim-sadis-server.$BBSIM_NS.svc:58080/profiles/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    }
+}
+EOJ
+)"
     elif [ "$CONFIG_SADIS" == "url" ]; then
         push_onos_config "json" \
             "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
@@ -2018,6 +2059,27 @@ if [ "$WITH_BBSIM" == "yes" ]; then
         fi
     done
     wait_for_pods - "$BBSIM_NS" "$NUM_OF_BBSIM" "includes" "Waiting for BBSIM to start" "$BBSIM_LABEL" "bbsim*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
+if [ "$CONFIG_SADIS" == "external" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify BBSIM SADIS Service $PLUG"
+    bspin - "Verify required configmap"
+    (set -x; kubectl -n "$BBSIM_NS" delete --ignore-not-found configmap kube-config >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    (set -x; kubectl -n "$BBSIM_NS" create configmap kube-config "--from-file=kube_config=$KUBECONFIG" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
+    bspin - "Verify BBSIM SADIS Service Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim-sadis-servier\$" | wc -l)" -ne 1 ]; then
+        espin - "$NOT_VERIFIED"
+        helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION"  "$_HELM_DESC BBSIM SADIS Server"
+    else
+        espin - "$VERIFIED"
+    fi
+    wait_for_pods - "$BBSIM_NS" 1 "includes" "Waiting for BBSIM SADIS Server to start" "$NO_LABEL" "bbsim-sadis-server-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
         printtime $((NOW - STIME))
