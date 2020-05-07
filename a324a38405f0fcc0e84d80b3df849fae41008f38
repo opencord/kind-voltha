@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "10f84bce_7f29c1c4",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 448,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-07T23:45:02Z",
+      "side": 1,
+      "message": "might want to move this calculation outside of the if statement so if can be used by not only KAFKA_PORT, but also the PPROF PORT conditionals. this way if KAFKA_PORT is defined, but the others are not DELTA will be calculated.",
+      "range": {
+        "startLine": 448,
+        "startChar": 8,
+        "endLine": 448,
+        "endChar": 13
+      },
+      "revId": "a324a38405f0fcc0e84d80b3df849fae41008f38",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
