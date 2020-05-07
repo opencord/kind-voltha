@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5fd62ff4_2e2626cc",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 279,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-07T16:25:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "70dabdff_a5e22007",
+      "range": {
+        "startLine": 279,
+        "startChar": 0,
+        "endLine": 279,
+        "endChar": 16
+      },
+      "revId": "b74b55fc47c8be2eb3ff060f27d6d6ec11f2927c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ee2e934b_a07b44b8",
         "filename": "voltha",
         "patchSetId": 3
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "a33cdb04_778d4047",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 870,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-07T16:25:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ee2e934b_a07b44b8",
+      "range": {
+        "startLine": 870,
+        "startChar": 32,
+        "endLine": 870,
+        "endChar": 36
+      },
+      "revId": "b74b55fc47c8be2eb3ff060f27d6d6ec11f2927c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a1fcd1b2_9aedfa0e",
         "filename": "voltha",
         "patchSetId": 3
@@ -59,6 +107,30 @@
       "writtenOn": "2020-05-07T00:02:22Z",
       "side": 1,
       "message": "likely need to follow the pattern to make sure port numbers are unique as well as only want to create a forward for the open olt adapter if the olt adapter is deployed.",
+      "range": {
+        "startLine": 2140,
+        "startChar": 1,
+        "endLine": 2142,
+        "endChar": 1
+      },
+      "revId": "b74b55fc47c8be2eb3ff060f27d6d6ec11f2927c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "30b77bef_c6c6018a",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 2142,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-07T16:25:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a1fcd1b2_9aedfa0e",
       "range": {
         "startLine": 2140,
         "startChar": 1,
