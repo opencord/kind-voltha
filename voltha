@@ -1639,18 +1639,19 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         bspin "Verify ONOS CLASSIC installed $BIRD"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
             espin "$NOT_VERIFIED"
-            # ONOS CLASSIC identifies its image repo/tag differently, so yq is used to grab the values from the
+            # ONOS CLASSIC identifies its image repo/tag/pullPolicy differently, so yq is used to grab the values from the
             # values value
             YAML_VALUES=$(INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
                 helm_values "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
             _ONOS_REPO="$(echo "$YAML_VALUES" | yq read - images.onos.repository)"
             _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
+            _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - defaults.image_pullPolicy)"
             _TAG_DEFAULT="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
             if [ -z "$_ONOS_TAG" ]; then
                 _ONOS_TAG="$_TAG_DEFAULT"
             fi
 
-            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set image.repository=$_ONOS_REPO --set image.tag=$_ONOS_TAG --set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set image.pullPolicy=$_ONOS_PULL_POLICY,image.repository=$_ONOS_REPO,image.tag=$_ONOS_TAG,replicas=$NUM_OF_ONOS,atomix.replicas=$NUM_OF_ATOMIX" \
                 helm_install - "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION" "$_HELM_DESC ONOS CLASSIC"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
