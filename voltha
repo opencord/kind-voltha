@@ -88,6 +88,7 @@ WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
 WITH_PPROF=${WITH_PPROF:-no}
 ONLY_ONE=${ONLY_ONE:-yes}
+SCHEDULE_ON_CONTROL_NODES=${SCHEDULE_ON_CONTROL_NODES:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
 SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://bbsim.$VOLTHA_NS.svc:50074/v2/bandwidthprofiles/%s}
@@ -276,6 +277,7 @@ ALL_YES_NO="\
     ONLY_ONE \
     VOLTHA_DOWN_ON_TIMEOUT \
     LEGACY_BBSIM_INDEX \
+    SCHEDULE_ON_CONTROL_NODES \
     "
 
 OPT_YES_NO="\
@@ -591,7 +593,7 @@ if [ "$1" == "get" ] && [ "$2" == "voltconfig" ]; then
     exit
 fi
 
-if [ $# -ne 1 ] || ! is_in "$1" "up,down,dump"; then
+if [ $# -ne 1 ] || ! is_in "$1" "up,down,dump,clean"; then
     >&2 echo "What wouild you like to do today:"
     >&2 echo "  up   - bring up voltha"
     >&2 echo "  down - tear down voltha"
@@ -818,7 +820,10 @@ port_forward() {
 
 kill_port_forward() {
     local TAG P_IDS PARENTS KIDS UNKNOWN PP_ID
-    TAG="$1-$NAME"
+    TAG=
+    if [ "$1" != "__ALL__" ]; then
+        TAG="$1-$NAME"
+    fi
     # shellcheck disable=SC2009
     P_IDS="$(ps e -ww -A | grep "_TAG=$TAG" | grep -v grep | awk '{print $1}')"
     if [ -n "$P_IDS" ]; then
@@ -834,7 +839,7 @@ kill_port_forward() {
                 UNKNOWN="$UNKNOWN $P_ID"
             fi
         done
-        (set -x; kill -9 "$PARENTS" "$KIDS" "$UNKNOWN" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        (set -x; eval "kill -9 $PARENTS $KIDS $UNKNOWN" >>"$LOG" 2>&1) >>"$LOG" 2>&1
     fi
 }
 
@@ -1053,6 +1058,14 @@ for O in $ALL_OPTIONS; do
         printf "    %-30s = %s\n" "$O" "$VAL" >> "$LOG"
     fi
 done
+
+# Force remove any existing k8s port-forward processes. This will
+# remove them for all kind clusters.
+# DKB
+if [ "$1" == "clean" ]; then
+    kill_port_forward __ALL__
+    exit
+fi
 
 helm_values() {
     local NAMESPACE=$1; shift
@@ -1377,6 +1390,15 @@ fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
+fi
+
+if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
+    bspin "Untaint control nodes to allow scheduling $LOCK"
+    for MNODE in $(kubectl get node --selector='node-role.kubernetes.io/master' -o json | jq -r '.items[].metadata.name'); do
+        (set -x; kubectl taint node "$MNODE" node-role.kubernetes.io/master:NoSchedule- >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        sspin
+    done
+    espin "$VERIFIED"
 fi
 
 STIME="$(date +%s)"
@@ -1945,7 +1967,9 @@ fi
 compare_versions "$RESOLVED_VOLTHA_CHART_VERSION" 2.4.2
 if [ "$?" == "1" ]; then
     # voltha chart > 2.4.2 uses list of controllers
-    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[0].service=$_HOST --set services.controller[0].port=$_PORT"
+    for NUM in $(seq 0 $((NUM_OF_ONOS-1))); do
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[$NUM].service=onos-onos-classic-$NUM.onos-onos-classic-hs.$INFRA_NS.svc.cluster.local --set services.controller[$NUM].port=6653"
+    done
 else
     # voltha chart <= 2.4.2 uses single controller
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"

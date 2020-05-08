@@ -23,6 +23,6 @@ if [ "$ARCH" == "Darwin" ]; then
 fi
 
 kubectl get --all-namespaces pods,svc && echo "" \
-    &&  kubectl  describe --all-namespaces  pods | grep Image: | grep voltha | sed -e "s/^ *//g" -e "s/: */: /g"  && echo "" \
+    &&  kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g"  && echo "" \
     && echo "DB SIZE: $($SCRIPTPATH/etcd-db-size.sh)" && echo "" \
     && echo "RSS SIZE: $(ps -eo rss,pid,$CMD_KEY | grep /usr/local/bin/etcd | grep -v grep | cut -d\  -f1 | numfmt --to=iec | tr '\n' ' ' )"
