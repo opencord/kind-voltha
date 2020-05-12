@@ -2216,6 +2216,11 @@ if [ "$WITH_BBSIM" == "yes" ]; then
             else
                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
             fi
+            if [ "$WITH_IGMP" == "yes" ]; then
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set igmp=true"
+            else
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set igmp=false"
+            fi
             if is_in "$WITH_KAFKA" "yes,external"; then
                 _HOST=kafka.$INFRA_NS.svc
                 _PORT=9092
