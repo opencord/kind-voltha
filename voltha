@@ -2114,6 +2114,11 @@ if [ "$WITH_BBSIM" == "yes" ]; then
             else
                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
             fi
+            if [ "$WITH_IGMP" == "yes" ]; then
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set igmp=true"
+            else
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set igmp=false"
+            fi
             helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" "$_HELM_DESC BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
