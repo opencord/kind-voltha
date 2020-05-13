@@ -322,6 +322,7 @@ ALL_OPTIONS="\
     VOLTHA_KAFKA_PORT \
     VOLTHA_PPROF_PORT \
     OPENOLT_PPROF_PORT \
+    OFAGENT_PPROF_PORT \
     VK_RELEASE \
     KIND_VERSION \
     VOLTCTL_VERSION \
@@ -431,6 +432,7 @@ if [ "$HAVE X" == " X" ]; then
     VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
     VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
     OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
+    OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
 else
     VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
     ONOS_API_PORT=${ONOS_API_PORT:-$(echo "$VALUES" | cut -d, -f1)}
@@ -441,6 +443,7 @@ else
     VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(echo "$VALUES" | cut -d, -f6)}
     VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f7)}
     OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f8)}
+    OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f9)}
 
     # Some ports were added after the .voltha/ports files was created.
     # Calculate the original DELTA from the VOLTHA_SSH_PORT so that it can
@@ -457,11 +460,14 @@ else
     if [ -z "$OPENOLT_PPROF_PORT" ]; then
       OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
     fi
+    if [ -z "$OFAGENT_PPROF_PORT" ]; then
+      OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
+    fi
 fi
 
 PORTTMP="$(mktemp -u)"
 grep -v "$NAME" .voltha/ports > "$PORTTMP"
-echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT" >> "$PORTTMP"
+echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT,$OFAGENT_PPROF_PORT" >> "$PORTTMP"
 cp "$PORTTMP" .voltha/ports
 rm -f "$PORTTMP"
 
@@ -2175,8 +2181,10 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
       bspin - "Forward PProf ports port $FORWARD"
       kill_port_forward voltha-rw-core-profiler
       kill_port_forward adapter-open-olt-profiler
+      kill_port_forward voltha-of-agent-profiler
       port_forward "$VOLTHA_NS" voltha-rw-core-profiler "$VOLTHA_PPROF_PORT:6060"
       port_forward "$VOLTHA_NS" adapter-open-olt-profiler "$OPENOLT_PPROF_PORT:6060"
+      port_forward "$VOLTHA_NS" voltha-of-agent-profiler "$OFAGENT_PPROF_PORT:6060"
       espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
