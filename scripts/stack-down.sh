@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+WITH_ONOS=no WITH_BBSIM=no WITH_ETCD=no WITH_KAFKA=no WITH_RADIUS=no CONFIG_SADIS==no ADAPTER_NS="$NAME" VOLTHA_NS="$NAME" ./voltha down
