@@ -409,6 +409,14 @@ if [ -n "$NOT_FOUND" ]; then
     exit 1
 fi
 
+# For backward compatibility if $NAME is minimal or full then do not
+# augment the helm install for voltha and adapters with $NAME
+if is_in "$NAME" "minimal,full"; then
+    __SUFFIX=""
+else
+    __SUFFIX="-$NAME"
+fi
+
 TIMEOUT_SECONDS="$(parseDuration "$WAIT_TIMEOUT")"
 
 mkdir -p .voltha
@@ -911,7 +919,7 @@ if [ "$1" == "down" ]; then
             espin "$VERIFIED"
         fi
         EXISTS="$(helm list -q)"
-        EXPECT="voltha"
+        EXPECT="voltha$__SUFFIX"
         if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             EXPECT+=" onos"
         fi
@@ -925,10 +933,10 @@ if [ "$1" == "down" ]; then
             EXPECT+=" bbsim"
         fi
         if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
-            EXPECT+=" open-olt open-onu"
+            EXPECT+=" open-olt$__SUFFIX open-onu$__SUFFIX"
         fi
         if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
-            EXPECT+=" sim"
+            EXPECT+=" sim$__SUFFIX"
         fi
         if [ "$WITH_ETCD" == "external" ]; then
             EXPECT+=" etcd-operator etcd-cluster"
@@ -1067,7 +1075,6 @@ done
 
 # Force remove any existing k8s port-forward processes. This will
 # remove them for all kind clusters.
-# DKB
 if [ "$1" == "clean" ]; then
     kill_port_forward __ALL__
     exit
@@ -1921,7 +1928,7 @@ case $WITH_ETCD in
     yes)
         _HOST="voltha-etcd-cluster-client.$VOLTHA_NS.svc.cluster.local"
         _PORT=2379
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=true --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
         EXPECT="$((EXPECT+$(test "$TYPE" == "minimal" && echo "1" || echo "3")))"
         ;;
     external)
@@ -1941,9 +1948,9 @@ case $WITH_KAFKA in
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false"
         ;;
     yes)
-        _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
+        _HOST="voltha${__SUFFIX}-kafka.$VOLTHA_NS.svc.cluster.local"
         _PORT=9092
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=yes --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
         EXPECT="$((EXPECT+$(test "$TYPE" == "minimal" && echo "2" || echo "4")))"
         ;;
     external)
@@ -1985,7 +1992,7 @@ fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^voltha\$" | wc -l)" -ne 1 ]; then
     espin "$NOT_VERIFIED"
-    helm_install - "$VOLTHA_NS" voltha "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" "$_HELM_DESC VOLTHA Core"
+    helm_install - "$VOLTHA_NS" "voltha$__SUFFIX" "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" "$_HELM_DESC VOLTHA Core"
 else
     espin "$VERIFIED"
 fi
@@ -1994,8 +2001,8 @@ INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 VOLTHA="voltha-ofagent-.* \
     rw-core.* \
     voltha-etcd-cluster-.* \
-    voltha-kafka-.* \
-    voltha-zookeeper-.*"
+    voltha${__SUFFIX}-kafka-.* \
+    voltha${__SUFFIX}-zookeeper-.*"
 wait_for_pods - "$VOLTHA_NS" "$EXPECT" "includes" "Waiting for VOLTHA Core to start" "$NO_LABEL" "$VOLTHA"
 if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
@@ -2020,7 +2027,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
     fi
     if [ "$WITH_KAFKA" == "yes" ]; then
-        _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
+        _HOST=voltha${__SUFFIX}-kafka.$VOLTHA_NS.svc.cluster.local
         _PORT=9092
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
     elif [ "$WITH_KAFKA" == "external" ]; then
@@ -2038,7 +2045,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         bspin - "Verify Simulated Adapters installed"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^sim\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS"  sim "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION" "$_HELM_DESC Simulated Adapters"
+            helm_install - "$ADAPTER_NS"  "sim$__SUFFIX" "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION" "$_HELM_DESC Simulated Adapters"
         else
             espin - "$VERIFIED"
         fi
@@ -2049,7 +2056,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^open-olt\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS" open-olt "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" "$_HELM_DESC OpenOLT Adapter"
+            helm_install - "$ADAPTER_NS" "open-olt$__SUFFIX" "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" "$_HELM_DESC OpenOLT Adapter"
         else
             espin - "$VERIFIED"
         fi
@@ -2059,7 +2066,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "$_HELM_DESC OpenONU Adapter"
+            helm_install - "$ADAPTER_NS"  "open-onu$__SUFFIX" "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "$_HELM_DESC OpenONU Adapter"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="$_ORIGINAL_EXTRA_HELM_INSTALL_ARGS"
         else
             espin - "$VERIFIED"
