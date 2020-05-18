@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2df03cf1_dab63c73",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 2111,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-18T15:05:42Z",
+      "side": 1,
+      "message": "I suspect this needs to be an L.",
+      "range": {
+        "startLine": 2111,
+        "startChar": 23,
+        "endLine": 2111,
+        "endChar": 24
+      },
+      "revId": "fbe9f856e28d61e662a5369489fef3ac207eed23",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
