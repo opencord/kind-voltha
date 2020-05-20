@@ -70,6 +70,30 @@
       "revId": "27cd88b5772cc82bd0ca9fcfa8c31e2c0ace2e8a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "02fafe1d_62dc3785",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 1770,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-05-20T20:57:23Z",
+      "side": 1,
+      "message": "It\u0027s used in VOLTHA-2.3 to maintain backward compatibility. It\u0027s set by default to YES in this file: https://github.com/opencord/kind-voltha/blob/master/releases/voltha-2.3#L21",
+      "parentUuid": "513ab2fd_4381747e",
+      "range": {
+        "startLine": 1770,
+        "startChar": 27,
+        "endLine": 1770,
+        "endChar": 33
+      },
+      "revId": "27cd88b5772cc82bd0ca9fcfa8c31e2c0ace2e8a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
