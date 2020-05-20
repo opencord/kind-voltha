@@ -106,8 +106,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `WITH_PORT_FORWARDS`                    | yes                                                   | Forwards ports for some services from localhost into the K8s cluster |
 | `CONFIG_SADIS`                          | no                                                    | Configure SADIS entries into ONOS. Values: `yes`, `no`, `file`, `url`, `bbsim`, or `external` |
 | `WITH_PPROF`                            | no                                                    | Forwards ports for Golang pprof webserver in rw-core and openolt-adapter (does not automatically include profiled images) |
-| `SADIS_SUBSCRIBERS`                     | http://bbsim.voltha.svc:50074/v2/subscribers/%s       | URL for ONOS to use to query subsriber information if `CONFIG_SADIS` is set to `url` |
-| `SADIS_BANDWIDTH_PROFILES`              | http://bbsim.voltha.svc:50074/v2/bandwidthprofiles/%s | URL for ONOS to use to query bandwidth profiles if `CONFIG_SADIS` is set to `url` |
+| `SADIS_SUBSCRIBERS`                     | http://bbsim0.voltha.svc:50074/v2/subscribers/%s      | URL for ONOS to use to query subsriber information if `CONFIG_SADIS` is set to `url` |
+| `SADIS_BANDWIDTH_PROFILES`              | http://bbsim0.voltha.svc:50074/v2/bandwidthprofiles/%s| URL for ONOS to use to query bandwidth profiles if `CONFIG_SADIS` is set to `url` |
 | `SADIS_CFG`                             | onos-files/onos-sadis-sample.json                     | SADIS Configuration File to push, if CONFIG_SADIS set |
 | `INSTALL_ONOS_APPS`                     | no                                                    | Replaces/installs ONOS OAR files in onos-files/onos-apps |
 | `INSTALL_KUBECTL`                       | yes                                                   | Should a copy of `kubectl` be installed locally? |
@@ -180,7 +180,7 @@ starts VOLTHA with external ONOS,KAFKA,ETCD in the `infra` namespace.
 | `bbsim`          | configure ONOS use use the SADIS servers that are part of BBSIM |
 | `external`       | an additional helm chart will be installed (`bbsim-sadis-server`) and ONOS will be configured to use that service for SADIS queries |
 
-### Controlling volthawith and ONOS cluster
+### Controlling VOLTHA with an ONOS cluster
 
 To provide HA, resilinecy and failover ONOS can be configured in cluster mode.
 A 3 node ONOS deployment for example can be achieved via the `full` configuration:
@@ -230,6 +230,11 @@ Cluster:
  Vcs dirty:     false
  Built:         2020-03-06T16:16:47Z
  OS/Arch:       linux/amd64
+```
+
+If you've run the voltha script with `WITH_BBSIM=y` you can now create a BBSIM OLT with
+```bash
+voltctl device create -t openolt -H bbsim0.voltha.svc:50060
 ```
 
 ## TROUBLESHOOTING
