@@ -46,6 +46,30 @@
       "revId": "27cd88b5772cc82bd0ca9fcfa8c31e2c0ace2e8a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "513ab2fd_4381747e",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 1770,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2020-05-20T16:30:01Z",
+      "side": 1,
+      "message": "I meant I can\u0027t find it in the docs. I see it in the script. Is it necessary?",
+      "parentUuid": "43e5537f_5d928858",
+      "range": {
+        "startLine": 1770,
+        "startChar": 27,
+        "endLine": 1770,
+        "endChar": 33
+      },
+      "revId": "27cd88b5772cc82bd0ca9fcfa8c31e2c0ace2e8a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
