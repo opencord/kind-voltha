@@ -94,6 +94,29 @@
       "revId": "27cd88b5772cc82bd0ca9fcfa8c31e2c0ace2e8a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "be5a6794_92c76518",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 1770,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-05-26T17:11:45Z",
+      "side": 1,
+      "message": "seems to me that this should have been a variable based on the LEGACY value? i.e rather than hard code it here?",
+      "range": {
+        "startLine": 1770,
+        "startChar": 27,
+        "endLine": 1770,
+        "endChar": 33
+      },
+      "revId": "27cd88b5772cc82bd0ca9fcfa8c31e2c0ace2e8a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
