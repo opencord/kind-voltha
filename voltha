@@ -90,8 +90,6 @@ WITH_PPROF=${WITH_PPROF:-no}
 ONLY_ONE=${ONLY_ONE:-yes}
 SCHEDULE_ON_CONTROL_NODES=${SCHEDULE_ON_CONTROL_NODES:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
-SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://bbsim0.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
-SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://bbsim0.$VOLTHA_NS.svc:50074/v2/bandwidthprofiles/%s}
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
@@ -376,6 +374,15 @@ if is_in "$WITH_ONOS" "yes,classic"; then
     # the chart for classic specifies images differently
     EXTRA_TOOLS+=" yq"
 fi
+
+if [ "$LEGACY_BBSIM_INDEX" == "no" ]; then
+    BBSIM_SADIS_SVC="bbsim0"
+else
+    BBSIM_SADIS_SVC="bbsim"
+fi
+
+SADIS_SUBSCRIBERS=${SADIS_SUBSCRIBERS:-http://$BBSIM_SADIS_SVC.$VOLTHA_NS.svc:50074/v2/subscribers/%s}
+SADIS_BANDWIDTH_PROFILES=${SADIS_BANDWIDTH_PROFILES:-http://$BBSIM_SADIS_SVC.$VOLTHA_NS.svc:50074/v2/bandwidthprofiles/%s}
 
 if [ "$HELM_USE_UPGRADE" == "yes" ]; then
     _HELM_DESC="Upgrade/Install"
@@ -1767,7 +1774,7 @@ EOJ
 {
     "sadis": {
         "integration": {
-            "url": "http://bbsim0.$BBSIM_NS.svc.cluster.local:50074/v2/subscribers/%s",
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc.cluster.local:50074/v2/subscribers/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -1777,7 +1784,7 @@ EOJ
     },
     "bandwidthprofile": {
         "integration": {
-            "url": "http://bbsim0.$BBSIM_NS.svc.cluster.local:50074/v2/bandwidthprofiles/%s",
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc.cluster.local:50074/v2/bandwidthprofiles/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
