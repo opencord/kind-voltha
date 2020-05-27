@@ -170,6 +170,44 @@ sadis:
     bbsim_sadis_server:
       sleep_time: 5s
 
+# START EFK Setup to push voltha logs
+# elasticstack config
+# ref: https://github.com/elastic/helm-charts/tree/7.7.0/elasticsearch
+elasticsearch:
+  replicas: 1
+  minimumMasterNodes: 1
+  # set cpu and memory configuration
+  resources:
+    requests:
+      cpu: "400m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  # setup persistence volume.By default persistence volumeclaim is disabled
+  volumeClaimTemplate:
+    accessModes: ["ReadWriteOnce"]
+    resources:
+      requests:
+        storage: 5Gi
+  persistence:
+    enabled: false
+  # setup cluster health status as yellow
+  clusterHealthCheckParams: "wait_for_status=yellow&timeout=1s"
+
+# kibana config
+# ref: https://github.com/elastic/helm-charts/tree/7.7.0/kibana
+kibana:
+  elasticsearchHosts: "http://elasticsearch-master:9200"
+
+# fluentd-elasticsearch config
+# ref: https://github.com/kiwigrid/helm-charts/tree/master/charts/fluentd-elasticsearch
+fluentd-elasticsearch:
+  elasticsearch:
+    # set elasticsearch host
+    hosts: ["elasticsearch-master:9200"]
+    sslVerify: false
+
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
 # pods. These extra labels can be used to integrate with other utilities
