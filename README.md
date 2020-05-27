@@ -44,7 +44,7 @@ OK, if you really don't care how it starts and you just want it started. After
 cloning the repository and making sure you have the prerequisites installed,
 just execute
 ```bash
-DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y  ./voltha up
+DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y ./voltha up
 ```
 and the minimal cluster should start.
 
@@ -56,7 +56,7 @@ so, download the script and run it.
 ```bash
 curl -sSL https://raw.githubusercontent.com/opencord/kind-voltha/master/voltha --output ./voltha
 chmod +x ./voltha
-DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y  ./voltha up
+DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y ./voltha up
 ```
 
 ![Demo @ Speed](./resources/kind-voltha.gif "Demo @ Speed")
@@ -64,10 +64,10 @@ _NOTE: Shown significantly sped up (20x), actual install was about 8 minutes._
 
 ## CONFIGURATION
 The option should be set using environment variables, thus to start VOLTHA
-with the BBSIM POD, RADIUS, and ONOS SADIS configured  you could use the
+with the BBSIM POD, RADIUS, EFK and ONOS SADIS configured  you could use the
 following command:
 ```bash
-WITH_BBSIM=yes WITH_RADIUS=y CONFIG_SADIS=y  voltha up
+WITH_BBSIM=yes WITH_RADIUS=y WITH_EFK=y CONFIG_SADIS=y  voltha up
 ```
 
 To start a specific version of VOLTHA, e.g. 2.3, you could use the following commands:
@@ -89,6 +89,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `BBSIM_NS`                              | `voltha`                                              | K8s namespace into which to deploy BBSIM PODs |
 | `ADAPTER_NS`                            | `voltha`                                              | K8s namespace into which to deploy VOLTHA adapters |
 | `WITH_BBSIM`                            | no                                                    | Should the BBSIM POD be deployed? |
+| `WITH_EFK`                              | no                                                    | Should the EFK setup be deployed? |
 | `NUM_OF_BBSIM`                          | 1                                                     | number of BBSIM POD to start (minimum = 1, maximum = 10) |
 | `NUM_OF_OPENONU`                        | 1                                                     | number of OpenONU POD to start (minimum = 1, maximum = 10) |
 | `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
@@ -123,6 +124,12 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `VOLTHA_ADAPTER_SIM_CHART_VERSION`      | latest                                                | Version of Helm chart to install simulated device adapter |
 | `VOLTHA_BBSIM_CHART`                    | onf/bbsim                                             | Helm chart to use to install bbsim |
 | `VOLTHA_BBSIM_CHART_VERSION`            | latest                                                | Version of Helm chart to install bbim |
+| `ELSTICSEARCH_CHART`                    | elastic/elasticsearch                                 | Helm chart to use to install elasticsearch |
+| `ELASTICSEARCH_CHART_VERSION`           | latest                                                | Version of Helm chart to install elasticsearch |
+| `KIBANA_CHART`                          | elastic/kibana                                        | Helm chart to use to install kibana |
+| `KIBANA_CHART_VERSION`                  | latest                                                | Version of Helm chart to install kibana |
+| `FLUENTD_ELSTICSEARCH_CHART`            | kiwigrid/fluentd-elasticsearch                        | Helm chart to use to install fluentd-elasticsearch |
+| `FLUENTD_ELASTICSEARCH_CHART_VERSION`   | latest                                                | Version of Helm chart to install fluentd-elasticsearch |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART`         | onf/voltha-adapter-openolt                            | Helm chart to use to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION` | latest                                                | Version of Helm chart to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_ONU_CHART`         | onf/voltha-adapter-openonu                            | Helm chart to use to install OpenOnu adapter |
@@ -142,6 +149,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `VOLTHA_SSH_PORT`                       | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA SSH |
 | `VOLTHA_ETCD_PORT`                      | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA etcd |
 | `VOLTHA_KAFKA_PORT`                     | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA Kafka API |
+| `ELASTICSEARCH_PORT`                    | dynamic                                               | (advanced) Override dynamic port selection for port forward for elasticsearch |
+| `KIBANA_PORT`                           | dynamic                                               | (advanced) Override dynamic port selection for port forward for  kibana |
 
 ### Custom Namespaces
 
@@ -179,6 +188,32 @@ starts VOLTHA with external ONOS,KAFKA,ETCD in the `infra` namespace.
 | `url`            | configure ONOS to use SADIS via a URL. The URL used for subscriber information<br> is specified in the variable `SADIS_SUBSCRIBERS` and the URL used for bandwidth<br> profiles is specified in the variable `SADIS_BANDWIDTH_PROFILES` |
 | `bbsim`          | configure ONOS use use the SADIS servers that are part of BBSIM |
 | `external`       | an additional helm chart will be installed (`bbsim-sadis-server`) and ONOS will be configured to use that service for SADIS queries |
+
+### EFK Configuration for accessing Voltha component logs
+The number of pods for EFK is 
++1 elasticsearch,
++1 kibana 
+with `TYPE=minimal` +2 fluentd-elasticsearch if `SCHEDULE_ON_CONTROL_NODES=no` or +3 fluentd-elasticsearch if `SCHEDULE_ON_CONTROL_NODES=yes`.
+with `TYPE=full`+3 fluentd-elasticsearch if `SCHEDULE_ON_CONTROL_NODES=no` or +4 fluentd-elasticsearch if `SCHEDULE_ON_CONTROL_NODES=yes`.
+
+The EFK stack enables to view voltha component logs.Access kibana via browser `http://localhost:5601`.
+
+There are post starts scripts present in efk_scripts directory.
+1.Use elasticsearch_index_template.sh to add template to adjust number of shards/replicas
+2.Use curator.sh to delete older indices from EFK. 
+
+The EFK charts are deployed from following helm repos
+helm repo add elastic  https://helm.elastic.co
+helm repo add kiwigrid https://kiwigrid.github.io
+
+[elasticsearch](https://github.com/elastic/helm-charts/tree/7.7.0/elasticsearch)
+[kibana](https://github.com/elastic/helm-charts/tree/7.7.0/elasticsearch)
+[fluentd-elasticsearch](https://github.com/kiwigrid/helm-charts/tree/master/charts/fluentd-elasticsearch)
+
+Note: By default the security features and persistance volumeclaim is not enabled.The security features can be enabled via X-Pack plugin and Role Based Access Control (RBAC) in Elasticsearch by adding the required settings in yaml file.To enable security features ref following links
+[EFK-Setup-With-Kind-Voltha](https://docs.google.com/document/d/1KF1HhE-PN-VY4JN2bqKmQBrZghFC5HQM_s0mC0slapA/edit#)
+[elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/elasticsearch-security.html)
+[kibana](https://www.elastic.co/guide/en/elasticsearch/reference/7.7/rest-apis.html)
 
 ### Controlling VOLTHA with an ONOS cluster
 
