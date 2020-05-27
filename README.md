@@ -44,7 +44,7 @@ OK, if you really don't care how it starts and you just want it started. After
 cloning the repository and making sure you have the prerequisites installed,
 just execute
 ```bash
-DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y  ./voltha up
+DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y WITH_LOGGING=y  ./voltha up
 ```
 and the minimal cluster should start.
 
@@ -56,7 +56,7 @@ so, download the script and run it.
 ```bash
 curl -sSL https://raw.githubusercontent.com/opencord/kind-voltha/master/voltha --output ./voltha
 chmod +x ./voltha
-DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y  ./voltha up
+DEPLOY_K8S=y WITH_BBSIM=y WITH_RADIUS=y CONFIG_SADIS=y WITH_LOGGING=y ./voltha up
 ```
 
 ![Demo @ Speed](./resources/kind-voltha.gif "Demo @ Speed")
@@ -64,10 +64,10 @@ _NOTE: Shown significantly sped up (20x), actual install was about 8 minutes._
 
 ## CONFIGURATION
 The option should be set using environment variables, thus to start VOLTHA
-with the BBSIM POD, RADIUS, and ONOS SADIS configured  you could use the
+with the BBSIM POD, RADIUS, LOGGING and ONOS SADIS configured  you could use the
 following command:
 ```bash
-WITH_BBSIM=yes WITH_RADIUS=y CONFIG_SADIS=y  voltha up
+WITH_BBSIM=yes WITH_RADIUS=y WITH_LOGGING=y CONFIG_SADIS=y  voltha up
 ```
 
 To start a specific version of VOLTHA, e.g. 2.3, you could use the following commands:
@@ -89,6 +89,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `BBSIM_NS`                              | `voltha`                                              | K8s namespace into which to deploy BBSIM PODs |
 | `ADAPTER_NS`                            | `voltha`                                              | K8s namespace into which to deploy VOLTHA adapters |
 | `WITH_BBSIM`                            | no                                                    | Should the BBSIM POD be deployed? |
+| `WITH_LOGGING`                          | no                                                    | Should the LOGGING setup be deployed? |
 | `NUM_OF_BBSIM`                          | 1                                                     | number of BBSIM POD to start (minimum = 1, maximum = 10) |
 | `NUM_OF_OPENONU`                        | 1                                                     | number of OpenONU POD to start (minimum = 1, maximum = 10) |
 | `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
@@ -123,6 +124,10 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `VOLTHA_ADAPTER_SIM_CHART_VERSION`      | latest                                                | Version of Helm chart to install simulated device adapter |
 | `VOLTHA_BBSIM_CHART`                    | onf/bbsim                                             | Helm chart to use to install bbsim |
 | `VOLTHA_BBSIM_CHART_VERSION`            | latest                                                | Version of Helm chart to install bbim |
+| `VOLTHA_LOGGING_CHART`                  | onf/voltha-logging                                    | Helm chart to use to install voltha-logging |
+| `VOLTHA_LOGGING_CHART_VERSION`          | latest                                                | Version of Helm chart to install voltha-logging |
+| `VOLTHA_CURATOR_CHART`                  | onf/voltha-curator                                    | Helm chart to use to install voltha-curator |
+| `VOLTHA_CURATOR_CHART_VERSION`          | latest                                                | Version of Helm chart to install voltha-curator |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART`         | onf/voltha-adapter-openolt                            | Helm chart to use to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION` | latest                                                | Version of Helm chart to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_ONU_CHART`         | onf/voltha-adapter-openonu                            | Helm chart to use to install OpenOnu adapter |
@@ -142,6 +147,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `VOLTHA_SSH_PORT`                       | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA SSH |
 | `VOLTHA_ETCD_PORT`                      | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA etcd |
 | `VOLTHA_KAFKA_PORT`                     | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA Kafka API |
+| `VOLTHA_ELASTICSEARCH_PORT`             | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA elasticsearch |
+| `VOLTHA_KIBANA_PORT`                    | dynamic                                               | (advanced) Override dynamic port selection for port forward for VOLTHA kibana |
 
 ### Custom Namespaces
 

@@ -107,6 +107,20 @@ etcd:
       value: "5s"
     - name: ETCD_DEBUG
       value: "false"
+#  logging:
+#    repository: voltha/voltha-logging
+#    tag: 1.0.0
+#  curator:
+#    repository: voltha/voltha-curator
+#    tag: 1.0.0
+deployments:
+  etcdOperator: true
+  backupOperator: true
+  restoreOperator: true
+
+voltha-etcd-cluster:
+  clusterSize: 3
+  autoCompactionRetention: 1
 
 kafka:
   zookeeper:
