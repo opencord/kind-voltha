@@ -79,6 +79,15 @@ images:
 #    tag: 2.1.1
 # START_OPENONU_ADAPTER_GO - Uncomment the following block to use the
 # Go implementation of the openonu-adapter
+# START LOGGING and CURATOR
+#  logging:
+#    repository: voltha/voltha-logging
+#    tag: 1.0.0
+#  curator:
+#    repository: voltha/voltha-curator
+#    tag: 1.0.0
+# START_OPENONU_ADAPTER_GO - Uncomment the following block to use the Go implementation
+# of the openonu-adapter
 #  adapter_open_onu_go:
 #    repository: voltha-openonu-adapter-go
 #    tag: master
