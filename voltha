@@ -72,6 +72,7 @@ BBSIM_NS=${BBSIM_NS:-voltha}
 ADAPTER_NS=${ADAPTER_NS:-voltha}
 WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
+WITH_EFK=${WITH_EFK:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_EAPOL=${WITH_EAPOL:-yes}
 WITH_DHCP=${WITH_DHCP:-yes}
@@ -106,6 +107,14 @@ VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
 VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
 VOLTHA_BBSIM_CHART=${VOLTHA_BBSIM_CHART:-onf/bbsim}
 VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-latest}
+ELASTICSEARCH_CHART=${ELASTICSEARCH_CHART:-elastic/elasticsearch}
+ELASTICSEARCH_CHART_VERSION=${ELASTICSEARCH_CHART_VERSION:-latest}
+KIBANA_CHART=${KIBANA_CHART:-elastic/kibana}
+KIBANA_CHART_VERSION=${KIBANA_CHART_VERSION:-latest}
+FLUENTD_ELASTICSEARCH_CHART=${FLUENTD_ELASTICSEARCH_CHART:-kiwigrid/fluentd-elasticsearch}
+FLUENTD_ELASTICSEARCH_CHART_VERSION=${FLUENTD_ELASTICSEARCH_CHART_VERSION:-latest}
+VOLTHA_CURATOR_CHART=${VOLTHA_CURATOR_CHART:-onf/voltha-curator}
+VOLTHA_CURATOR_CHART_VERSION=${VOLTHA_CURATOR_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
 VOLTHA_ADAPTER_SIM_CHART_VERSION=${VOLTHA_ADAPTER_SIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
@@ -259,6 +268,7 @@ ALL_YES_NO="\
     ENABLE_ONOS_EXTRANEOUS_RULES \
     WITH_TIMINGS \
     WITH_BBSIM \
+    WITH_EFK \
     WITH_EAPOL \
     WITH_DHCP \
     WITH_IGMP \
@@ -304,6 +314,14 @@ ALL_OPTIONS="\
     BBSIM_SADIS_SERVER_CHART \
     BBSIM_SADIS_SERVER_CHART_VERSION \
     NUM_OF_BBSIM \
+    ELASTICSEARCH_CHART \
+    ELASTICSEARCH_CHART_VERSION \
+    KIBANA_CHART \
+    KIBANA_CHART_VERSION \
+    FLUENTD_ELASTICSEARCH_CHART \
+    FLUENTD_ELASTICSEARCH_CHART_VERSION \
+    VOLTHA_CURATOR_CHART \
+    VOLTHA_CURATOR_CHART_VERSION \
     NUM_OF_OPENONU \
     VOLTHA_ADAPTER_SIM_CHART \
     VOLTHA_ADAPTER_SIM_CHART_VERSION \
@@ -327,6 +345,8 @@ ALL_OPTIONS="\
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
     VOLTHA_ETCD_PORT \
+    ELASTICSEARCH_PORT \
+    KIBANA_PORT \
     VOLTHA_KAFKA_PORT \
     VOLTHA_PPROF_PORT \
     OPENOLT_PPROF_PORT \
@@ -441,6 +461,8 @@ if [ "$HAVE X" == " X" ]; then
     VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
     OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
     OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
+    ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$((92 + DELTA))00}
+    KIBANA_PORT=${KIBANA_PORT:-$((56 + DELTA))01}
 else
     VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
     ONOS_API_PORT=${ONOS_API_PORT:-$(echo "$VALUES" | cut -d, -f1)}
@@ -452,6 +474,8 @@ else
     VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f7)}
     OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f8)}
     OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f9)}
+    ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$(echo "$VALUES" | cut -d, -f10)}
+    KIBANA_PORT=${KIBANA_PORT:-$(echo "$VALUES" | cut -d, -f11)}
 
     # Some ports were added after the .voltha/ports files was created.
     # Calculate the original DELTA from the VOLTHA_SSH_PORT so that it can
@@ -475,7 +499,7 @@ fi
 
 PORTTMP="$(mktemp -u)"
 grep -v "$NAME" .voltha/ports > "$PORTTMP"
-echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT,$OFAGENT_PPROF_PORT" >> "$PORTTMP"
+echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT,$OFAGENT_PPROF_PORT,$ELASTICSEARCH_PORT,$KIBANA_PORT" >> "$PORTTMP"
 cp "$PORTTMP" .voltha/ports
 rm -f "$PORTTMP"
 
@@ -957,6 +981,9 @@ if [ "$1" == "down" ]; then
         if [ "$WITH_BBSIM" == "yes" ]; then
             EXPECT+=" bbsim"
         fi
+        if [ "$WITH_EFK" == "yes" ]; then
+            EXPECT+=" elasticsearch kibana fluentd-elasticsearch"
+        fi
         if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
             EXPECT+=" open-olt open-onu"
         fi
@@ -984,11 +1011,15 @@ if [ "$1" == "down" ]; then
             INFRA_PODS=
             ADAPT_PODS=
             SIM_PODS=
+            EFK_PODS=
             if [ "$WITH_RADIUS" == "yes" ]; then
                 PODS+=" radius.*"
             fi
             if [ "$WITH_BBSIM" == "yes" ]; then
                 SIM_PODS+=" bbsim.*"
+            fi
+            if [ "$WITH_EFK" == "yes" ]; then
+                EFK_PODS+=" kibana-* elasticsearch-* fluentd-elasticsearch-*"
             fi
             if [ "$WITH_OPEN_ADAPTERS" ] || [ "$WITH_SIM_ADAPTERS" ]; then
                 ADAPT_PODS+=" adapter-*"
@@ -1010,6 +1041,9 @@ if [ "$1" == "down" ]; then
             fi
             if [ -n "$ADAPT_PODS" ]; then
                 wait_for_pods "$ADAPTER_NS" 0 "not" "Waiting for adapter  PODs to terminate" "$NO_LABEL" "$ADAPT_PODS"
+            fi
+            if [ -n "$EFK_PODS" ]; then
+                wait_for_pods "$VOLTHA_NS" 0 "not" "Waiting for efk PODs to terminate" "$NO_LABEL" "$EFK_PODS"
             fi
             wait_for_pods "$VOLTHA_NS" 0 "not" "Waiting for VOLTHA PODs to terminate" "$NO_LABEL" "$PODS"
         fi
@@ -1084,7 +1118,7 @@ fi
 LOG="install-$NAME.log"
 PFLOG="port-forward-$NAME.log"
 date > "$LOG"
-echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT" >> "$LOG"
+echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$ELASTICSEARCH_PORT,$KIBANA_PORT" >> "$LOG"
 
 # Output install options to log
 echo "OPTIONS" >> "$LOG"
@@ -1500,6 +1534,12 @@ if [ "$COUNT" -ne 1 ]; then
     espin - "$VERIFIED"
     bspin - "Add Custom BBSIM SADIS Server repository to Helm"
     (set -x; helm repo add bbsim-sadis https://ciena.github.io/bbsim-sadis-server/charts >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
+    bspin - "Add Logging Elastic repository to Helm"
+    (set -x; helm repo add elastic https://helm.elastic.co  >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
+    bspin - "Add Custom Logging Fluentd-ElasticSearch repository to Helm"
+    (set -x; helm repo add kiwigrid https://kiwigrid.github.io >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
     bspin - "Update Helm repository cache"
     (set -x; helm repo update >>"$LOG" 2>&1) >>"$LOG" 2>&1
@@ -2142,6 +2182,26 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     fi
 fi
 
+if [ "$WITH_EFK" == "yes" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify EFK $PLUG"
+    #EXPECT="$(yq r - "elasticsearch.replicas" <"$NAME-values.yaml")"
+    bspin - "Verify EFK Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^elasticsearch\$" | wc -l)" -ne 1 ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^kibana\$" | wc -l)" -ne 1 ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^fluentd-elasticsearch\$" | wc -l)" -ne 1 ]; then
+          espin - "$NOT_VERIFIED"
+          helm_install - "$VOLTHA_NS" elasticsearch "$ELASTICSEARCH_CHART" "$ELASTICSEARCH_CHART_VERSION" elasticsearch "$_HELM_DESC elasticsearch"
+          helm_install - "$VOLTHA_NS" kibana  "$KIBANA_CHART" "$KIBANA_CHART_VERSION" kibana "$_HELM_DESC kibana"
+          helm_install - "$VOLTHA_NS" fluentd  "$FLUENTD_ELASTICSEARCH_CHART" "$FLUENTD_ELASTICSEARCH_CHART_VERSION" fluentd-elasticsearch "$_HELM_DESC fluentd-elasticsearch"
+    else
+            espin - "$VERIFIED"
+    fi
+    wait_for_pods - "$VOLTHA_NS" "$EXPECT" "includes" "Waiting for efk to start" "$NO_LABEL" "fluentd-elasticsearch-* elasticsearch-* kibana-*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
 if [ "$CONFIG_SADIS" == "external" ]; then
     STIME="$(date +%s)"
     echo -e "Verify BBSIM SADIS Service $PLUG"
@@ -2201,6 +2261,15 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
         bspin - "Forward VOLTHA Kafka port $FORWARD"
         kill_port_forward "kafka"
         port_forward "$INFRA_NS" kafka "$VOLTHA_KAFKA_PORT:9092"
+        espin - "$VERIFIED"
+    fi
+    if [ "$WITH_EFK" == "yes" ]; then
+        _NS="$(test "$WITH_EFK" == "yes" && echo "$VOLTHA_NS" )"
+        bspin - "Forward EFK  port $FORWARD"
+        kill_port_forward elasticsearch-master
+        kill_port_forward kibana-kibana
+        port_forward "$_NS" elasticsearch-master "$ELASTICSEARCH_PORT:9200"
+        port_forward "$_NS" kibana-kibana "$KIBANA_PORT:5601"
         espin - "$VERIFIED"
     fi
     if [ "$WITH_PPROF" == "yes" ]; then
