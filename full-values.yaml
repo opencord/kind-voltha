@@ -81,7 +81,12 @@ images:
 #  rw_core:
 #    repository: voltha/voltha-rw-core
 #    tag: 2.1.1
-
+#  logging:
+#    repository: voltha/voltha-logging
+#    tag: 1.0.0
+#  curator:
+#    repository: voltha/voltha-curator
+#    tag: 1.0.0
 deployments:
   etcdOperator: true
   backupOperator: true
