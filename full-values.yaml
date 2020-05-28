@@ -24,6 +24,9 @@
 defaults:
   image_tag: master
 
+private_etcd_cluster: false
+private_kafka_cluster: false
+
 # OFAGENT IMPLEMENTATION
 # ----------------------
 # There are currently two implementations of OFAGENT: the original written in
@@ -69,8 +72,8 @@ images:
 #  bbsim:
 #    repository: voltha/bbsim
 #    tag: master
-# START_OFAGENT_GO - Comment the following block to use the Python implementation
-# of the ofagent
+# START_OFAGENT_GO - Comment the following block to use the
+# Python implementation of the ofagent
 #  ofagent:
 #    repository: voltha/voltha-ofagent-go
 #    tag: master
@@ -82,20 +85,46 @@ images:
 #    repository: voltha/voltha-rw-core
 #    tag: 2.1.1
 
-deployments:
-  etcdOperator: true
-  backupOperator: true
-  restoreOperator: true
-
-voltha-etcd-cluster:
-  clusterSize: 3
-  autoCompactionRetention: 1
+etcd:
+  replicas: 3
+  extraEnv:
+    - name: ETCD_AUTO_COMPACTION_RETENTION
+      value: "1"
+    - name: ETCD_SNAPSHOT_COUNT
+      value: "100000"
+    - name: ETCD_HEARTBEAT_INTERVAL
+      value: "100"
+    - name: ETCD_ELECTION_TIMEOUT
+      value: "1000"
+    - name: ETCD_MAX_SNAPSHOTS
+      value: "5"
+    - name: ETCD_QUOTA_BACKEND_BYTES
+      value: "0"
+    - name: ETCD_MAX_REQUEST_BYTES
+      value: "1572864"
+    - name: ETCD_GRPC_KEEPALIVE_MIN_TIME
+      value: "5s"
+    - name: ETCD_GRPC_KEEPALIVE_TIMEOUT
+      value: "5s"
+    - name: ETCD_DEBUG
+      value: "false"
 
 kafka:
-  configurationOverrides:
-    "default.replication.factor": 3
-    "offsets.topic.replication.factor": 3
+  zookeeper:
+    replicaCount: 3
+    persistence:
+      enabled: false
   replicas: 3
+  persistence:
+    enabled: false
+  envOverrides:
+    KAFKA_LOG4J_ROOT_LOGLEVEL: ERROR
+    KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
+    # yamllint disable-line rule:line-length
+    KAFKA_LOG4J.LOGGERS: "kafka.zookeeper=ERROR,state.change.logger=ERROR,kafka=ERROR,kafka.controller=ERROR"
+    KAFKA_LOG_RETENTION_HOURS: 1
+    KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
 onos_env:
   - name: POD_IP
