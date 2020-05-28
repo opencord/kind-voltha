@@ -25,6 +25,9 @@ defaults:
   image_tag: master
   image_pullPolicy: Always
 
+private_etcd_cluster: false
+private_kafka_cluster: false
+
 # OFAGENT IMPLEMENTATION
 # ----------------------
 # There are currently two implementations of OFAGENT: the original written in
@@ -100,14 +103,29 @@ images:
 #    tag: master
 # END_OPENONU_ADAPTER_GO
 
-deployments:
-  etcdOperator: true
-  backupOperator: false
-  restoreOperator: false
-
-voltha-etcd-cluster:
-  clusterSize: 1
-  autoCompactionRetention: 1
+etcd:
+  replicas: 1
+  extraEnv:
+    - name: ETCD_AUTO_COMPACTION_RETENTION
+      value: "1"
+    - name: ETCD_SNAPSHOT_COUNT
+      value: "100000"
+    - name: ETCD_HEARTBEAT_INTERVAL
+      value: "100"
+    - name: ETCD_ELECTION_TIMEOUT
+      value: "1000"
+    - name: ETCD_MAX_SNAPSHOTS
+      value: "5"
+    - name: ETCD_QUOTA_BACKEND_BYTES
+      value: "0"
+    - name: ETCD_MAX_REQUEST_BYTES
+      value: "1572864"
+    - name: ETCD_GRPC_KEEPALIVE_MIN_TIME
+      value: "5s"
+    - name: ETCD_GRPC_KEEPALIVE_TIMEOUT
+      value: "5s"
+    - name: ETCD_DEBUG
+      value: "false"
 
 kafka:
   configurationOverrides:
