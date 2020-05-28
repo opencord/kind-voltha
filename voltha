@@ -120,6 +120,8 @@ KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=0.15.3}
 BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-server}
 BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
+ETCD_CHART=${ETCD_CHART:-incubator/etcd}
+ETCD_CHART_VERSION=${ETCD_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
@@ -388,15 +390,6 @@ if [ "$HELM_USE_UPGRADE" == "yes" ]; then
     _HELM_DESC="Upgrade/Install"
 else
     _HELM_DESC="Install"
-fi
-
-ETCD_PREFIX=
-KAFKA_PREFIX=
-if [ "$WITH_ETCD" == "yes" ]; then
-    ETCD_PREFIX="voltha-"
-fi
-if [ "$WITH_KAFKA" == "yes" ]; then
-    KAFKA_PREFIX="voltha-"
 fi
 
 # Check for prerequiste tools
@@ -885,21 +878,22 @@ if [ "$1" == "down" ]; then
     fi
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
     kill_port_forward voltha-api
-    if [ "$WITH_ETCD" == "yes" ] || [ "$WITH_ETCD" == "external" ]; then
-        sspin "Remove port-forwards: ${ETCD_PREFIX}etcd-$NAME$CEOL"
-        kill_port_forward "${ETCD_PREFIX}etcd-cluster-client"
+    if is_in "$WITH_ETCD" "yes,external"; then
+        sspin "Remove port-forwards: etcd-$NAME$CEOL"
+        kill_port_forward "etcd"
     fi
-    if [ "$WITH_KAFKA" == "yes" ] || [ "$WITH_KAFKA" == "external" ]; then
-        sspin "Remove port-forwards: ${KAFKA_PREFIX}kafka-$NAME$CEOL"
-        kill_port_forward "${KAFKA_PREFIX}kafka"
+    if is_in "$WITH_KAFKA" "yes,external"; then
+        sspin "Remove port-forwards: kafka-$NAME$CEOL"
+        kill_port_forward "kafka"
     fi
 
     if [ "$WITH_PPROF" == "yes" ]; then
-      sspin "Remove port-forwards: *-profiler$CEOL"
-      kill_port_forward voltha-rw-core-profiler
-      if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
-        kill_port_forward adapter-open-olt-profiler
-      fi
+        sspin "Remove port-forwards: *-profiler$CEOL"
+        kill_port_forward voltha-rw-core-profiler
+        kill_port_forward voltha-of-agent-profiler
+        if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
+            kill_port_forward adapter-open-olt-profiler
+        fi
     fi
 
     espin "$VERIFIED Remove port-forwards$CEOL"
@@ -937,12 +931,10 @@ if [ "$1" == "down" ]; then
         if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
             EXPECT+=" sim"
         fi
-        if [ "$WITH_ETCD" == "external" ]; then
-            EXPECT+=" etcd-operator etcd-cluster"
-        elif [ "$WITH_ETCD" == "yes" ]; then
-            EXPECT+=" etcd-operator"
+        if is_in "$WITH_ETCD" "yes,external"; then
+            EXPECT+=" etcd"
         fi
-        if [ "$WITH_KAFKA" == "external" ]; then
+        if is_in "$WITH_KAFKA" "yes,external"; then
             EXPECT+=" kafka"
         fi
         bspin "Remove Helm Deployments"
@@ -956,7 +948,7 @@ if [ "$1" == "down" ]; then
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
         if [ "$WAIT_ON_DOWN" == "yes" ]; then
-            PODS="voltha-kafka.* voltha-ofagent.* voltha-rw-core.* voltha-etcd.*"
+            PODS="kafka.* voltha-ofagent.* voltha-rw-core.* etcd.*"
             INFRA_PODS=
             ADAPT_PODS=
             SIM_PODS=
@@ -972,12 +964,10 @@ if [ "$1" == "down" ]; then
             if is_in "$WITH_ONOS" "yes,legacy,classic"; then
                 INFRA_PODS+=" onos-.*"
             fi
-            if [ "$WITH_ETCD" == "external" ]; then
-                INFRA_PODS+=" etcd-operator.* etcd-cluster.*"
-            elif [ "$WITH_ETCD" == "yes" ]; then
-                PODS+=" etcd-operator.*"
+            if is_in "$WITH_ETCD" "yes,external"; then
+                INFRA_PODS+=" etcd.*"
             fi
-            if [ "$WITH_KAFKA" == "external" ]; then
+            if is_in "$WITH_KAFKA" "yes,external"; then
                 INFRA_PODS+=" kafka.*"
             fi
             if [ -n "$SIM_PODS" ]; then
@@ -1074,7 +1064,6 @@ done
 
 # Force remove any existing k8s port-forward processes. This will
 # remove them for all kind clusters.
-# DKB
 if [ "$1" == "clean" ]; then
     kill_port_forward __ALL__
     exit
@@ -1109,7 +1098,7 @@ helm_values() {
 }
 
 helm_install() {
-    local INDENT NOW
+    local INDENT NOW VALUES_FILE PPROF_ARG
     if [ "$1" == "-" ]; then
         INDENT=$1; shift
     fi
@@ -1117,6 +1106,7 @@ helm_install() {
     local INAME=$1; shift
     local CHART=$1; shift
     local CHART_VERSION=$1; shift
+    local FILTER=$1; shift
     local MESSAGE=$*
 
     if [ "$CHART_VERSION X" != " X" ] && [ "$CHART_VERSION" != "latest" ]; then
@@ -1141,13 +1131,24 @@ helm_install() {
         _HELM_COMMAND="install"
         _HELM_ARGS="--name $INAME"
     fi
-    CMD=("helm $_HELM_COMMAND -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $CHART")
+
+    VALUES_FILE="$(mktemp)"
+    if [ "$FILTER" == "-" ]; then
+        cp "$NAME-values.yaml" "$VALUES_FILE"
+    else
+        yq r "$NAME-values.yaml" "$FILTER" >"$VALUES_FILE"
+    fi
+    if [ "$WITH_PPROF" == "yes" ]; then
+        PPROF_ARG="--set profiler.enabled=true"
+    fi
+    CMD=("helm $_HELM_COMMAND -f $VALUES_FILE $CHART_ARGS $PPROF_ARG $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $CHART")
     (set -x; ${CMD[*]} >>"$LOG" 2>&1) >>"$LOG" 2>&1
     SUCCESS=$?
     while [ "$SUCCESS" -ne 0 ]; do
         NOW="$(date +%s)"
         if [ "$((NOW - WAIT_START))" -gt "$TIMEOUT_SECONDS" ]; then
             espin "$THEX"
+            rm -f "$VALUES_FILE"
             doTimeout "waiting for helm install $CHART"
         fi
         sspin "$INDENT"
@@ -1162,6 +1163,7 @@ helm_install() {
         fi
         sleep .15
     done
+    rm -f "$VALUES_FILE"
     espin "$INDENT" "$VERIFIED"
 }
 
@@ -1592,37 +1594,13 @@ if [ "$JUST_K8S" == "yes" ]; then
     exit 0
 fi
 
-if [ "$WITH_ETCD" != "yes" ] && [ "$WITH_ETCD" != "external" ]; then
-    bspin "Skip ETCD Operator Deployment"
-    espin $NO_ENTRY
-else
-    STIME="$(date +%s)"
-    NS=$VOLTHA_NS
-    if [ "$WITH_ETCD" == "external" ]; then
-        NS=$INFRA_NS
-    fi
-    bspin "Verify ETCD Operator $OLD_KEY"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$NS" "^etcd-operator\$" | wc -l)" -ne 1 ]; then
-        espin "$NOT_VERIFIED"
-        helm_install - "$NS" etcd-operator stable/etcd-operator latest "$_HELM_DESC ETCD Operator"
-    else
-        espin "$VERIFIED"
-    fi
-    EXPECT="$(test "$TYPE" == "minimal" && echo "1" || echo "3")"
-    wait_for_pods - "$NS" "$EXPECT" "includes" "Waiting for ETCD Operator to start" "$NO_LABEL" "etcd-operator-.*"
-    if [ "$WITH_TIMINGS" == "yes" ]; then
-        NOW="$(date +%s)"
-        printtime $((NOW - STIME))
-    fi
-fi
-
 STIME="$(date +%s)"
 if is_in "$WITH_ONOS" "yes,legacy,classic"; then
     if is_in "$WITH_ONOS" "legacy"; then
         bspin "Verify ONOS LEGACY installed $BIRD"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
             espin "$NOT_VERIFIED"
-            INTERNAL_EXTRA_HELM_INSTALL_ARGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" "$_HELM_DESC ONOS LEGACY"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" - "$_HELM_DESC ONOS LEGACY"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin "$VERIFIED"
@@ -1659,7 +1637,7 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             fi
 
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set image.pullPolicy=$_ONOS_PULL_POLICY,image.repository=$_ONOS_REPO,image.tag=$_ONOS_TAG,replicas=$NUM_OF_ONOS,atomix.replicas=$NUM_OF_ATOMIX" \
-                helm_install - "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION" "$_HELM_DESC ONOS CLASSIC"
+                helm_install - "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION" - "$_HELM_DESC ONOS CLASSIC"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin "$VERIFIED"
@@ -1715,13 +1693,13 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
 
     if [ "$WITH_KAFKA" != "no" ]; then
         check_onos_app_active org.opencord.kafka
-        _HOST=voltha-kafka.$INFRA_NS.svc.cluster.local
+        _HOST=voltha-kafka.$INFRA_NS.svc
         _PORT=9092
         if [ "$WITH_KAFKA" == "yes" ]; then
-            _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
+            _HOST=voltha-kafka.$VOLTHA_NS.svc
             _PORT=9092
         elif [ "$WITH_KAFKA" == "external" ]; then
-            _HOST=kafka.$INFRA_NS.svc.cluster.local
+            _HOST=kafka.$INFRA_NS.svc
             _PORT=9092
         else
             _HOST="$(echo "$WITH_KAFKA" | cut -d: -f1)"
@@ -1774,7 +1752,7 @@ EOJ
 {
     "sadis": {
         "integration": {
-            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc.cluster.local:50074/v2/subscribers/%s",
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:50074/v2/subscribers/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -1784,7 +1762,7 @@ EOJ
     },
     "bandwidthprofile": {
         "integration": {
-            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc.cluster.local:50074/v2/bandwidthprofiles/%s",
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:50074/v2/bandwidthprofiles/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -1860,25 +1838,25 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $((NOW - STIME))
 fi
 
-if [ "$WITH_ETCD" == "external" ]; then
+if is_in "$WITH_ETCD" "yes,external"; then
     STIME="$(date +%s)"
     bspin "Verify external ETCD cluster $OLD_KEY"
-    EXPECT="$(test "$TYPE" == "minimal" && echo "1" || echo "3")"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^etcd-cluster\$" | wc -l)" -ne 1 ]; then
+    EXPECT="$(yq r "$NAME-values.yaml" "etcd.replicas")"
+#    DKB
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^etcd\$" | wc -l)" -ne 1 ]; then
         espin "$NOT_VERIFIED"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+="--set clusterName=etcd-cluster --set autoCompactionRetention=1 --set clusterSize=$EXPECT"
-        helm_install - "$INFRA_NS" etcd-cluster onf/voltha-etcd-cluster latest "$_HELM_DESC external ETCD cluster"
+        helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
     else
         espin "$VERIFIED"
     fi
-    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for ETCD cluster to start" "$NO_LABEL" "etcd-cluster-.*"
+    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for ETCD cluster to start" "$NO_LABEL" "etcd-.*"
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
         printtime $((NOW - STIME))
     fi
 fi
 
-if [ "$WITH_KAFKA" == "external" ]; then
+if is_in "$WITH_KAFKA" "yes,external"; then
     _TMP="$(mktemp -u)"
     _COUNT="$(test "$TYPE" == "minimal" && echo "1" || echo "3")"
     cat << EOC > "$_TMP"
@@ -1901,7 +1879,7 @@ EOC
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^kafka\$" | wc -l)" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
-        helm_install - "$INFRA_NS" kafka "$KAFKA_CHART" "$KAFKA_CHART_VERSION" "$_HELM_DESC external Kafka cluster"
+        helm_install - "$INFRA_NS" kafka "$KAFKA_CHART" "$KAFKA_CHART_VERSION" kafka "$_HELM_DESC external Kafka cluster"
     else
         espin "$VERIFIED"
     fi
@@ -1923,54 +1901,40 @@ else
 fi
 case $WITH_ETCD in
     no)
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false"
         ;;
-    yes)
-        _HOST="voltha-etcd-cluster-client.$VOLTHA_NS.svc.cluster.local"
+    yes|external)
+        _HOST="etcd.$INFRA_NS.svc"
         _PORT=2379
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
-        EXPECT="$((EXPECT+$(test "$TYPE" == "minimal" && echo "1" || echo "3")))"
-        ;;
-    external)
-        _HOST="etcd-cluster-client.$INFRA_NS.svc.cluster.local"
-        _PORT=2379
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
         ;;
     *)
         _HOST="$(echo "$WITH_ETCD" | cut -d: -f1)"
         _PORT="$(echo "$WITH_ETCD" | cut -s -d: -f2)"
         _PORT=${_PORT:-2379}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_etcd_cluster=false --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
         ;;
 esac
 case $WITH_KAFKA in
     no)
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false"
         ;;
-    yes)
-        _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
+    yes|external)
+        _HOST=kafka.$INFRA_NS.svc
         _PORT=9092
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
-        EXPECT="$((EXPECT+$(test "$TYPE" == "minimal" && echo "2" || echo "4")))"
-        ;;
-    external)
-        _HOST=kafka.$INFRA_NS.svc.cluster.local
-        _PORT=9092
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
         ;;
     *)
         _HOST="$(echo "$WITH_KAFKA" | cut -d: -f1)"
         _PORT="$(echo "$WITH_KAFKA" | cut -s -d: -f2)"
         _PORT=${_PORT:-9092}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set private_kafka_cluster=false --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
         ;;
 esac
 
 if is_in "$WITH_ONOS" "legacy"; then
-    _HOST=onos-openflow.$INFRA_NS.svc.cluster.local
+    _HOST=onos-openflow.$INFRA_NS.svc
     _PORT=6653
 elif is_in "$WITH_ONOS" "yes,classic"; then
-    _HOST=onos-onos-classic-hs.$INFRA_NS.svc.cluster.local
+    _HOST=onos-onos-classic-hs.$INFRA_NS.svc
     _PORT=6653
 elif [ "$WITH_ONOS" != "no" ]; then
     _HOST="$(echo "$WITH_ONOS" | cut -d: -f1)"
@@ -1982,7 +1946,7 @@ compare_versions "$RESOLVED_VOLTHA_CHART_VERSION" 2.4.2
 if [ "$?" == "1" ]; then
     # voltha chart > 2.4.2 uses list of controllers
     for NUM in $(seq 0 $((NUM_OF_ONOS-1))); do
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[$NUM].service=onos-onos-classic-$NUM.onos-onos-classic-hs.$INFRA_NS.svc.cluster.local --set services.controller[$NUM].port=6653"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[$NUM].service=onos-onos-classic-$NUM.onos-onos-classic-hs.$INFRA_NS.svc --set services.controller[$NUM].port=6653"
     done
 else
     # voltha chart <= 2.4.2 uses single controller
@@ -1992,7 +1956,7 @@ fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^voltha\$" | wc -l)" -ne 1 ]; then
     espin "$NOT_VERIFIED"
-    helm_install - "$VOLTHA_NS" voltha "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" "$_HELM_DESC VOLTHA Core"
+    helm_install - "$VOLTHA_NS" voltha "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" - "$_HELM_DESC VOLTHA Core"
 else
     espin "$VERIFIED"
 fi
@@ -2000,8 +1964,6 @@ INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 
 VOLTHA="voltha-ofagent-.* \
     rw-core.* \
-    voltha-etcd-cluster-.* \
-    voltha-kafka-.* \
     voltha-zookeeper-.*"
 wait_for_pods - "$VOLTHA_NS" "$EXPECT" "includes" "Waiting for VOLTHA Core to start" "$NO_LABEL" "$VOLTHA"
 if [ "$WITH_TIMINGS" == "yes" ]; then
@@ -2012,12 +1974,8 @@ fi
 if [ "$WITH_ADAPTERS" == "yes" ]; then
     STIME="$(date +%s)"
     EXPECT=0
-    if [ "$WITH_ETCD" == "yes" ]; then
-        _HOST=voltha-etcd-cluster-client.$VOLTHA_NS.svc.cluster.local
-        _PORT=2379
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
-    elif [ "$WITH_ETCD" == "external" ]; then
-        _HOST=etcd-cluster-client.$INFRA_NS.svc.cluster.local
+    if is_in "$WITH_ETCD" "yes,external"; then
+        _HOST=etcd.$INFRA_NS.svc
         _PORT=2379
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
     elif [ "$WITH_ETCD" != "no" ]; then
@@ -2026,12 +1984,8 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         _PORT=${_PORT:-2379}
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
     fi
-    if [ "$WITH_KAFKA" == "yes" ]; then
-        _HOST=voltha-kafka.$VOLTHA_NS.svc.cluster.local
-        _PORT=9092
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
-    elif [ "$WITH_KAFKA" == "external" ]; then
-        _HOST=kafka.$INFRA_NS.svc.cluster.local
+    if is_in "$WITH_KAFKA" "yes,external"; then
+        _HOST=kafka.$INFRA_NS.svc
         _PORT=9092
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
     elif [ "$WITH_KAFKA" != "no" ]; then
@@ -2045,7 +1999,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         bspin - "Verify Simulated Adapters installed"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^sim\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS"  sim "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION" "$_HELM_DESC Simulated Adapters"
+            helm_install - "$ADAPTER_NS"  sim "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION" - "$_HELM_DESC Simulated Adapters"
         else
             espin - "$VERIFIED"
         fi
@@ -2056,7 +2010,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^open-olt\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS" open-olt "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" "$_HELM_DESC OpenOLT Adapter"
+            helm_install - "$ADAPTER_NS" open-olt "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" - "$_HELM_DESC OpenOLT Adapter"
         else
             espin - "$VERIFIED"
         fi
@@ -2066,7 +2020,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "$_HELM_DESC OpenONU Adapter"
+            helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" - "$_HELM_DESC OpenONU Adapter"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="$_ORIGINAL_EXTRA_HELM_INSTALL_ARGS"
         else
             espin - "$VERIFIED"
@@ -2114,7 +2068,7 @@ if [ "$WITH_BBSIM" == "yes" ]; then
             else
                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
             fi
-            helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" "$_HELM_DESC BBSIM${instance_num}"
+            helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" - "$_HELM_DESC BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin - "$VERIFIED"
@@ -2137,7 +2091,7 @@ if [ "$CONFIG_SADIS" == "external" ]; then
     bspin - "Verify BBSIM SADIS Service Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim-sadis-servier\$" | wc -l)" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
-        helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION"  "$_HELM_DESC BBSIM SADIS Server"
+        helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" - "$_HELM_DESC BBSIM SADIS Server"
     else
         espin - "$VERIFIED"
     fi
@@ -2154,7 +2108,7 @@ if [ "$WITH_RADIUS" == "yes" ]; then
     bspin - "Verify RADIUS Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^radius\$" | wc -l)" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
-        helm_install - "$INFRA_NS" radius onf/freeradius latest "$_HELM_DESC RADIUS"
+        helm_install - "$INFRA_NS" radius onf/freeradius latest - "$_HELM_DESC RADIUS"
     else
         espin - "$VERIFIED"
     fi
@@ -2171,18 +2125,16 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
     kill_port_forward voltha-api
     port_forward "$VOLTHA_NS"  voltha-api "$VOLTHA_API_PORT:55555"
     espin - "$VERIFIED"
-    if [ "$WITH_ETCD" == "yes" ] || [ "$WITH_ETCD" == "external" ]; then
-        _NS="$(test "$WITH_ETCD" == "yes" && echo "$VOLTHA_NS" || echo "$INFRA_NS")"
+    if is_in "$WITH_ETCD" "yes,external"; then
         bspin - "Forward VOLTHA ETCD port $FORWARD"
-        kill_port_forward "${ETCD_PREFIX}etcd-cluster-client"
-        port_forward "$_NS" "${ETCD_PREFIX}etcd-cluster-client" "$VOLTHA_ETCD_PORT:2379"
+        kill_port_forward "etcd"
+        port_forward "$INFRA_NS" "etcd" "$VOLTHA_ETCD_PORT:2379"
         espin - "$VERIFIED"
     fi
-    if [ "$WITH_KAFKA" == "yes" ] || [ $WITH_KAFKA == "external" ]; then
-        _NS="$(test "$WITH_ETCD" == "yes" && echo "$VOLTHA_NS" || echo "$INFRA_NS")"
+    if is_in "$WITH_KAFKA" "yes,external"; then
         bspin - "Forward VOLTHA Kafka port $FORWARD"
-        kill_port_forward "${KAFKA_PREFIX}kafka"
-        port_forward "$_NS" ${KAFKA_PREFIX}kafka "$VOLTHA_KAFKA_PORT:9092"
+        kill_port_forward "kafka"
+        port_forward "$INFRA_NS" kafka "$VOLTHA_KAFKA_PORT:9092"
         espin - "$VERIFIED"
     fi
     if [ "$WITH_PPROF" == "yes" ]; then
@@ -2202,7 +2154,7 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
 fi
 
 if is_in "$WITH_ONOS" "yes,legacy,classic" && [ "$WITH_RADIUS" != "no" ]; then
-    _HOST=radius.$INFRA_NS.svc.cluster.local
+    _HOST=radius.$INFRA_NS.svc
     _PORT=1812
     if [ "$WITH_RADIUS" != "yes" ]; then
         _HOST="$(echo "$WITH_RADIUS" | cut -d: -f1)"
@@ -2220,7 +2172,7 @@ if [ "$WITH_CHAOS" == "yes" ]; then
     bspin - "Verify kube-monkey Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace kube-monkey "^monkey\$" | wc -l)" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
-        helm_install - kube-monkey monkey ./kube-monkey/helm/kubemonkey latest "$_HELM_DESC Chaos Monkey"
+        helm_install - kube-monkey monkey ./kube-monkey/helm/kubemonkey latest - "$_HELM_DESC Chaos Monkey"
     else
         espin - "$VERIFIED"
     fi
@@ -2242,11 +2194,11 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
         ETCD_FLAG="-e localhost:$VOLTHA_ETCD_PORT"
     fi
 else
-    KAFKA_FLAG="-k $(get_service_ep "$INFRA_NS" "${KAFKA_PREFIX}kafka")"
+    KAFKA_FLAG="-k $(get_service_ep "$INFRA_NS" kafka)"
     SERVER_FLAG="-s $(get_service_ep "$VOLTHA_NS" voltha-api)"
     ETCD_FLAG=
     if [ "$MIN_VC_VERSION" == "1.0.15" ]; then
-        ETCD_FLAG="-e $(get_service_ep "$INFRA_NS"  ${ETCD_PREFIX}etcd-client)"
+        ETCD_FLAG="-e $(get_service_ep "$INFRA_NS"  etcd)"
     fi
 fi
 CMD=("voltctl -a v3 $KAFKA_FLAG $SERVER_FLAG $ETCD_FLAG config")
