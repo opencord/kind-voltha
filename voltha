@@ -1136,7 +1136,7 @@ helm_install() {
     if [ "$FILTER" == "-" ]; then
         cp "$NAME-values.yaml" "$VALUES_FILE"
     else
-        yq r "$NAME-values.yaml" "$FILTER" >"$VALUES_FILE"
+        yq r - "$FILTER" <"$NAME-values.yaml" >"$VALUES_FILE"
     fi
     if [ "$WITH_PPROF" == "yes" ]; then
         PPROF_ARG="--set profiler.enabled=true"
@@ -1841,8 +1841,7 @@ fi
 if is_in "$WITH_ETCD" "yes,external"; then
     STIME="$(date +%s)"
     bspin "Verify external ETCD cluster $OLD_KEY"
-    EXPECT="$(yq r "$NAME-values.yaml" "etcd.replicas")"
-#    DKB
+    EXPECT="$(yq r - "etcd.replicas" <"$NAME-values.yaml")"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^etcd\$" | wc -l)" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
