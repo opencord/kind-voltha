@@ -28,19 +28,6 @@ defaults:
 private_etcd_cluster: false
 private_kafka_cluster: false
 
-# OFAGENT IMPLEMENTATION
-# ----------------------
-# There are currently two implementations of OFAGENT: the original written in
-# Python and the reimplementation written in Go. The variable `use_ofagent_go`
-# can be used to optionally select the implementation. The Go version is the
-# version to be part of the official release and is the default. The Python
-# verison has been deprecated and is no longer being actively workes, but is
-# being left as an option for this release.
-#
-# Along with this change you will also may need to set the Docker image
-# information below (search for START_OFAGENT_GO).
-use_ofagent_go: true
-
 # OPENONU-ADAPTER IMPLEMENTATION
 # ------------------------------
 # There are currently two implementations of OPENONU-ADAPTER: the original
@@ -84,15 +71,9 @@ images:
 #  bbsim:
 #    repository: voltha/bbsim
 #    tag: master
-# START_OFAGENT_GO - Comment the following block to use the Python
-# implementation of the ofagent
-#  ofagent_go:
+#  ofagent:
 #    repository: voltha/voltha-ofagent-go
 #    tag: master
-# END_OFAGENT_GO
-#  ofagent_py:
-#    repository: voltha/voltha-ofagent-py
-#    tag: 2.1.1
 #  rw_core:
 #    repository: voltha/voltha-rw-core
 #    tag: 2.1.1

@@ -87,7 +87,6 @@ WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
 WITH_PPROF=${WITH_PPROF:-no}
-ONLY_ONE=${ONLY_ONE:-yes}
 SCHEDULE_ON_CONTROL_NODES=${SCHEDULE_ON_CONTROL_NODES:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
@@ -274,7 +273,6 @@ ALL_YES_NO="\
     HELM_USE_UPGRADE \
     UPDATE_HELM_REPOS \
     WAIT_ON_DOWN \
-    ONLY_ONE \
     VOLTHA_DOWN_ON_TIMEOUT \
     LEGACY_BBSIM_INDEX \
     SCHEDULE_ON_CONTROL_NODES \
@@ -1891,13 +1889,9 @@ EOC
 fi
 
 STIME="$(date +%s)"
-EXPECT=1
-if [ "$ONLY_ONE" == "yes" ]; then
-    EXPECT="$((EXPECT+1))"
-    INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"
-else
-    EXPECT="$((EXPECT+2))"
-fi
+EXPECT=2
+# therecanbeonlyone set hardcoded to true for backward compatibility
+INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"
 case $WITH_ETCD in
     no)
         ;;
