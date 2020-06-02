@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e7407db2_fda97df2",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 1696,
+      "author": {
+        "id": 1000107
+      },
+      "writtenOn": "2020-06-02T13:07:08Z",
+      "side": 1,
+      "message": "Why was .cluster.local removed here?",
+      "revId": "c722062ebd311bf693ad03b2afaeec9079b41f63",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
