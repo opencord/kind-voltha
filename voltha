@@ -946,7 +946,7 @@ if [ "$1" == "down" ]; then
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
         if [ "$WAIT_ON_DOWN" == "yes" ]; then
-            PODS="kafka.* voltha-ofagent.* voltha-rw-core.* etcd.*"
+            PODS="voltha-ofagent.* voltha-rw-core.*"
             INFRA_PODS=
             ADAPT_PODS=
             SIM_PODS=
@@ -977,6 +977,7 @@ if [ "$1" == "down" ]; then
             if [ -n "$ADAPT_PODS" ]; then
                 wait_for_pods "$ADAPTER_NS" 0 "not" "Waiting for adapter  PODs to terminate" "$NO_LABEL" "$ADAPT_PODS"
             fi
+            echo "PODS: ${PODS}"
             wait_for_pods "$VOLTHA_NS" 0 "not" "Waiting for VOLTHA PODs to terminate" "$NO_LABEL" "$PODS"
         fi
     fi
