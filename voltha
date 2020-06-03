@@ -970,7 +970,7 @@ if [ "$1" == "down" ]; then
         done
         espin "$VERIFIED Remove Helm Deployments$CEOL"
         if [ "$WAIT_ON_DOWN" == "yes" ]; then
-            PODS="kafka.* voltha-ofagent.* voltha-rw-core.* etcd.*"
+            PODS="voltha-ofagent.* voltha-rw-core.*"
             INFRA_PODS=
             ADAPT_PODS=
             SIM_PODS=
