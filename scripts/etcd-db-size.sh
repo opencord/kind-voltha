@@ -17,11 +17,11 @@
 
 set -o pipefail
 
-ETCD=$(kubectl -n voltha get pods 2>&1 | grep etcd-cluster | awk '{print $1}' | head -1)
+ETCD=$(kubectl -n "$INFRA_NS" get pods 2>&1 | grep etcd | awk '{print $1}' | head -1)
 if [ -z  "$ETCD" ]; then
     echo "N/A"
 else
-    VALUE=$(kubectl -n voltha exec -ti $ETCD -- sh -c 'ETCDCTL_API=3 etcdctl --command-timeout=10s endpoint status -w json' 2>/dev/null | tr -d '\r\n' | jq .[].Status.dbSize 2>/dev/null)
+    VALUE=$(kubectl -n "$INFRA_NS" exec -ti $ETCD -- sh -c 'ETCDCTL_API=3 etcdctl --command-timeout=10s endpoint status -w json' 2>/dev/null | tr -d '\r\n' | jq .[].Status.dbSize 2>/dev/null)
     if [ -z "$VALUE" ]; then
         echo "N/A"
     else

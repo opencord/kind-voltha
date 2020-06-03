@@ -15,14 +15,39 @@
 
 # This script sets up a watch with information that is valuable when
 # developing voltha with k8s
-SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+SCRIPTPATH="$( cd "$(dirname "$0")" || return  >/dev/null 2>&1 ; pwd -P )"
 
-CMD_KEY=cmd
-if [ "$ARCH" == "Darwin" ]; then
-    CMD_KEY=command
+if ! command -v kubectl >/dev/null 2>&1; then
+    >&2 echo "ERROR: 'kubectl' not in \$PATH"
+    exit 1
 fi
 
-kubectl get --all-namespaces pods,svc,configmap | grep -v kube-system  && echo "" \
-    &&  kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g"  && echo "" \
-    && echo "DB SIZE: $($SCRIPTPATH/etcd-db-size.sh)" && echo "" \
-    && echo "RSS SIZE: $(ps -eo rss,pid,$CMD_KEY | grep /usr/local/bin/etcd | grep -v grep | cut -d\  -f1 | numfmt --to=iec | tr '\n' ' ' )"
+echo "Kind (client): $(kind version)"
+kubectl version -o json | jq -r '"Kubernetes (client/server): "+.clientVersion.gitVersion+"/"+.serverVersion.gitVersion'
+helm version --template 'Helm: (client/server): {{ (index . "Client").SemVer }}/{{ (index . "Server").SemVer }}{{ printf "\n"}}'
+
+echo -n "Voltctl: (client/server): "
+if ! command -v voltctl >/dev/null 2>&1; then
+    echo "'voltctl' not in \$PATH"
+else
+    CLIENT=$(voltctl version --clientonly -o json | jq -r '"v"+.version')
+    JSON=$(voltctl version -o json 2>&1)
+    if [ "$?" -eq 0 ]; then
+        echo "$CLIENT/$(echo "$JSON" | jq -r '"/v"+.cluster.version' 2>&1)"
+    else
+        echo "$CLIENT/$JSON"
+    fi
+fi
+echo
+kubectl get --all-namespaces pods,svc,configmap | grep -v kube-system
+echo
+kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g"
+echo
+echo "DB SIZE: $("$SCRIPTPATH/etcd-db-size.sh")"
+echo
+PIDS=$(pgrep -f "etcd --name etcd")
+if [ -z "$PIDS" ]; then
+    echo "RSS SIZE: N/A"
+else
+    echo "RSS SIZE: $(ps -ho rss $PIDS | xargs numfmt --to=iec | tr '\n' ' ' )"
+fi
