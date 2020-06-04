@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1bef6e71_f7a9955e",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1004,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-04T15:37:15Z",
+      "side": 1,
+      "message": "Debug code that needs to be removed?",
+      "range": {
+        "startLine": 1004,
+        "startChar": 0,
+        "endLine": 1004,
+        "endChar": 32
+      },
+      "revId": "b846a467013c45b5f9575e58de74458e0a5140e1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
