@@ -1657,7 +1657,13 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
                 helm_values "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
             _ONOS_REPO="$(echo "$YAML_VALUES" | yq read - images.onos.repository)"
             _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
-            _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - defaults.image_pullPolicy)"
+            _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - images.onos.pullPolicy)"
+            if [ -z "$_ONOS_PULL_POLICY" ]; then
+                _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - defaults.image_pullPolicy)"
+            fi
+            if [ -z "$_ONOS_PULL_POLICY" ]; then
+                _ONOS_PULL_POLICY="Always"
+            fi
             _TAG_DEFAULT="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
             if [ -z "$_ONOS_TAG" ]; then
                 _ONOS_TAG="$_TAG_DEFAULT"
