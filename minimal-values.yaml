@@ -39,23 +39,16 @@ private_kafka_cluster: false
 # information below (search for START_OPENONU_ADAPTER_GO).
 use_openonu_adapter_go: false
 
-images:
-  onos:
-    repository: voltha/voltha-onos
-    # IMAGE_SELECTION
-    # ---------------
-    # The helm chart used to deploy ONOS is the public ONOS helm chart so,
-    # there is a need to specify the exact image repository and image tag.
-    # If you would like to use the "master", "voltha-2.1", or other image
-    # just replace the "tag" value below.
-    tag: master
-
 # IMAGE_SELECTION
 # ---------------
 # Below are a list of all the images utilized by kind-voltha. This list is
 # provided as a conveinence if you would like to override on a per image
 # basis. If you are using the defaults, master, or voltha-2.1 branch there
 # is no need to utilize this list.
+#images:
+#  onos:
+#    repository: voltha/voltha-onos
+#    tag: master
 #  adapter_open_olt:
 #    repository: voltha/voltha-openolt-adapter
 #    tag: 2.1.1
