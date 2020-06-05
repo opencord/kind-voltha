@@ -1416,6 +1416,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     export KUBECONFIG="./kube-config-$NAME"
     kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG"
     # For backward compatibility also copy to old location
+    mkdir -p "$HOME/.kube"
     cp "KUBECONFIG" "$HOME/.kube/kind-config-voltha-$NAME"
 
     P="coredns-.* \
@@ -1656,11 +1657,22 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             YAML_VALUES=$(INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
                 helm_values "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
             _ONOS_REPO="$(echo "$YAML_VALUES" | yq read - images.onos.repository)"
+            if [ -z "$_ONOS_REPO" ]; then
+                _ONOS_REPO="voltha/voltha-onos"
+            fi
             _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
-            _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - defaults.image_pullPolicy)"
-            _TAG_DEFAULT="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
             if [ -z "$_ONOS_TAG" ]; then
-                _ONOS_TAG="$_TAG_DEFAULT"
+                _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
+            fi
+            if [ -z "$_ONOS_TAG" ]; then
+                _ONOS_TAG="master"
+            fi
+            _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - images.onos.pullPolicy)"
+            if [ -z "$_ONOS_PULL_POLICY" ]; then
+                _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - defaults.image_pullPolicy)"
+            fi
+            if [ -z "$_ONOS_PULL_POLICY" ]; then
+                _ONOS_PULL_POLICY="Always"
             fi
 
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set image.pullPolicy=$_ONOS_PULL_POLICY,image.repository=$_ONOS_REPO,image.tag=$_ONOS_TAG,replicas=$NUM_OF_ONOS,atomix.replicas=$NUM_OF_ATOMIX" \
