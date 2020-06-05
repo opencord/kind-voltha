@@ -1417,7 +1417,7 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG"
     # For backward compatibility also copy to old location
     mkdir -p "$HOME/.kube"
-    cp "KUBECONFIG" "$HOME/.kube/kind-config-voltha-$NAME"
+    cp "$KUBECONFIG" "$HOME/.kube/kind-config-voltha-$NAME"
 
     P="coredns-.* \
         etcd-voltha-$NAME-control-plane \
