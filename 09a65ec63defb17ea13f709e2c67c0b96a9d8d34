@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d33d9f69_244e6ea9",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1997,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2020-06-10T14:12:13Z",
+      "side": 1,
+      "message": "If \"+voltha\" is exposed as a resulting artifact after running \"voltha up\" then would \"+rwcore\" be a more appropriate name.",
+      "revId": "09a65ec63defb17ea13f709e2c67c0b96a9d8d34",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
