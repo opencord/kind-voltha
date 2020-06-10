@@ -84,6 +84,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
 | `WITH_KAFKA`                            | yes                                                   | Deploy private Kafka (yes/no) or k8s servce:port of external Kafka |
 | `WITH_ETCD`                             | yes                                                   | Deploy private etcd (yes/no) or k8s service:port of external etcd |
+| `WITH_TRACING`                          | no                                                    | Should Jaeger All-in-one POD be deployed for analysis of Traces? |
 | `WITH_RADIUS`                           | no                                                    | Deploy sample RADIUS server (yes/no) or a k8s service:port of external RADIUS |
 | `WITH_EAPOL`                            | no                                                    | Configure the OLT app to push EAPOL flows |
 | `WITH_DHCP`                             | no                                                    | Configure the OLT app to push DCHP flows |
@@ -119,6 +120,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `KIBANA_CHART_VERSION`                  | latest                                                | Version of Helm chart to install kibana |
 | `FLUENTD_ELSTICSEARCH_CHART`            | kiwigrid/fluentd-elasticsearch                        | Helm chart to use to install fluentd-elasticsearch |
 | `FLUENTD_ELASTICSEARCH_CHART_VERSION`   | latest                                                | Version of Helm chart to install fluentd-elasticsearch |
+| `VOLTHA_TRACING_CHART`                  | onf/voltha-tracing                                    | Helm chart to use to install voltha tracing |
+| `VOLTHA_TRACING_CHART_VERSION`          | latest                                                | Version of Helm chart to install voltha tracing |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART`         | onf/voltha-adapter-openolt                            | Helm chart to use to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION` | latest                                                | Version of Helm chart to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_ONU_CHART`         | onf/voltha-adapter-openonu                            | Helm chart to use to install OpenOnu adapter |
@@ -205,6 +208,13 @@ the required settings in yaml file. To enable security features reference the fo
 When running an EFK stack in production there are several maintenance that need to be periodically performed
 including indexes triming. When planning to deploy an EFK stack to production you should fully understand
 the recommendations as described in the product documenation: https://www.elastic.co/guide/index.html
+
+### Jaeger Tracing Stack for analyzing Voltha Component Traces
+If Tracing is selected for deployment with VOLTHA using `WITH_TRACING=yes` option, then a single Jaeger
+all-in-one instance will be deployed using Memory as Storage backend for traces sent by Voltha conatiners.
+
+Additionally a port-forward will be established so that you can access Jaeger GUI(`16686`) from outside the
+ Kubernetes cluster using URL `http://localhost:16686`.
 
 ### Controlling VOLTHA with an ONOS cluster
 
