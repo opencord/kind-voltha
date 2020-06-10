@@ -16,32 +16,58 @@
 # This script sets up a watch with information that is valuable when
 # developing voltha with k8s
 SCRIPTPATH="$( cd "$(dirname "$0")" || return  >/dev/null 2>&1 ; pwd -P )"
+__COLS=$(($(tput cols) - 1))
 
-if ! command -v kubectl >/dev/null 2>&1; then
-    >&2 echo "ERROR: 'kubectl' not in \$PATH"
-    exit 1
+echo -n "Kind (client): "
+if ! command -v kind >/dev/null 2>&1; then
+    echo "'kind' not in \$PATH"
+else
+    kind version
 fi
 
-echo "Kind (client): $(kind version)"
-kubectl version -o json | jq -r '"Kubernetes (client/server): "+.clientVersion.gitVersion+"/"+.serverVersion.gitVersion'
-helm version --template 'Helm: (client/server): {{ (index . "Client").SemVer }}/{{ (index . "Server").SemVer }}{{ printf "\n"}}'
+echo -n "Kubernetes (client/server): "
+if ! command -v kubectl >/dev/null 2>&1; then
+    echo "'kubectl' not in \$PATH"
+else
+    CLIENT=$(kubectl version --client -o json | jq -r '.clientVersion.gitVersion')
+    SERVER=$(kubectl version -o json 2>/dev/null)
+    if [ "$?" -ne 0 ]; then
+        SERVER="ERROR"
+    else
+        SERVER=$(echo $SERVER | jq -r '.serverVersion.gitVersion')
+    fi
+    echo "$CLIENT/$SERVER"
+fi
 
-echo -n "Voltctl: (client/server): "
+echo -n "Helm (client/server): "
+if ! command -v helm >/dev/null 2>&1; then
+    echo "'helm' not in \$PATH"
+else
+    CLIENT=$(helm version --client --template '{{ (index . "Client").SemVer }}')
+    SERVER=$(helm version --server --template '{{ (index . "Server").SemVer }}' 2>/dev/null)
+    if [ "$?" -ne 0 ]; then
+        SERVER="ERROR"
+    fi
+    echo "$CLIENT/$SERVER"
+fi
+
+echo -n "Voltha: (client/server): "
 if ! command -v voltctl >/dev/null 2>&1; then
     echo "'voltctl' not in \$PATH"
 else
     CLIENT=$(voltctl version --clientonly -o json | jq -r '"v"+.version')
-    JSON=$(voltctl version -o json 2>&1)
-    if [ "$?" -eq 0 ]; then
-        echo "$CLIENT/$(echo "$JSON" | jq -r '"/v"+.cluster.version' 2>&1)"
+    SERVER=$(voltctl version -o json 2>/dev/null)
+    if [ -z "$SERVER" ]; then
+        SERVER="ERROR"
     else
-        echo "$CLIENT/$JSON"
+        SERVER=$(echo "$SERVER" | jq -r '"v"+.cluster.version')
     fi
+    echo "$CLIENT/$SERVER"
 fi
 echo
-kubectl get --all-namespaces pods,svc,configmap | grep -v kube-system
+kubectl get --all-namespaces pods,svc,configmap | grep -v kube-system | cut -c -$__COLS
 echo
-kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g"
+kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g" | sort -u | cut -c -$COLS
 echo
 echo "DB SIZE: $("$SCRIPTPATH/etcd-db-size.sh")"
 echo

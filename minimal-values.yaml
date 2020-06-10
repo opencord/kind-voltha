@@ -125,6 +125,15 @@ kafka:
     KAFKA_DEFAULT_REPLICATION_FACTOR: 1
     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+# voltha:
+#   fullNameOverride: voltha
+
+# open-olt:
+#   fullNameOverride: voltha-adapter-openolt
+
+# open-onu:
+#   fullNameOverride: voltha-adapter-openonu
+
 onos_env:
   - name: POD_IP
     valueFrom:
