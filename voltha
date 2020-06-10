@@ -75,6 +75,7 @@ ADAPTER_NS=${ADAPTER_NS:-voltha}
 WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_EFK=${WITH_EFK:-no}
+WITH_TRACING=${WITH_TRACING:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_EAPOL=${WITH_EAPOL:-yes}
 WITH_DHCP=${WITH_DHCP:-yes}
@@ -115,6 +116,8 @@ KIBANA_CHART=${KIBANA_CHART:-elastic/kibana}
 KIBANA_CHART_VERSION=${KIBANA_CHART_VERSION:-latest}
 FLUENTD_ELASTICSEARCH_CHART=${FLUENTD_ELASTICSEARCH_CHART:-kiwigrid/fluentd-elasticsearch}
 FLUENTD_ELASTICSEARCH_CHART_VERSION=${FLUENTD_ELASTICSEARCH_CHART_VERSION:-latest}
+VOLTHA_TRACING_CHART=${VOLTHA_TRACING_CHART:-onf/voltha-tracing}
+VOLTHA_TRACING_CHART_VERSION=${VOLTHA_TRACING_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
 VOLTHA_ADAPTER_SIM_CHART_VERSION=${VOLTHA_ADAPTER_SIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
@@ -248,6 +251,7 @@ ALL_YES_NO="\
     WITH_TIMINGS \
     WITH_BBSIM \
     WITH_EFK \
+    WITH_TRACING \
     WITH_EAPOL \
     WITH_DHCP \
     WITH_IGMP \
@@ -291,6 +295,8 @@ ALL_OPTIONS="\
     VOLTHA_BBSIM_CHART_VERSION \
     BBSIM_SADIS_SERVER_CHART \
     BBSIM_SADIS_SERVER_CHART_VERSION \
+    VOLTHA_TRACING_CHART \
+    VOLTHA_TRACING_CHART_VERSION \
     NUM_OF_BBSIM \
     NUM_OF_WORKER_NODES \
     NUM_OF_CONTROLLER_NODES \
@@ -331,6 +337,7 @@ ALL_OPTIONS="\
     VOLTHA_PPROF_PORT \
     OPENOLT_PPROF_PORT \
     OFAGENT_PPROF_PORT \
+    TRACING_GUI_PORT \
     VK_RELEASE \
     KIND_VERSION \
     VOLTCTL_VERSION \
@@ -518,6 +525,7 @@ if [ "$HAVE X" == " X" ]; then
     OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
     ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$((92 + DELTA))00}
     KIBANA_PORT=${KIBANA_PORT:-$((56 + DELTA))01}
+    TRACING_GUI_PORT=${TRACING_GUI_PORT:-1$((66 + DELTA))86}
 else
     VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
     ONOS_API_PORT=${ONOS_API_PORT:-$(echo "$VALUES" | cut -d, -f1)}
@@ -531,6 +539,7 @@ else
     OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f9)}
     ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$(echo "$VALUES" | cut -d, -f10)}
     KIBANA_PORT=${KIBANA_PORT:-$(echo "$VALUES" | cut -d, -f11)}
+    TRACING_GUI_PORT=${TRACING_GUI_PORT:-$(echo "$VALUES" | cut -d, -f12)}
 
     # Some ports were added after the .voltha/ports files was created.
     # Calculate the original DELTA from the VOLTHA_SSH_PORT so that it can
@@ -554,15 +563,18 @@ else
     if [ -z "$ELASTICSEARCH_PORT" ]; then
         ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$((92 + DELTA))00}
     fi
-
     if [ -z "$KIBANA_PORT" ]; then
         KIBANA_PORT=${KIBANA_PORT:-$((56 + DELTA))01}
+    fi
+
+    if [ -z "$TRACING_GUI_PORT" ]; then
+      TRACING_GUI_PORT=${TRACING_GUI_PORT:-1$((66 + DELTA))86}
     fi
 fi
 
 PORTTMP="$(mktemp -u)"
 grep -v "$NAME" .voltha/ports > "$PORTTMP"
-echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT,$OFAGENT_PPROF_PORT,$ELASTICSEARCH_PORT,$KIBANA_PORT" >> "$PORTTMP"
+echo "$NAME=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT,$OFAGENT_PPROF_PORT,$ELASTICSEARCH_PORT,$KIBANA_PORT,$TRACING_GUI_PORT" >> "$PORTTMP"
 cp "$PORTTMP" .voltha/ports
 rm -f "$PORTTMP"
 
@@ -999,6 +1011,10 @@ kill_port_forward() {
     done
 }
 
+resolve_chart_name() {
+    helm inspect chart "$1" | grep "^name:" | awk '{print $2}'
+}
+
 resolve_chart_version() {
     [ "$2" != "latest" ] && echo "$2" && return
     helm inspect chart "$1" | grep "^version:" | awk '{print $2}'
@@ -1047,6 +1063,12 @@ if [ "$1" == "down" ]; then
         fi
     fi
 
+    if [ "$WITH_TRACING" == "yes" ]; then
+        sspin "Remove port-forwards: tracing-$NAME$CEOL"
+        VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
+        kill_port_forward "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui"
+    fi
+
     espin "$VERIFIED Remove port-forwards$CEOL"
     if [ "$DEPLOY_K8S" == "yes" ]; then
         if [ -x ./bin/kind ]; then
@@ -1083,6 +1105,9 @@ if [ "$1" == "down" ]; then
         fi
         if [ "$WITH_EFK" == "yes" ]; then
             EXPECT+=" elasticsearch kibana fluentd"
+        fi
+        if [ "$WITH_TRACING" == "yes" ]; then
+            EXPECT+=" tracing"
         fi
         if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
             EXPECT+=" open-olt open-onu"
@@ -1129,6 +1154,9 @@ if [ "$1" == "down" ]; then
             fi
             if [ "$WITH_OPEN_ADAPTERS" ] || [ "$WITH_SIM_ADAPTERS" ]; then
                 ADAPT_PODS+=" adapter-*"
+            fi
+            if [ "$WITH_TRACING" == "yes" ]; then
+                INFRA_PODS+=" jaeger.*"
             fi
             if is_in "$WITH_ONOS" "yes,legacy,classic"; then
                 INFRA_PODS+=" onos-.*"
@@ -1224,7 +1252,7 @@ fi
 LOG="install-$NAME.log"
 PFLOG="port-forward-$NAME.log"
 date > "$LOG"
-echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$ELASTICSEARCH_PORT,$KIBANA_PORT" >> "$LOG"
+echo "PORTS=$ONOS_API_PORT,$ONOS_SSH_PORT,$VOLTHA_API_PORT,$VOLTHA_SSH_PORT,$VOLTHA_ETCD_PORT,$VOLTHA_KAFKA_PORT,$VOLTHA_PPROF_PORT,$OPENOLT_PPROF_PORT,$OFAGENT_PPROF_PORT,$ELASTICSEARCH_PORT,$KIBANA_PORT,$TRACING_GUI_PORT" >> "$LOG"
 
 # Output install options to log
 echo "OPTIONS" >> "$LOG"
@@ -1735,6 +1763,7 @@ fi
 # Resolve chart versions and log them for debug/support
 RESOLVED_VOLTHA_CHART_VERSION=$(resolve_chart_version "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION")
 RESOLVED_VOLTHA_BBSIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION")
+RESOLVED_VOLTHA_TRACING_CHART_VERSION=$(resolve_chart_version "$VOLTHA_TRACING_CHART" "$VOLTHA_TRACING_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION")
@@ -1750,6 +1779,7 @@ cat <<EOV >>"$LOG"
 Resolved helm charts and versions:
     $VOLTHA_CHART:$RESOLVED_VOLTHA_CHART_VERSION
     $VOLTHA_BBSIM_CHART:$RESOLVED_VOLTHA_BBSIM_CHART_VERSION
+    $VOLTHA_TRACING_CHART:$RESOLVED_VOLTHA_TRACING_CHART_VERSION
     $VOLTHA_ADAPTER_SIM_CHART:$RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION
     $VOLTHA_ADAPTER_OPEN_OLT_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION
     $VOLTHA_ADAPTER_OPEN_ONU_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION
@@ -2118,6 +2148,24 @@ EOC
     rm -rf "$_TMP"
 fi
 
+if [ "$WITH_TRACING" == "yes" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify Jaeger Tracing $PLUG"
+    bspin - "Verify Jaeger Tracing Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^tracing\$")" -ne 1 ]; then
+        espin - "$NOT_VERIFIED"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+        helm_install - "$INFRA_NS" tracing "$VOLTHA_TRACING_CHART" "$VOLTHA_TRACING_CHART_VERSION" tracing "$_HELM_DESC Jaeger Tracing"
+    else
+        espin - "$VERIFIED"
+    fi
+    wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for Jaeger Tracing to start" "$NO_LABEL" "jaeger*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
 STIME="$(date +%s)"
 EXPECT=2
 # therecanbeonlyone set hardcoded to true for backward compatibility
@@ -2182,6 +2230,13 @@ else
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.address=$_HOST:$_PORT"
 fi
 
+if [ "$WITH_TRACING" == "yes" ]; then
+    VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
+    _HOST="tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-agent.$INFRA_NS.svc"
+    _PORT=6831
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set tracing.enabled=true --set services.tracing_agent.address=$_HOST:$_PORT"
+fi
+
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$VOLTHA_NS" "^voltha\$")" -ne 1 ]; then
     espin "$NOT_VERIFIED"
@@ -2226,6 +2281,12 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         _PORT=${_PORT:-9092}
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
+    fi
+    if [ "$WITH_TRACING" == "yes" ]; then
+        VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
+        _HOST="tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-agent.$INFRA_NS.svc"
+        _PORT=6831
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set tracing.enabled=true --set services.tracing_agent.address=$_HOST:$_PORT"
     fi
     echo -e "Verify Adapters $PLUG"
     if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
@@ -2480,6 +2541,13 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
         port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-rw-core-profiler" "$VOLTHA_PPROF_PORT:6060"
         port_forward "$ADAPTER_NS" "${VOLTHA_OPENOLT_PREFIX}adapter-open-olt-profiler" "$OPENOLT_PPROF_PORT:6060"
         port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-of-agent-profiler" "$OFAGENT_PPROF_PORT:6060"
+        espin - "$VERIFIED"
+    fi
+    if [ "$WITH_TRACING" == "yes" ]; then
+        bspin - "Forward VOLTHA Tracing GUI port $FORWARD"
+        VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
+        kill_port_forward "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui"
+        port_forward "$INFRA_NS" "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui" "$TRACING_GUI_PORT:16686"
         espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
