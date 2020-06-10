@@ -94,6 +94,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `WITH_ONOS`                             | yes                                                   | Deploy ONOS (yes/no) or service:port of external ONOS |
 | `WITH_KAFKA`                            | yes                                                   | Deploy private Kafka (yes/no) or k8s servce:port of external Kafka |
 | `WITH_ETCD`                             | yes                                                   | Deploy private etcd (yes/no) or k8s service:port of external etcd |
+| `WITH_TRACING`                          | no                                                    | Should Jaeger All-in-one POD be deployed for analysis of Traces? |
 | `WITH_RADIUS`                           | no                                                    | Deploy sample RADIUS server (yes/no) or a k8s service:port of external RADIUS |
 | `WITH_EAPOL`                            | no                                                    | Configure the OLT app to push EAPOL flows |
 | `WITH_DHCP`                             | no                                                    | Configure the OLT app to push DCHP flows |
@@ -123,6 +124,8 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `VOLTHA_ADAPTER_SIM_CHART_VERSION`      | latest                                                | Version of Helm chart to install simulated device adapter |
 | `VOLTHA_BBSIM_CHART`                    | onf/bbsim                                             | Helm chart to use to install bbsim |
 | `VOLTHA_BBSIM_CHART_VERSION`            | latest                                                | Version of Helm chart to install bbim |
+| `VOLTHA_TRACING_CHART`                  | onf/voltha-tracing                                    | Helm chart to use to install voltha tracing |
+| `VOLTHA_TRACING_CHART_VERSION`          | latest                                                | Version of Helm chart to install voltha tracing |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART`         | onf/voltha-adapter-openolt                            | Helm chart to use to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION` | latest                                                | Version of Helm chart to install OpenOlt adapter |
 | `VOLTHA_ADAPTER_OPEN_ONU_CHART`         | onf/voltha-adapter-openonu                            | Helm chart to use to install OpenOnu adapter |
