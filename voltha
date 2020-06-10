@@ -1631,7 +1631,7 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         bspin "Verify ONOS LEGACY installed $BIRD"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
             espin "$NOT_VERIFIED"
-            INTERNAL_EXTRA_HELM_INSTALL_ARGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" - "$_HELM_DESC ONOS LEGACY"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" "+onos" "$_HELM_DESC ONOS LEGACY"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin "$VERIFIED"
@@ -2105,7 +2105,17 @@ if [ "$WITH_BBSIM" == "yes" ]; then
             else
                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
             fi
-            helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" - "$_HELM_DESC BBSIM${instance_num}"
+            if is_in "$WITH_KAFKA" "yes,external"; then
+                _HOST=kafka.$INFRA_NS.svc
+                _PORT=9092
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafkaAddress=$_HOST:$_PORT"
+            elif [ "$WITH_KAFKA" != "no" ]; then
+                _HOST="$(echo "$WITH_KAFKA" | cut -d: -f1)"
+                _PORT="$(echo "$WITH_KAFKA" | cut -s -d: -f2)"
+                _PORT=${_PORT:-9092}
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafkaAddress=$_HOST:$_PORT"
+            fi
+            helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" "+bbsim" "$_HELM_DESC BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
             espin - "$VERIFIED"
