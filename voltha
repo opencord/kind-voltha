@@ -1158,6 +1158,9 @@ helm_install() {
     VALUES_FILE="$(mktemp)"
     if [ "$FILTER" == "-" ]; then
         cp "$NAME-values.yaml" "$VALUES_FILE"
+    elif [ "${FILTER:0:1}" == "+" ]; then
+        cp "$NAME-values.yaml" "$VALUES_FILE"
+        yq r - "${FILTER:1}" <"$NAME-values.yaml" >>"$VALUES_FILE"
     else
         yq r - "$FILTER" <"$NAME-values.yaml" >"$VALUES_FILE"
     fi
@@ -1990,7 +1993,7 @@ fi
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^voltha\$" | wc -l)" -ne 1 ]; then
     espin "$NOT_VERIFIED"
-    helm_install - "$VOLTHA_NS" voltha "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" - "$_HELM_DESC VOLTHA Core"
+    helm_install - "$VOLTHA_NS" voltha "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" "+voltha" "$_HELM_DESC VOLTHA Core"
 else
     espin "$VERIFIED"
 fi
@@ -2044,7 +2047,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^open-olt\$" | wc -l)" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS" open-olt "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" - "$_HELM_DESC OpenOLT Adapter"
+            helm_install - "$ADAPTER_NS" open-olt "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" "+open-olt" "$_HELM_DESC OpenOLT Adapter"
         else
             espin - "$VERIFIED"
         fi
@@ -2054,7 +2057,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
             espin - "$NOT_VERIFIED"
-            helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" - "$_HELM_DESC OpenONU Adapter"
+            helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "+open-onu" "$_HELM_DESC OpenONU Adapter"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="$_ORIGINAL_EXTRA_HELM_INSTALL_ARGS"
         else
             espin - "$VERIFIED"
@@ -2244,9 +2247,9 @@ else
         ETCD_FLAG="-e $(get_service_ep "$INFRA_NS"  etcd)"
     fi
 fi
-CMD=("voltctl -a v3 $KAFKA_FLAG $SERVER_FLAG $ETCD_FLAG config")
+CMD=("voltctl $KAFKA_FLAG $SERVER_FLAG $ETCD_FLAG config")
 (set -x; ${CMD[*]} > "$HOME/.volt/config-$NAME" 2>>"$LOG") >>"$LOG" 2>&1
-#(set -x; voltctl -a v3 "$KAFKA_FLAG" "$SERVER_FLAG" "$ETCD_FLAG" config > "$HOME/.volt/config-$NAME" 2>>"$LOG") >>"$LOG" 2>&1
+#(set -x; voltctl "$KAFKA_FLAG" "$SERVER_FLAG" "$ETCD_FLAG" config > "$HOME/.volt/config-$NAME" 2>>"$LOG") >>"$LOG" 2>&1
 espin "$VERIFIED"
 
 if [ ! -f "$NAME-env.sh" ]; then
