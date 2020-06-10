@@ -164,6 +164,11 @@ bbsim:
   kafkaEventTopic: "bbsim"
   enableEvents: false
 
+# Increase maxTraces to retain Traces for longer duration
+# But tracing pod will consume more memory
+tracing:
+  maxTraces: 100000
+
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
 # pods. These extra labels can be used to integrate with other utilities
