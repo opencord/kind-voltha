@@ -22,6 +22,30 @@
       "revId": "a46ce5b6ad5df216ba3bde95fecd835d490639a6",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c05efbc4_d97d2569",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 2150,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-10T17:59:41Z",
+      "side": 1,
+      "message": "agree, moving to INFRA_NS will have changes throughout the file.",
+      "parentUuid": "f584a6cf_a59f80e8",
+      "range": {
+        "startLine": 2150,
+        "startChar": 91,
+        "endLine": 2150,
+        "endChar": 100
+      },
+      "revId": "a46ce5b6ad5df216ba3bde95fecd835d490639a6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
