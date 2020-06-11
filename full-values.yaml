@@ -23,22 +23,21 @@
 # this block and replace "<VALUE>" with "voltha-2.1".
 defaults:
   image_tag: master
+  image_pullPolicy: Always
 
 private_etcd_cluster: false
 private_kafka_cluster: false
 
-# OFAGENT IMPLEMENTATION
-# ----------------------
-# There are currently two implementations of OFAGENT: the original written in
-# Python and the reimplementation written in Go. The variable `use_ofagent_go`
-# can be used to optionally select the implementation. The Go version is the
-# version to be part of the official release and is the default. The Python
-# verison has been deprecated and is no longer being actively workes, but is
-# being left as an option for this release.
+# OPENONU-ADAPTER IMPLEMENTATION
+# ------------------------------
+# There are currently two implementations of OPENONU-ADAPTER: the original
+# written in Python and the reimplementation written in Go. The variable
+# `use_openonu_adapter_go` can be used to optionally use the new Go
+# implementation. This is done by setting that value to `true`.
 #
 # Along with this change you will also may need to set the Docker image
-# information below (search for START_OFAGENT_GO).
-use_ofagent_go: true
+# information below (search for START_OPENONU_ADAPTER_GO).
+use_openonu_adapter_go: false
 
 images:
   onos:
@@ -72,18 +71,18 @@ images:
 #  bbsim:
 #    repository: voltha/bbsim
 #    tag: master
-# START_OFAGENT_GO - Comment the following block to use the
-# Python implementation of the ofagent
 #  ofagent:
 #    repository: voltha/voltha-ofagent-go
 #    tag: master
-# END_OFAGENT_GO
-#  ofagent:
-#    repository: voltha/voltha-ofagent-py
-#    tag: 2.1.1
 #  rw_core:
 #    repository: voltha/voltha-rw-core
 #    tag: 2.1.1
+# START_OPENONU_ADAPTER_GO - Uncomment the following block to use the
+# Go implementation of the openonu-adapter
+#  adapter_open_onu_go:
+#    repository: voltha-openonu-adapter-go
+#    tag: master
+# END_OPENONU_ADAPTER_GO
 
 etcd:
   replicas: 3
@@ -135,27 +134,35 @@ kafka:
 # open-onu:
 #   fullNameOverride: voltha-adapter-openonu
 
-onos_env:
-  - name: POD_IP
-    valueFrom:
-    fieldRef:
-      fieldPath: status.podIP
-  - name: NAMESPACE
-    valueFrom:
-    fieldRef:
-      fieldPath: metadata.namespace
-  - name: ONOS_APPS
-    value: "drivers,openflow-base,hostprovider"
-
-# No persistent volume in Atomix to have clean state for each re-deploy of ONOS
-atomix:
-  persistence:
-    enabled: false
+onos:
+  image:
+    repository: voltha/voltha-onos
+    tag: master
+    pullPolicy: Always
+  onos_env:
+    - name: POD_IP
+      valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+    - name: NAMESPACE
+      valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+    - name: ONOS_APPS
+      value: "drivers,openflow-base,hostprovider"
+  # No persistent volume in Atomix to have clean state for each re-deploy of ONOS
+  atomix:
+    persistence:
+      enabled: false
 
 # Customization for BBSIM
-kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
-pon: 1
-onu: 1
+bbsim:
+  nni: 1
+  pon: 1
+  onu: 1
+  sadisFormat: "att"
+  kafkaEventTopic: "bbsim"
+  enableEvents: false
 
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
