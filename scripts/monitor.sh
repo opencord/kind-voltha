@@ -67,7 +67,7 @@ fi
 echo
 kubectl get --all-namespaces pods,svc,configmap | grep -v kube-system | cut -c -$__COLS
 echo
-kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g" | sort -u | cut -c -$__COLS
+kubectl  describe --all-namespaces  pods | grep Image: | grep '\(voltha\|bbsim\)' | sed -e "s/^ *//g" -e "s/: */: /g" | sort -u | cut -c -$COLS
 echo
 echo "DB SIZE: $("$SCRIPTPATH/etcd-db-size.sh")"
 echo

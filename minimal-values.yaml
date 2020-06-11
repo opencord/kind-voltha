@@ -39,16 +39,16 @@ private_kafka_cluster: false
 # information below (search for START_OPENONU_ADAPTER_GO).
 use_openonu_adapter_go: false
 
-#images:
-#  onos:
-#    repository: voltha/voltha-onos
+images:
+  onos:
+    repository: voltha/voltha-onos
     # IMAGE_SELECTION
     # ---------------
     # The helm chart used to deploy ONOS is the public ONOS helm chart so,
     # there is a need to specify the exact image repository and image tag.
     # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
-    #    tag: master
+    tag: master
 
 # IMAGE_SELECTION
 # ---------------
@@ -134,35 +134,27 @@ kafka:
 # open-onu:
 #   fullNameOverride: voltha-adapter-openonu
 
-onos:
-  image:
-    repository: voltha/voltha-onos
-    tag: master
-    pullPolicy: Always
-  onos_env:
-    - name: POD_IP
-      valueFrom:
-      fieldRef:
-        fieldPath: status.podIP
-    - name: NAMESPACE
-      valueFrom:
-      fieldRef:
-        fieldPath: metadata.namespace
-    - name: ONOS_APPS
-      value: "drivers,openflow-base,hostprovider"
-  # No persistent volume in Atomix to have clean state for each re-deploy of ONOS
-  atomix:
-    persistence:
-      enabled: false
+onos_env:
+  - name: POD_IP
+    valueFrom:
+    fieldRef:
+      fieldPath: status.podIP
+  - name: NAMESPACE
+    valueFrom:
+    fieldRef:
+      fieldPath: metadata.namespace
+  - name: ONOS_APPS
+    value: "drivers,openflow-base,hostprovider"
+
+# No persistent volume in Atomix to have clean state for each re-deploy of ONOS
+atomix:
+  persistence:
+    enabled: false
 
 # Customization for BBSIM
-bbsim:
-  nni: 1
-  pon: 1
-  onu: 1
-  sadisFormat: "att"
-  kafkaEventTopic: "bbsim"
-  enableEvents: false
+kafka_broker: 'voltha-kafka.voltha.svc.cluster.local:9092'
+pon: 1
+onu: 1
 
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and

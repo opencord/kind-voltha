@@ -13,4 +13,3 @@ voltha-debug-dump-*
 minimal-env.sh
 full-env.sh
 .DS_Store
-kube-config-*

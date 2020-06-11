@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-REQ=$(test $# -gt 0 && echo $1 || echo 0)
-IDX=$((REQ + 1))
 set -x
-BBSIM=$(kubectl get --all-namespaces -l app=bbsim svc -o json | jq -r '.items[] | .metadata.name + "." + .metadata.namespace + ".svc:50060"' | sed "$IDX!d")
-set +x
-if [[ -z "$BBSIM" ]]; then
-    >&2 echo "ERROR: No BBSIM instance found as index '$REQ'"
-    exit 1
-fi
-set -x
+BBSIM=$(kubectl get --all-namespaces -l app=bbsim svc -o json | jq -r '.items[] | .metadata.name + "." + .metadata.namespace + ".svc:50060"' | head -1)
 exec voltctl device enable "$(voltctl device create -t openolt -H "$BBSIM")"
