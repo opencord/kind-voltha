@@ -164,6 +164,12 @@ bbsim:
   kafkaEventTopic: "bbsim"
   enableEvents: false
 
+# Customization for BBSIM SADIS Servier
+sadis:
+  config:
+    bbsim_sadis_server:
+      sleep_time: 5s
+
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
 # pods. These extra labels can be used to integrate with other utilities

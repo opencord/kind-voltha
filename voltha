@@ -122,6 +122,8 @@ BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-ser
 BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
 ETCD_CHART=${ETCD_CHART:-incubator/etcd}
 ETCD_CHART_VERSION=${ETCD_CHART_VERSION:-latest}
+RADIUS_CHART=${RADIUS_CHART:-onf/freeradius}
+RADIUS_CHART_VERSION=${RADIUS_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
@@ -299,6 +301,8 @@ ALL_OPTIONS="\
     VOLTHA_CHART_VERSION \
     VOLTHA_BBSIM_CHART \
     VOLTHA_BBSIM_CHART_VERSION \
+    BBSIM_SADIS_SERVER_CHART \
+    BBSIM_SADIS_SERVER_CHART_VERSION \
     NUM_OF_BBSIM \
     NUM_OF_OPENONU \
     VOLTHA_ADAPTER_SIM_CHART \
@@ -313,6 +317,10 @@ ALL_OPTIONS="\
     ONOS_CLASSIC_CHART_VERSION \
     KAFKA_CHART \
     KAFKA_CHART_VERSION \
+    ETCD_CHART \
+    ETCD_CHART_VERSION \
+    RADIUS_CHART \
+    RADIUS_CHART_VERSION \
     ONOS_API_PORT \
     ONOS_SSH_PORT \
     SADIS_CFG \
@@ -1738,15 +1746,10 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
 
     if [ "$WITH_KAFKA" != "no" ]; then
         check_onos_app_active org.opencord.kafka
-        _HOST=voltha-kafka.$INFRA_NS.svc
-        _PORT=9092
-        if [ "$WITH_KAFKA" == "yes" ]; then
-            _HOST=voltha-kafka.$VOLTHA_NS.svc
-            _PORT=9092
-        elif [ "$WITH_KAFKA" == "external" ]; then
+        if is_in "$WITH_KAFKA" "yes,external"; then
             _HOST=kafka.$INFRA_NS.svc
             _PORT=9092
-        else
+        elif [ "$WITH_KAFKA" != "no" ]; then
             _HOST="$(echo "$WITH_KAFKA" | cut -d: -f1)"
             _PORT="$(echo "$WITH_KAFKA" | cut -s -d: -f2)"
             _PORT=${_PORT:-9092}
@@ -1819,6 +1822,11 @@ EOJ
 EOJ
 )"
     elif [ "$CONFIG_SADIS" == "external" ]; then
+        if kubectl get -n "$BBSIM_NS" svc/bbsim-sadis-server-bbsim-sadis-server >/dev/null 2>&1; then
+            BBSIM_SADIS_SVC="bbsim-sadis-server-bbsim-sadis-server"
+        else
+            BBSIM_SADIS_SVC="bbsim-sadis-server"
+        fi
         push_onos_config "json" \
             "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
             "network/configuration/apps/org.opencord.sadis" \
@@ -1826,7 +1834,7 @@ EOJ
 {
     "sadis": {
         "integration": {
-            "url": "http://bbsim-sadis-server.$BBSIM_NS.svc:58080/subscribers/%s",
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/subscribers/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -1836,7 +1844,7 @@ EOJ
     },
     "bandwidthprofile": {
         "integration": {
-            "url": "http://bbsim-sadis-server.$BBSIM_NS.svc:58080/profiles/%s",
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/profiles/%s",
             "cache": {
                 "enabled": true,
                 "maxsize": 50,
@@ -2144,7 +2152,7 @@ if [ "$CONFIG_SADIS" == "external" ]; then
     bspin - "Verify BBSIM SADIS Service Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim-sadis-servier\$" | wc -l)" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
-        helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" - "$_HELM_DESC BBSIM SADIS Server"
+        helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" "+sadis" "$_HELM_DESC BBSIM SADIS Server"
     else
         espin - "$VERIFIED"
     fi
@@ -2161,7 +2169,7 @@ if [ "$WITH_RADIUS" == "yes" ]; then
     bspin - "Verify RADIUS Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^radius\$" | wc -l)" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
-        helm_install - "$INFRA_NS" radius onf/freeradius latest - "$_HELM_DESC RADIUS"
+        helm_install - "$INFRA_NS" radius "$RADIUS_CHART" "$RADIUS_CHART_VERSION" "+radius" "$_HELM_DESC RADIUS"
     else
         espin - "$VERIFIED"
     fi
@@ -2200,14 +2208,14 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
         if kubectl get -n "$ADAPTER_NS" "svc/open-olt-adapter-open-olt-profiler" >/dev/null 2>&1; then
             VOLTHA_OPENOLT_PREFIX="open-olt-"
         fi
-      bspin - "Forward PProf ports port $FORWARD"
-      kill_port_forward voltha-rw-core-profiler voltha-voltha-rw-core-profiler
-      kill_port_forward adapter-open-olt-profiler open-olt-adapter-open-olt-profiler
-      kill_port_forward voltha-of-agent-profiler voltha-voltha-of-agent-profiler
-      port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-rw-core-profiler" "$VOLTHA_PPROF_PORT:6060"
-      port_forward "$ADAPTER_NS" "${VOLTHA_OPENOLT_PREFIX}adapter-open-olt-profiler" "$OPENOLT_PPROF_PORT:6060"
-      port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-of-agent-profiler" "$OFAGENT_PPROF_PORT:6060"
-      espin - "$VERIFIED"
+        bspin - "Forward PProf ports port $FORWARD"
+        kill_port_forward voltha-rw-core-profiler voltha-voltha-rw-core-profiler
+        kill_port_forward adapter-open-olt-profiler open-olt-adapter-open-olt-profiler
+        kill_port_forward voltha-of-agent-profiler voltha-voltha-of-agent-profiler
+        port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-rw-core-profiler" "$VOLTHA_PPROF_PORT:6060"
+        port_forward "$ADAPTER_NS" "${VOLTHA_OPENOLT_PREFIX}adapter-open-olt-profiler" "$OPENOLT_PPROF_PORT:6060"
+        port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-of-agent-profiler" "$OFAGENT_PPROF_PORT:6060"
+        espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
@@ -2216,7 +2224,11 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
 fi
 
 if is_in "$WITH_ONOS" "yes,legacy,classic" && [ "$WITH_RADIUS" != "no" ]; then
-    _HOST=radius.$INFRA_NS.svc
+    SVC_NAME=radius
+    if kubectl get -n "$INFRA_NS" "svc/radius-freeradius" >/dev/null 2>&1; then
+        SVC_NAME="radius-freeradius"
+    fi
+    _HOST="$SVC_NAME.$INFRA_NS.svc"
     _PORT=1812
     if [ "$WITH_RADIUS" != "yes" ]; then
         _HOST="$(echo "$WITH_RADIUS" | cut -d: -f1)"
