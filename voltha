@@ -87,6 +87,7 @@ WITH_PORT_FORWARDS=${WITH_PORT_FORWARDS:-yes}
 WITH_KAFKA=${WITH_KAFKA:-yes}
 WITH_ETCD=${WITH_ETCD:-yes}
 WITH_PPROF=${WITH_PPROF:-no}
+WITH_INCREMENTAL_EVTO_UPDATE=${WITH_INCREMENTAL_EVTO_UPDATE:-no}
 SCHEDULE_ON_CONTROL_NODES=${SCHEDULE_ON_CONTROL_NODES:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
@@ -265,6 +266,7 @@ ALL_YES_NO="\
     WITH_OPEN_ADAPTERS \
     WITH_PORT_FORWARDS \
     WITH_PPROF \
+    WITH_INCREMENTAL_EVTO_UPDATE \
     JUST_K8S \
     DEPLOY_K8S \
     INSTALL_ONOS_APPS \
@@ -2057,6 +2059,9 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^open-onu\$" | wc -l)" -ne 1 ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
+            if [ "$WITH_INCREMENTAL_EVTO_UPDATE" == "yes" ]; then
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set adapter_open_onu.incremental_evto_update=true"
+            fi
             espin - "$NOT_VERIFIED"
             helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "+open-onu" "$_HELM_DESC OpenONU Adapter"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="$_ORIGINAL_EXTRA_HELM_INSTALL_ARGS"
