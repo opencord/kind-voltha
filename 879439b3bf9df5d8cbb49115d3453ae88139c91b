@@ -16,6 +16,24 @@
       "revId": "879439b3bf9df5d8cbb49115d3453ae88139c91b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a308b8d1_fc023493",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 2155,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-16T19:03:54Z",
+      "side": 1,
+      "message": "this usage of \"bbsim-sadis-server\" is the name of the helm release/deployment the usage here is correct.",
+      "parentUuid": "0fec6b83_88fa99e7",
+      "revId": "879439b3bf9df5d8cbb49115d3453ae88139c91b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
