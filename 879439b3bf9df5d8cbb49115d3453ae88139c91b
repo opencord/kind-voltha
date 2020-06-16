@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0fec6b83_88fa99e7",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 2155,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2020-06-16T18:58:11Z",
+      "side": 1,
+      "message": "should \"bbsim-sadis-server\" be changed to $BBSIM_SADIS_SVC?",
+      "revId": "879439b3bf9df5d8cbb49115d3453ae88139c91b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
