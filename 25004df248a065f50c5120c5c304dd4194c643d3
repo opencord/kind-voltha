@@ -45,6 +45,29 @@
       "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "30f22f05_52d393d4",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 2188,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-18T14:29:03Z",
+      "side": 1,
+      "message": "These items should either be in INFRA_NS or they could be in their own namespace, i.e. EFK_NS, that has a default value of \"default\"",
+      "range": {
+        "startLine": 2188,
+        "startChar": 26,
+        "endLine": 2188,
+        "endChar": 36
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
