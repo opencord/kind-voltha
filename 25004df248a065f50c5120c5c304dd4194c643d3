@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "813c25a4_cb7a460e",
+        "filename": "README.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-18T14:19:27Z",
+      "side": 1,
+      "message": "this is more a minimal set up, so I wouldn\u0027t have `WITH_EFK` here.",
+      "range": {
+        "startLine": 47,
+        "startChar": 55,
+        "endLine": 47,
+        "endChar": 65
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "543c0c97_df50c510",
+        "filename": "README.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-18T14:19:27Z",
+      "side": 1,
+      "message": "same as above",
+      "range": {
+        "startLine": 59,
+        "startChar": 55,
+        "endLine": 59,
+        "endChar": 65
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
