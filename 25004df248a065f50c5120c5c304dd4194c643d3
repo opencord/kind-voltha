@@ -48,6 +48,52 @@
     },
     {
       "key": {
+        "uuid": "89146bba_9b7021f6",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 981,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-18T16:49:40Z",
+      "side": 1,
+      "message": "this is the name of the helm release, which is just fluentd in this case i believe.",
+      "range": {
+        "startLine": 981,
+        "startChar": 43,
+        "endLine": 981,
+        "endChar": 64
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4cfdfeee_ce1385c5",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 1042,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-18T16:49:40Z",
+      "side": 1,
+      "message": "EFK (capitalize)",
+      "range": {
+        "startLine": 1042,
+        "startChar": 64,
+        "endLine": 1042,
+        "endChar": 67
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c1c45770_73692f35",
         "filename": "voltha",
         "patchSetId": 7
