@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "1068ee3a_b3674550",
+        "filename": "README.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000627
+      },
+      "writtenOn": "2020-06-19T10:16:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "813c25a4_cb7a460e",
+      "range": {
+        "startLine": 47,
+        "startChar": 55,
+        "endLine": 47,
+        "endChar": 65
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "543c0c97_df50c510",
         "filename": "README.md",
         "patchSetId": 7
@@ -36,6 +60,30 @@
       "writtenOn": "2020-06-18T14:19:27Z",
       "side": 1,
       "message": "same as above",
+      "range": {
+        "startLine": 59,
+        "startChar": 55,
+        "endLine": 59,
+        "endChar": 65
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9f47e182_dcdf6aae",
+        "filename": "README.md",
+        "patchSetId": 7
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000627
+      },
+      "writtenOn": "2020-06-19T10:16:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "543c0c97_df50c510",
       "range": {
         "startLine": 59,
         "startChar": 55,
@@ -117,6 +165,30 @@
     },
     {
       "key": {
+        "uuid": "a9fb2690_e3445e78",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 1578,
+      "author": {
+        "id": 1000627
+      },
+      "writtenOn": "2020-06-19T10:16:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c1c45770_73692f35",
+      "range": {
+        "startLine": 1578,
+        "startChar": 1,
+        "endLine": 1578,
+        "endChar": 2
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d31bd3d2_994b16a4",
         "filename": "voltha",
         "patchSetId": 7
@@ -128,6 +200,30 @@
       "writtenOn": "2020-06-18T15:30:37Z",
       "side": 1,
       "message": "this needs to be calculated correctly as the wait for start is not happening correctly as the count of expected pods is not accurate.",
+      "range": {
+        "startLine": 2184,
+        "startChar": 0,
+        "endLine": 2184,
+        "endChar": 69
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ecc8b246_e3341165",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 2184,
+      "author": {
+        "id": 1000627
+      },
+      "writtenOn": "2020-06-19T10:16:40Z",
+      "side": 1,
+      "message": "this is commented line so removed",
+      "parentUuid": "d31bd3d2_994b16a4",
       "range": {
         "startLine": 2184,
         "startChar": 0,
@@ -163,6 +259,30 @@
     },
     {
       "key": {
+        "uuid": "869d9fc5_87a64691",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 2188,
+      "author": {
+        "id": 1000627
+      },
+      "writtenOn": "2020-06-19T10:16:40Z",
+      "side": 1,
+      "message": "Used INFRA_NS",
+      "parentUuid": "30f22f05_52d393d4",
+      "range": {
+        "startLine": 2188,
+        "startChar": 26,
+        "endLine": 2188,
+        "endChar": 36
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6e0d30f8_7b5536c1",
         "filename": "voltha",
         "patchSetId": 7
@@ -174,6 +294,30 @@
       "writtenOn": "2020-06-18T15:30:37Z",
       "side": 1,
       "message": "EFK (capitalize)",
+      "range": {
+        "startLine": 2194,
+        "startChar": 67,
+        "endLine": 2194,
+        "endChar": 70
+      },
+      "revId": "25004df248a065f50c5120c5c304dd4194c643d3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2b4b76d3_bd1b4d93",
+        "filename": "voltha",
+        "patchSetId": 7
+      },
+      "lineNbr": 2194,
+      "author": {
+        "id": 1000627
+      },
+      "writtenOn": "2020-06-19T10:16:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6e0d30f8_7b5536c1",
       "range": {
         "startLine": 2194,
         "startChar": 67,
