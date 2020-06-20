@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0f011de5_a251ba3a",
+        "filename": "voltha",
+        "patchSetId": 10
+      },
+      "lineNbr": 2199,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-20T00:19:29Z",
+      "side": 1,
+      "message": "The number of PODs for EFK is \n+1 for kibana\n+1 elastic\n+N for fluentd where for minimal N is +2 if `SCHEDULE_ON_CONTROL_NODES` \u003d\u003d no or +3 if `SCHEDULE_ON_CONTROL_NODES` is yes. for full I think it is +3 or +4.",
+      "range": {
+        "startLine": 2199,
+        "startChar": 32,
+        "endLine": 2199,
+        "endChar": 33
+      },
+      "revId": "972e22be95fc51a441e40e98621dc022027aaee7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "070e1ec8_07cdb76b",
+        "filename": "voltha",
+        "patchSetId": 10
+      },
+      "lineNbr": 2268,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-20T00:19:29Z",
+      "side": 1,
+      "message": "I don\u0027t understand the point of this statement. at this point WITH_EFK is already known to be \"yes\". So I think we can just remove this line and use \"$INFRA_NS\" and nod \"$_NS\".",
+      "range": {
+        "startLine": 2268,
+        "startChar": 0,
+        "endLine": 2268,
+        "endChar": 63
+      },
+      "revId": "972e22be95fc51a441e40e98621dc022027aaee7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1b09718b_91904e6f",
+        "filename": "voltha",
+        "patchSetId": 10
+      },
+      "lineNbr": 2366,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-20T00:19:29Z",
+      "side": 1,
+      "message": "this needs a little work around it so that there are retries, logs correctly, and if it fails displays a proper error in line with `kind-voltha`.",
+      "range": {
+        "startLine": 2364,
+        "startChar": 0,
+        "endLine": 2366,
+        "endChar": 2
+      },
+      "revId": "972e22be95fc51a441e40e98621dc022027aaee7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
