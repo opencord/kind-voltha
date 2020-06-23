@@ -22,6 +22,52 @@
       "revId": "4ff7a71c997e31cc75b914f6cd1c194f79a22611",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "652148c3_a40febb5",
+        "filename": "README.md",
+        "patchSetId": 13
+      },
+      "lineNbr": 196,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-23T14:00:49Z",
+      "side": 1,
+      "message": "when would this be expected to be used?",
+      "range": {
+        "startLine": 196,
+        "startChar": 6,
+        "endLine": 196,
+        "endChar": 37
+      },
+      "revId": "4ff7a71c997e31cc75b914f6cd1c194f79a22611",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8fae66e_2c83a2a1",
+        "filename": "README.md",
+        "patchSetId": 13
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-23T14:00:49Z",
+      "side": 1,
+      "message": "trailing white space",
+      "range": {
+        "startLine": 197,
+        "startChar": 50,
+        "endLine": 197,
+        "endChar": 51
+      },
+      "revId": "4ff7a71c997e31cc75b914f6cd1c194f79a22611",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
