@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "87f4bdbf_00bb1cd5",
+        "filename": "README.md",
+        "patchSetId": 13
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2020-06-23T03:50:44Z",
+      "side": 1,
+      "message": "efk-scripts, not efk_scripts",
+      "range": {
+        "startLine": 195,
+        "startChar": 41,
+        "endLine": 195,
+        "endChar": 52
+      },
+      "revId": "4ff7a71c997e31cc75b914f6cd1c194f79a22611",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
