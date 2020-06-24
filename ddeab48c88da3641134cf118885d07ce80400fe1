@@ -22,6 +22,30 @@
       "revId": "ddeab48c88da3641134cf118885d07ce80400fe1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "30120460_8e299a41",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1597,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-24T20:41:35Z",
+      "side": 1,
+      "message": "figured that for production most people won\u0027t install elastic, fluent, or other stuff via kind. makes `helm repo update` go quicker this way as well.",
+      "parentUuid": "dc80cdc7_6d4a3a41",
+      "range": {
+        "startLine": 1582,
+        "startChar": 0,
+        "endLine": 1597,
+        "endChar": 20
+      },
+      "revId": "ddeab48c88da3641134cf118885d07ce80400fe1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
