@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dc80cdc7_6d4a3a41",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1597,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-06-24T20:28:46Z",
+      "side": 1,
+      "message": "do we need the extra complexity on the check or can we just add all of them in any case?\nI don\u0027t think that will cause any issue",
+      "range": {
+        "startLine": 1582,
+        "startChar": 0,
+        "endLine": 1597,
+        "endChar": 20
+      },
+      "revId": "ddeab48c88da3641134cf118885d07ce80400fe1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
