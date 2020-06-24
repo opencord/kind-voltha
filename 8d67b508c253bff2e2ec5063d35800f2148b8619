@@ -46,6 +46,30 @@
       "revId": "8d67b508c253bff2e2ec5063d35800f2148b8619",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "71c9922a_59dab2eb",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1978,
+      "author": {
+        "id": 1000526
+      },
+      "writtenOn": "2020-06-24T06:51:45Z",
+      "side": 1,
+      "message": "Yeah missed to notice this one. I was not aware on this yq based extraction of subset of parameters from $(NAME}-values.yaml file. I can update the patch right away.",
+      "parentUuid": "89d6a0bb_553bc1cc",
+      "range": {
+        "startLine": 1978,
+        "startChar": 101,
+        "endLine": 1978,
+        "endChar": 102
+      },
+      "revId": "8d67b508c253bff2e2ec5063d35800f2148b8619",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
