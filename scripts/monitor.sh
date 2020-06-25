@@ -22,7 +22,7 @@ echo -n "Kind (client): "
 if ! command -v kind >/dev/null 2>&1; then
     echo "'kind' not in \$PATH"
 else
-    kind version
+    kind version | sed -E -e 's/^.*(v[0-9]+\.[0-9]+\.[0-9]+).*$/\1/'
 fi
 
 echo -n "Kubernetes (client/server): "
@@ -43,12 +43,17 @@ echo -n "Helm (client/server): "
 if ! command -v helm >/dev/null 2>&1; then
     echo "'helm' not in \$PATH"
 else
-    CLIENT=$(helm version --client --template '{{ (index . "Client").SemVer }}')
-    SERVER=$(helm version --server --template '{{ (index . "Server").SemVer }}' 2>/dev/null)
-    if [ "$?" -ne 0 ]; then
-        SERVER="ERROR"
+    CLIENT=$(helm version --client --short 2>/dev/null | sed -E -e 's/^.*(v[0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
+    MAJOR=$(helm version --client --short 2>/dev/null | sed -E -e 's/^.*v([0-9]+)\.[0-9]+\.[0-9]+.*$/\1/')
+    if [ "$MAJOR" -le 2 ]; then
+        SERVER=$(helm version --server --short 2>/dev/null | sed -E -e 's/^.*(v[0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
+        if [ -z "$SERVER" ]; then
+            SERVER="ERROR"
+        fi
+        echo "$CLIENT/$SERVER"
+    else
+        echo "$CLIENT"
     fi
-    echo "$CLIENT/$SERVER"
 fi
 
 echo -n "Voltha: (client/server): "
