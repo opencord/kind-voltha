@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6a770c72_565bf350",
+        "filename": "voltha",
+        "patchSetId": 9
+      },
+      "lineNbr": 2401,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2020-06-25T14:45:08Z",
+      "side": 1,
+      "message": "Looking at how the other port-forwards are setup, should this be `${VOLTHA_TRACING_PREFIX}` instead of `${VOLTHA_TRACING_CHART}` ?",
+      "range": {
+        "startLine": 2400,
+        "startChar": 8,
+        "endLine": 2401,
+        "endChar": 103
+      },
+      "revId": "9f75fbb4fdfc7824c7089b41e09c61fb0161c1f1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
