@@ -16,6 +16,9 @@ set -f
 unalias -a
 shopt -s extglob
 TOTAL_START_TIME="$(date +%s)"
+mkdir -p "$(pwd)/bin"
+PATH="$(pwd)/bin:$PATH"; export PATH
+GOPATH="$(pwd)"; export GOPATH
 
 FANCY=${FANCY:-1}
 if [ "$TERM X" == " X" ]; then
@@ -124,10 +127,10 @@ ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
 ONOS_CLASSIC_CHART=${ONOS_CLASSIC_CHART:-onos/onos-classic}
 ONOS_CLASSIC_CHART_VERSION=${ONOS_CLASSIC_CHART_VERSION:-0.1.1}
 KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
-KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=0.15.3}
+KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=latest}
 BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-server}
 BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
-ETCD_CHART=${ETCD_CHART:-incubator/etcd}
+ETCD_CHART=${ETCD_CHART:-etcd/etcd}
 ETCD_CHART_VERSION=${ETCD_CHART_VERSION:-latest}
 RADIUS_CHART=${RADIUS_CHART:-onf/freeradius}
 RADIUS_CHART_VERSION=${RADIUS_CHART_VERSION:-latest}
@@ -138,6 +141,7 @@ NUM_OF_OPENONU=${NUM_OF_OPENONU:-1}
 MAX_NUM_OF_BBSIM=10
 MAX_NUM_OF_OPENONU=10
 LEGACY_BBSIM_INDEX=${LEGACY_BBSIM_INDEX:-no}
+PF_ADDRESS=${PF_ADDRESS:-0.0.0.0}
 
 HOSTOS="$(uname -s | tr "[:upper:]" "[:lower:"])"
 HOSTARCH="$(uname -m | tr "[:upper:]" "[:lower:"])"
@@ -359,6 +363,7 @@ ALL_OPTIONS="\
     BBSIM_NS \
     SADIS_BANDWIDTH_PROFILES \
     SADIS_SUBSCRIBERS \
+    PF_ADDRESS \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -888,7 +893,7 @@ port_forward() {
     local PORTS="$*"
     local TAG=$SVC-$NAME
 
-    (set -x; _TAG="$TAG" bash -c "while true; do kubectl port-forward --address 0.0.0.0 -n $NS service/$SVC $PORTS; done" >>"$PFLOG" 2>&1 &) >>"$PFLOG" 2>&1
+    (set -x; _TAG="$TAG" bash -c "while true; do kubectl port-forward --address $PF_ADDRESS -n $NS service/$SVC $PORTS; done" >>"$PFLOG" 2>&1 &) >>"$PFLOG" 2>&1
 }
 
 kill_port_forward() {
@@ -959,6 +964,7 @@ if [ "$1" == "down" ]; then
     echo "Tearing down voltha cluster $NAME"
     LOG="down-$NAME.log"
     date -u +"%Y%m%dT%H%M%SZ" >"$LOG"
+    HELM_MAJOR=$(helm version --client --short | sed -E -e 's/^.*v([0-9]+)\.[0-9]+\.[0-9]+.*$/\1/')
     if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         bspin "Remove port-forwards: onos-ui-$NAME"
         kill_port_forward onos-ui
@@ -1002,7 +1008,12 @@ if [ "$1" == "down" ]; then
             (set -x; kubectl -n "$BBSIM_NS" delete --ignore-not-found configmap kube-config >>"$LOG" 2>&1) >>"$LOG" 2>&1
             espin "$VERIFIED"
         fi
-        EXISTS="$(helm list -q)"
+
+        if [ "$HELM_MAJOR" -le 2 ]; then
+            EXISTS=$(helm list --output json 2>/dev/null | jq -r '.Releases | .[] | .Name + "," + .Namespace')
+        else
+            EXISTS=$(helm list --all-namespaces --output json 2>/dev/null | jq -r '.[] | .name + "," + .namespace')
+        fi
         EXPECT="voltha"
         if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             EXPECT+=" onos"
@@ -1035,8 +1046,14 @@ if [ "$1" == "down" ]; then
         for i in $EXISTS; do
             for j in $EXPECT; do
                 if [[ "$i" =~ $j ]]; then
-                    sspin "Remove Helm Deployments: $i$CEOL"
-                    (set -x; ./bin/helm delete --no-hooks --purge "$i" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+                    __NAME=$(echo "$i" | cut -d, -f1)
+                    __NS=$(echo "$i" | cut -d, -f2)
+                    sspin "Remove Helm Deployments: $__NS:$__NAME$CEOL"
+                    if [ "$HELM_MAJOR" -le 2 ]; then
+                        (set -x; helm delete --no-hooks --purge "$__NAME" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+                    else
+                        (set -x; helm uninstall --no-hooks --namespace "$__NS" "$__NAME" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+                    fi
                 fi
             done
         done
@@ -1199,6 +1216,17 @@ helm_values() {
    ${CMD[*]} 2>/dev/null | awk 'PRINT==1 {print}; /^USER-SUPPLIED VALUES:/ {PRINT = 1}; /^$/ {PRINT = 0}'
 }
 
+helm_is_deployed() {
+    local NAMESPACE=$1; shift
+    local NAME=$1; shift
+
+    if [ "$HELM_MAJOR" -le 2 ]; then
+        helm list --deployed --short --namespace "$NAMESPACE" "$NAME" 2>/dev/null | wc -l
+    else
+        helm list --deployed --short --namespace "$NAMESPACE" --filter "$NAME" 2>/dev/null | wc -l
+    fi
+}
+
 helm_install() {
     local INDENT NOW VALUES_FILE PPROF_ARG
     if [ "$1" == "-" ]; then
@@ -1228,10 +1256,16 @@ helm_install() {
     bspin "$INDENT" "$MESSAGE"
     if [ "$HELM_USE_UPGRADE" == "yes" ]; then
         _HELM_COMMAND="upgrade --install"
-        _HELM_ARGS="$INAME"
+        _HELM_NAME_ARG="$INAME"
     else
         _HELM_COMMAND="install"
-        _HELM_ARGS="--name $INAME"
+        if [ "$HELM_MAJOR" -le 2 ]; then
+            _HELM_NAME_ARG="--name $INAME"
+            _HELM_ARGS=
+        else
+            _HELM_NAME_ARG="$INAME"
+            _HELM_ARGS="--create-namespace"
+        fi
     fi
 
     VALUES_FILE="$(mktemp)"
@@ -1247,7 +1281,7 @@ helm_install() {
     if [ "$WITH_PPROF" == "yes" ]; then
         PPROF_ARG="--set profiler.enabled=true"
     fi
-    CMD=("helm $_HELM_COMMAND -f $VALUES_FILE $CHART_ARGS $PPROF_ARG $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $CHART")
+    CMD=("helm $_HELM_COMMAND -f $VALUES_FILE $_HELM_ARGS $CHART_ARGS $PPROF_ARG $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
     (set -x; ${CMD[*]} >>"$LOG" 2>&1) >>"$LOG" 2>&1
     SUCCESS=$?
     while [ "$SUCCESS" -ne 0 ]; do
@@ -1261,7 +1295,11 @@ helm_install() {
         COUNT="$((COUNT - 1))"
         if [ "$COUNT" -eq 0 ]; then
             if [ "$HELM_USE_UPGRADE" == "no" ]; then
-                (set -x; helm delete --purge "$INAME" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+                if [ "$HELM_MAJOR" -le 2 ]; then
+                    (set -x; helm delete --purge "$INAME" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+                else
+                    (set -x; helm uninstall "$INAME" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+                fi
             fi
             (set -x; ${CMD[*]} >>"$LOG" 2>&1) >>"$LOG" 2>&1
             SUCCESS=$?
@@ -1274,11 +1312,6 @@ helm_install() {
 }
 
 echo "INSTALL TYPE: $TYPE" >> "$LOG"
-
-bspin "Verify GOPATH"
-GOPATH="$(pwd)"; export GOPATH
-mkdir -p "$GOPATH/bin"
-espin "$VERIFIED"
 
 STIME="$(date +%s)"
 if [ "$INSTALL_KUBECTL" == "no" ]; then
@@ -1321,7 +1354,7 @@ else
     OP_TYPE="install"
     if [ -x "$GOPATH/bin/kind" ]; then
         OP_TYPE="upgrade"
-        if [ "$("$GOPATH/bin/kind" --version | grep -c "$KIND_VERSION")" -eq 1 ]; then
+        if [ "$("$GOPATH/bin/kind" version | grep -c "$KIND_VERSION")" -eq 1 ]; then
             IS_INSTALLED=1
             espin "$VERIFIED"
         fi
@@ -1359,7 +1392,7 @@ else
     HELM_UPGRADE=0
     HELM_UPGRADE_DESC="install"
     if [ -x "$GOPATH/bin/helm" ]; then
-        HAVE_VER="$("$GOPATH/bin/helm" version -c --template '{{.Client.SemVer}}')"
+        HAVE_VER=$(helm version --client --short | sed -E -e 's/^.*(v[0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
         HELM_UP_DOWN="$(echo -e "$HAVE_VER\n$HELM_VERSION" | sort -V | head -1)"
         if [ "$HAVE_VER" != "$HELM_VERSION" ]; then
             if [ "$HELM_UP_DOWN" == "$HELM_VERSION" ]; then
@@ -1407,6 +1440,7 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
 fi
+HELM_MAJOR=$(helm version --client --short 2>/dev/null| sed -E -e 's/^.*v([0-9]+)\.[0-9]+\.[0-9]+.*$/\1/')
 
 STIME="$(date +%s)"
 bspin "Verify voltctl $HIGH_VOLTAGE"
@@ -1465,12 +1499,11 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
 fi
 
 bspin "Verify command PATH"
-export PATH=$GOPATH/bin:$PATH
 espin "$VERIFIED"
 
 STIME="$(date +%s)"
 if [ "$DEPLOY_K8S" == "yes" ]; then
-    HAVE="$(kind get clusters | grep -c "voltha-$NAME")"
+    HAVE="$(kind get clusters 2>/dev/null | grep -c "voltha-$NAME")"
     bspin "Verify Kubernetes/Kind Cluster"
     sspin
     if [ "$HAVE" -eq 0 ]; then
@@ -1496,11 +1529,13 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         espin "$VERIFIED"
     fi
 
-    export KUBECONFIG="./kube-config-$NAME"
-    kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG"
-    # For backward compatibility also copy to old location
-    mkdir -p "$HOME/.kube"
-    cp "$KUBECONFIG" "$HOME/.kube/kind-config-voltha-$NAME"
+    if [ "$HELM_MAJOR" -le 2 ]; then
+        KUBECONFIG="$(kind get kubeconfig-path --name="voltha-$NAME")"; export KUBECONFIG
+    else
+        KUBECONFIG="$HOME/.kube/kind-config-voltha-$NAME"; export KUBECONFIG
+        mkdir -p "$HOME/.kube"
+        kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG"
+    fi
 
     P="coredns-.* \
         etcd-voltha-$NAME-control-plane \
@@ -1527,58 +1562,62 @@ if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
     espin "$VERIFIED"
 fi
 
-STIME="$(date +%s)"
-COUNT="$(count_pods "kube-system" ":Running:" "$NO_LABEL" "tiller-deploy-.*")"
-bspin "Verify Helm"
-if [ "$COUNT" -ne 1 ]; then
-    espin "$NOT_VERIFIED"
-    echo -e "Configuring Helm $GEAR"
-    if [ "$INSTALL_HELM" == "no" ]; then
-        bspin - "Skip Helm/Tiller Initialization"
-        espin - $NO_ENTRY
-    else
-        bspin - "Initialize Helm"
-        (set -x; helm init --upgrade >>"$LOG" 2>&1) >>"$LOG" 2>&1
-        espin - "$VERIFIED"
-        wait_for_pods - "kube-system" 1 "includes" "Waiting for Tiller POD to start" "$NO_LABEL" "tiller-deploy-.*"
-    fi
-
-    # HACK (sort-of) - the config for tiller is about to be patched, which will
-    # cause the tiller pod to be recreated. This can sometimes cause a timing
-    # issue with the "wait_for_pods" call on tiller as it may incorrectly
-    # identify the running/ready tiller pod that is soon to be terminated as
-    # what it is waiting for. To avoid this issue we do a clean scale down and
-    # scale up of the pod so the script controlls when it should be expecting
-    # things
-    (set -x; kubectl -n kube-system scale deploy tiller-deploy --replicas=0 >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    wait_for_pods - "kube-system" 0 "not" "Waiting for Tiller POD to shutdown" "$NO_LABEL" "tiller-deploy-.*"
-
-    # Create and k8s service account so that Helm can create pods
-    bspin - "Create Tiller ServiceAccount"
-    (set -x; kubectl create serviceaccount --namespace kube-system tiller >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    espin - "$VERIFIED"
-    bspin - "Create Tiller ClusterRoleBinding"
-    (set -x; kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    espin - "$VERIFIED"
-    bspin - "Update Tiller Manifest"
-    (set -x; kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}' >>"$LOG" 2>&1) >>"$LOG" 2>&1
-
-    # HACK (sort-of) - part to, spin it back up
-    (set -x; kubectl -n kube-system scale deploy tiller-deploy --replicas=1 >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    espin - "$VERIFIED"
-else
-    if [ "$(helm version -s --template '{{.Server.SemVer}}')" != "$HELM_VERSION" ]; then
+if [ "$HELM_MAJOR" -le 2 ]; then
+    STIME="$(date +%s)"
+    COUNT="$(count_pods "kube-system" ":Running:" "$NO_LABEL" "tiller-deploy-.*")"
+    bspin "Verify Helm"
+    if [ "$COUNT" -ne 1 ]; then
         espin "$NOT_VERIFIED"
-        bspin - "Sync Tiller server version with helm client"
-        (set -x; helm init --upgrade --force-upgrade --wait >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        echo -e "Configuring Helm $GEAR"
+        if [ "$INSTALL_HELM" == "no" ]; then
+            bspin - "Skip Helm Initialization"
+            espin - $NO_ENTRY
+        else
+            bspin - "Initialize Helm"
+            (set -x; helm init --upgrade >>"$LOG" 2>&1) >>"$LOG" 2>&1
+            espin - "$VERIFIED"
+            wait_for_pods - "kube-system" 1 "includes" "Waiting for Tiller POD to start" "$NO_LABEL" "tiller-deploy-.*"
+        fi
+
+        # HACK (sort-of) - the config for tiller is about to be patched, which will
+        # cause the tiller pod to be recreated. This can sometimes cause a timing
+        # issue with the "wait_for_pods" call on tiller as it may incorrectly
+        # identify the running/ready tiller pod that is soon to be terminated as
+        # what it is waiting for. To avoid this issue we do a clean scale down and
+        # scale up of the pod so the script controlls when it should be expecting
+        # things
+        (set -x; kubectl -n kube-system scale deploy tiller-deploy --replicas=0 >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        wait_for_pods - "kube-system" 0 "not" "Waiting for Tiller POD to shutdown" "$NO_LABEL" "tiller-deploy-.*"
+
+        # Create and k8s service account so that Helm can create pods
+        bspin - "Create Tiller ServiceAccount"
+        (set -x; kubectl create serviceaccount --namespace kube-system tiller >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        espin - "$VERIFIED"
+        bspin - "Create Tiller ClusterRoleBinding"
+        (set -x; kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller >>"$LOG" 2>&1) >>"$LOG" 2>&1
+        espin - "$VERIFIED"
+        bspin - "Update Tiller Manifest"
+        (set -x; kubectl patch deploy --namespace kube-system tiller-deploy -p '{"spec":{"template":{"spec":{"serviceAccount":"tiller"}}}}' >>"$LOG" 2>&1) >>"$LOG" 2>&1
+
+        # HACK (sort-of) - part to, spin it back up
+        (set -x; kubectl -n kube-system scale deploy tiller-deploy --replicas=1 >>"$LOG" 2>&1) >>"$LOG" 2>&1
         espin - "$VERIFIED"
     else
-        espin "$VERIFIED"
+        if [ "$(helm version -s --template '{{.Server.SemVer}}')" != "$HELM_VERSION" ]; then
+            espin "$NOT_VERIFIED"
+            bspin - "Sync Tiller server version with helm client"
+            (set -x; helm init --upgrade --force-upgrade --wait >>"$LOG" 2>&1) >>"$LOG" 2>&1
+            espin - "$VERIFIED"
+        else
+            espin "$VERIFIED"
+        fi
+
     fi
-
+    wait_for_pods - "kube-system" 1 "includes" "Waiting for Tiller POD to start" "$NO_LABEL" "tiller-deploy-.*"
 fi
-wait_for_pods - "kube-system" 1 "includes" "Waiting for Tiller POD to start" "$NO_LABEL" "tiller-deploy-.*"
 
+# The `etcd` repo is temporary until `http://github.com/helm/charts/pull/22955` is
+# merged into the incubator charts
 REPOS="onf|https://charts.opencord.org|ONF_VOLTHA \
     stable|https://kubernetes-charts.storage.googleapis.com|Google_Stable \
     incubator|https://kubernetes-charts-incubator.storage.googleapis.com|Google_Incubator \
@@ -1586,9 +1625,10 @@ REPOS="onf|https://charts.opencord.org|ONF_VOLTHA \
     atomix|https://charts.atomix.io|ONF_Atomix \
     bbsim-sadis|https://ciena.github.io/bbsim-sadis-server/charts|Custom_BBSIM_SADIS_Server \
     elastic|https://helm.elastic.co|Elastic \
-    kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch"
-REPO_UPDATE_REQ="no"
+    kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch \
+    etcd|https://dbainbri-ciena.github.io/etcd-helm-chart"
 
+REPO_UPDATE_REQ="no"
 bspin - "Verify Helm Repository"
 for REPO in $REPOS; do
     REPO_NAME="$(echo "$REPO" | cut -d\| -f1)"
@@ -1713,7 +1753,14 @@ if [ "$JUST_K8S" == "yes" ]; then
     echo "" | tee -a "$LOG"
     echo -en "$BOLD"
     if [ "$DEPLOY_K8S" == "yes" ]; then
-        echo "export KUBECONFIG=\"\$(./bin/kind get kubeconfig-path --name=\"voltha-$NAME\")\"" | tee -a "$LOG"
+        if [ "$HELM_MAJOR" -le 2 ]; then
+            KUBECONFIG="$(kind get kubeconfig-path --name="voltha-$NAME")"; export KUBECONFIG
+        else
+            KUBECONFIG="$HOME/.kube/kind-config-voltha-$NAME"; export KUBECONFIG
+            mkdir -p "$HOME/.kube"
+            kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG"
+        fi
+        echo "export KUBECONFIG=\"$KUBECONFIG\"" | tee -a "$LOG"
     fi
     echo "export PATH=$GOPATH/bin:\$PATH" | tee -a "$LOG"
     echo -en "$NORMAL"
@@ -1726,7 +1773,7 @@ STIME="$(date +%s)"
 if is_in "$WITH_ONOS" "yes,legacy,classic"; then
     if is_in "$WITH_ONOS" "legacy"; then
         bspin "Verify ONOS LEGACY installed $BIRD"
-        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^onos\$")" -ne 1 ]; then
             espin "$NOT_VERIFIED"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="$SET_TAG $EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" onos "$ONOS_CHART" "$ONOS_CHART_VERSION" "+onos" "$_HELM_DESC ONOS LEGACY"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
@@ -1750,7 +1797,7 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         fi
     elif is_in "$WITH_ONOS" "yes,classic"; then
         bspin "Verify ONOS CLASSIC installed $BIRD"
-        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^onos\$" | wc -l)" -ne 1 ]; then
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^onos\$")" -ne 1 ]; then
             espin "$NOT_VERIFIED"
             # ONOS CLASSIC identifies its image repo/tag/pullPolicy differently, so yq is used to grab the values from the
             # values value
@@ -1947,7 +1994,7 @@ if is_in "$WITH_ETCD" "yes,external"; then
     STIME="$(date +%s)"
     bspin "Verify external ETCD cluster $OLD_KEY"
     EXPECT="$(yq r - "etcd.replicas" <"$NAME-values.yaml")"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^etcd\$" | wc -l)" -ne 1 ]; then
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^etcd\$")" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
     else
@@ -1980,7 +2027,7 @@ EOC
     STIME="$(date +%s)"
     bspin "Verify external Kafka cluster $OLD_KEY"
     EXPECT="$(test "$TYPE" == "minimal" && echo "2" || echo "4")"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^kafka\$" | wc -l)" -ne 1 ]; then
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kafka\$")" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
         helm_install - "$INFRA_NS" kafka "$KAFKA_CHART" "$KAFKA_CHART_VERSION" kafka "$_HELM_DESC external Kafka cluster"
@@ -2054,7 +2101,7 @@ else
 fi
 
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
-if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$VOLTHA_NS" "^voltha\$" | wc -l)" -ne 1 ]; then
+if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$VOLTHA_NS" "^voltha\$")" -ne 1 ]; then
     espin "$NOT_VERIFIED"
     helm_install - "$VOLTHA_NS" voltha "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION" "+voltha" "$_HELM_DESC VOLTHA Core"
 else
@@ -2097,7 +2144,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     echo -e "Verify Adapters $PLUG"
     if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
         bspin - "Verify Simulated Adapters installed"
-        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^sim\$" | wc -l)" -ne 1 ]; then
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$ADAPTER_NS" "^sim\$")" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
             helm_install - "$ADAPTER_NS"  sim "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION" - "$_HELM_DESC Simulated Adapters"
         else
@@ -2108,7 +2155,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
 
     if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
         bspin - "Verify OpenOLT Adapter installed"
-        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^open-olt\$" | wc -l)" -ne 1 ]; then
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$ADAPTER_NS" "^open-olt\$")" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
             helm_install - "$ADAPTER_NS" open-olt "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION" "+open-olt" "$_HELM_DESC OpenOLT Adapter"
         else
@@ -2116,7 +2163,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         fi
         EXPECT="$((EXPECT + 1))"
         bspin - "Verify OpenONU Adapter installed"
-        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$ADAPTER_NS"  "^open-onu\$" | wc -l)" -ne 1 ]; then
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$ADAPTER_NS" "^open-onu\$")" -ne 1 ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
             if [ "$WITH_INCREMENTAL_EVTO_UPDATE" == "yes" ]; then
@@ -2157,7 +2204,7 @@ if [ "$WITH_BBSIM" == "yes" ]; then
         fi
 
 
-        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim${instance_num}\$" | wc -l)" -ne 1 ]; then
+        if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim${instance_num}\$")" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
             S_TAG="$((900+instance))"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
@@ -2198,15 +2245,15 @@ if [ "$WITH_EFK" == "yes" ]; then
     STIME="$(date +%s)"
     echo -e "Verify EFK $PLUG"
     bspin - "Verify EFK Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^elasticsearch\$" | wc -l)" -ne 1 ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^kibana\$" | wc -l)" -ne 1 ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^fluentd\$" | wc -l)" -ne 1 ]; then
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^elasticsearch\$")" -ne 1 ] || [ "$(helm_is_deployed "$INFRA_NS" "^kibana\$")" -ne 1 ] || [ "$(helm_is_deployed "$INFRA_NS" "^fluentd\$")" -ne 1 ]; then
           espin - "$NOT_VERIFIED"
-          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^elasticsearch\$" | wc -l)" -ne 1 ]; then
+          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^elasticsearch\$")" -ne 1 ]; then
               helm_install - "$INFRA_NS" elasticsearch "$ELASTICSEARCH_CHART" "$ELASTICSEARCH_CHART_VERSION" elasticsearch "$_HELM_DESC elasticsearch"
           fi
-          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^kibana\$" | wc -l)" -ne 1 ]; then
+          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kibana\$")" -ne 1 ]; then
               helm_install - "$INFRA_NS" kibana  "$KIBANA_CHART" "$KIBANA_CHART_VERSION" kibana "$_HELM_DESC kibana"
           fi
-          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^fluentd\$" | wc -l)" -ne 1 ]; then
+          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^fluentd\$")" -ne 1 ]; then
               helm_install - "$INFRA_NS" fluentd  "$FLUENTD_ELASTICSEARCH_CHART" "$FLUENTD_ELASTICSEARCH_CHART_VERSION" fluentd-elasticsearch "$_HELM_DESC fluentd-elasticsearch"
           fi
     else
@@ -2237,7 +2284,7 @@ if [ "$CONFIG_SADIS" == "external" ]; then
     (set -x; kubectl -n "$BBSIM_NS" create configmap kube-config "--from-file=kube_config=$KUBECONFIG" >>"$LOG" 2>&1) >>"$LOG" 2>&1
     espin - "$VERIFIED"
     bspin - "Verify BBSIM SADIS Service Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$BBSIM_NS" "^bbsim-sadis-server\$" | wc -l)" -ne 1 ]; then
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim-sadis-server\$")" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
         helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" "+sadis" "$_HELM_DESC BBSIM SADIS Server"
     else
@@ -2290,7 +2337,7 @@ if [ "$WITH_RADIUS" == "yes" ]; then
     STIME="$(date +%s)"
     echo -e "Verify RADIUS $LOCK"
     bspin - "Verify RADIUS Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace "$INFRA_NS" "^radius\$" | wc -l)" -ne 1 ]; then
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^radius\$")" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
         helm_install - "$INFRA_NS" radius "$RADIUS_CHART" "$RADIUS_CHART_VERSION" "+radius" "$_HELM_DESC RADIUS"
     else
@@ -2380,7 +2427,7 @@ if [ "$WITH_CHAOS" == "yes" ]; then
     STIME="$(date +%s)"
     echo -e "Verify kube-monkey $LOCK"
     bspin - "Verify kube-monkey Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm list --deployed --short --namespace kube-monkey "^monkey\$" | wc -l)" -ne 1 ]; then
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed kube-monkey "^monkey\$")" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
         helm_install - kube-monkey monkey ./kube-monkey/helm/kubemonkey latest - "$_HELM_DESC Chaos Monkey"
     else
@@ -2428,7 +2475,7 @@ for O in $ALL_OPTIONS; do
 done
 
 if [ "$DEPLOY_K8S" == "yes" ] && [ "$(grep -c "^export KUBECONFIG=" "$NAME-env.sh")" -eq 0 ]; then
-    echo "export KUBECONFIG=\"$(./bin/kind get kubeconfig-path "--name=voltha-$NAME")\"" >> "$NAME-env.sh"
+    echo "export KUBECONFIG=\"$HOME/.kube/kind-config-voltha-$NAME\"" >> "$NAME-env.sh"
 fi
 
 if [ "$(grep -c "^export VOLTCONFIG=" "$NAME-env.sh")" -eq 0 ]; then
@@ -2446,7 +2493,7 @@ echo "tools required by VOLTHA in your command path.                         " |
 echo "" | tee -a "$LOG"
 echo -en "$BOLD"
 if [ "$DEPLOY_K8S" == "yes" ]; then
-    echo "export KUBECONFIG=\"\$(./bin/kind get kubeconfig-path --name=\"voltha-$NAME\")\"" | tee -a "$LOG"
+    echo "export KUBECONFIG=\"$HOME/.kube/kind-config-voltha-$NAME\"" | tee -a "$LOG"
 fi
 echo "export VOLTCONFIG=\"$HOME/.volt/config-$NAME\"" | tee -a "$LOG"
 echo "export PATH=$GOPATH/bin:\$PATH" | tee -a "$LOG"
