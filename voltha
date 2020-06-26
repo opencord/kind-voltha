@@ -2157,7 +2157,7 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
             if [ "$WITH_INCREMENTAL_EVTO_UPDATE" == "yes" ]; then
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set adapter_open_onu.incremental_evto_update=true"
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.incremental_evto_update=true"
             fi
             espin - "$NOT_VERIFIED"
             helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "+open-onu" "$_HELM_DESC OpenONU Adapter"
