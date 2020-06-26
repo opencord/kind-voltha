@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9f579bce_8d4637da",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 1752,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T09:12:03Z",
+      "side": 1,
+      "message": "`./bin/kind get kubeconfig --name\u003d `this is just `kubeconfig` with the new kind",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "007ff35d_f15c78a5",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 2467,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T09:12:03Z",
+      "side": 1,
+      "message": "`./bin/kind get kubeconfig --name\u003d `this is just `kubeconfig` with the new kind",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "346e9d39_3ada1845",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 2485,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T09:12:03Z",
+      "side": 1,
+      "message": "`./bin/kind get kubeconfig --name\u003d `this is just `kubeconfig` with the new kind",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
