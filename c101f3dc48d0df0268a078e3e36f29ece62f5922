@@ -2,6 +2,40 @@
   "comments": [
     {
       "key": {
+        "uuid": "3fa1be8d_aa3db21f",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 1052,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T11:21:52Z",
+      "side": 1,
+      "message": "kind-voltha does not seem to to installed HELM 3.2.4 even after exporting so this line does not work. I\u0027ve use helm instead of /bin/helm",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b96b19bb_cefa0796",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 1054,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T11:21:52Z",
+      "side": 1,
+      "message": "version of installed helm by kind-voltha defaults to 2.14.3. Need to install 3.2.4\nkind-voltha andrea$ ./bin/helm version\nClient: \u0026version.Version{SemVer:\"v2.14.3\", GitCommit:\"0e7f3b6637f7af8fcfddb3d2941fcc7cbebb0085\", GitTreeState:\"clean\"}\nError: could not find tiller",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9f579bce_8d4637da",
         "filename": "voltha",
         "patchSetId": 6
@@ -13,6 +47,24 @@
       "writtenOn": "2020-06-26T09:12:03Z",
       "side": 1,
       "message": "`./bin/kind get kubeconfig --name\u003d `this is just `kubeconfig` with the new kind",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6bcebfc_87718ce4",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 1752,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T11:21:52Z",
+      "side": 1,
+      "message": "correction, this needs to be piped to a file:\n./bin/kind get kubeconfig --name\u003d\"voltha-minimal\" \u003e ~/.kube/kind\nexport KUBECONFIG\u003d~/.kube/kind",
+      "parentUuid": "9f579bce_8d4637da",
       "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
@@ -36,6 +88,24 @@
     },
     {
       "key": {
+        "uuid": "6e6fcb74_f05124d8",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 2467,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T11:21:52Z",
+      "side": 1,
+      "message": "correction, this needs to be piped to a file:\n./bin/kind get kubeconfig --name\u003d\"voltha-minimal\" \u003e ~/.kube/kind\nexport KUBECONFIG\u003d~/.kube/kind",
+      "parentUuid": "007ff35d_f15c78a5",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "346e9d39_3ada1845",
         "filename": "voltha",
         "patchSetId": 6
@@ -47,6 +117,24 @@
       "writtenOn": "2020-06-26T09:12:03Z",
       "side": 1,
       "message": "`./bin/kind get kubeconfig --name\u003d `this is just `kubeconfig` with the new kind",
+      "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ef90476_27eaa857",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 2485,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-06-26T11:21:52Z",
+      "side": 1,
+      "message": "correction, this needs to be piped to a file:\n./bin/kind get kubeconfig --name\u003d\"voltha-minimal\" \u003e ~/.kube/kind\nexport KUBECONFIG\u003d~/.kube/kind",
+      "parentUuid": "346e9d39_3ada1845",
       "revId": "c101f3dc48d0df0268a078e3e36f29ece62f5922",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
