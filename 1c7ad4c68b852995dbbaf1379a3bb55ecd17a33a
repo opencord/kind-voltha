@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f8340c80_e0269789",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 2159,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-06-27T05:31:11Z",
+      "side": 1,
+      "message": "This option needs to be documented in the README.md file. I know this patchset didn\u0027t introduce this flag, but it still needs to be documented.",
+      "range": {
+        "startLine": 2159,
+        "startChar": 19,
+        "endLine": 2159,
+        "endChar": 47
+      },
+      "revId": "1c7ad4c68b852995dbbaf1379a3bb55ecd17a33a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
