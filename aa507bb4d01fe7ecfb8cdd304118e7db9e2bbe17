@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3285e985_03fddbc0",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 2117,
+      "author": {
+        "id": 1000107
+      },
+      "writtenOn": "2020-06-29T16:17:35Z",
+      "side": 1,
+      "message": "Still specifying the old way in some cases, is this intended?",
+      "revId": "aa507bb4d01fe7ecfb8cdd304118e7db9e2bbe17",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
