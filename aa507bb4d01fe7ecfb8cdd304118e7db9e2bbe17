@@ -16,6 +16,24 @@
       "revId": "aa507bb4d01fe7ecfb8cdd304118e7db9e2bbe17",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a51ddaf0_5004bbf5",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 2117,
+      "author": {
+        "id": 1000675
+      },
+      "writtenOn": "2020-06-29T17:23:43Z",
+      "side": 1,
+      "message": "These host:port changes are yet to be done for openonu adapter. here, we will change this old way,  once those changes are done.",
+      "parentUuid": "3285e985_03fddbc0",
+      "revId": "aa507bb4d01fe7ecfb8cdd304118e7db9e2bbe17",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
