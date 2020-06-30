@@ -1907,40 +1907,6 @@ EOJ
 }
 EOJ
 )"
-    elif [ "$CONFIG_SADIS" == "external" ]; then
-        if kubectl get -n "$BBSIM_NS" svc/bbsim-sadis-server-bbsim-sadis-server >/dev/null 2>&1; then
-            BBSIM_SADIS_SVC="bbsim-sadis-server-bbsim-sadis-server"
-        else
-            BBSIM_SADIS_SVC="bbsim-sadis-server"
-        fi
-        push_onos_config "json" \
-            "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
-            "network/configuration/apps/org.opencord.sadis" \
-            "$(cat <<EOJ | tr -d '[:space:]'
-{
-    "sadis": {
-        "integration": {
-            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/subscribers/%s",
-            "cache": {
-                "enabled": true,
-                "maxsize": 50,
-                "ttl": "PT1m"
-            }
-        }
-    },
-    "bandwidthprofile": {
-        "integration": {
-            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/profiles/%s",
-            "cache": {
-                "enabled": true,
-                "maxsize": 50,
-                "ttl": "PT1m"
-            }
-        }
-    }
-}
-EOJ
-)"
     elif [ "$CONFIG_SADIS" == "url" ]; then
         push_onos_config "json" \
             "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
@@ -2278,6 +2244,42 @@ if [ "$CONFIG_SADIS" == "external" ]; then
         espin - "$VERIFIED"
     fi
     wait_for_pods - "$BBSIM_NS" 1 "includes" "Waiting for BBSIM SADIS Server to start" "$NO_LABEL" "bbsim-sadis-server-.*"
+
+    if [ "$WITH_ONOS" == "yes" ]; then
+        if kubectl get -n "$BBSIM_NS" svc/bbsim-sadis-server-bbsim-sadis-server >/dev/null 2>&1; then
+            BBSIM_SADIS_SVC="bbsim-sadis-server-bbsim-sadis-server"
+        else
+            BBSIM_SADIS_SVC="bbsim-sadis-server"
+        fi
+        push_onos_config "json" \
+            "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
+            "network/configuration/apps/org.opencord.sadis" \
+            "$(cat <<EOJ | tr -d '[:space:]'
+{
+    "sadis": {
+        "integration": {
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/subscribers/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    },
+    "bandwidthprofile": {
+        "integration": {
+            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/profiles/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    }
+}
+EOJ
+)"
+    fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
         printtime $((NOW - STIME))
