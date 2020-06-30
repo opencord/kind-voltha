@@ -1581,19 +1581,12 @@ wait_for_pods - "kube-system" 1 "includes" "Waiting for Tiller POD to start" "$N
 
 REPOS="onf|https://charts.opencord.org|ONF_VOLTHA \
     stable|https://kubernetes-charts.storage.googleapis.com|Google_Stable \
-    incubator|https://kubernetes-charts-incubator.storage.googleapis.com|Google_Incubator"
-
-if is_in "$WITH_ONOS" "yes,legacy,classic"; then
-    REPOS+=" onos|https://charts.onosproject.org|ONF_ONOS \
-        atomix|https://charts.atomix.io|ONF_Atomi"
-fi
-if [ "$CONFIG_SADIS" == "external" ]; then
-    REPOS+=" bbsim-sadis|https://ciena.github.io/bbsim-sadis-server/charts|Custom_BBSIM_SADIS_Server"
-fi
-if [ "$WITH_EFK" == "yes" ]; then
-    REPOS+=" elastic|https://helm.elastic.co|Elastic \
+    incubator|https://kubernetes-charts-incubator.storage.googleapis.com|Google_Incubator \
+    onos|https://charts.onosproject.org|ONF_ONOS \
+    atomix|https://charts.atomix.io|ONF_Atomix \
+    bbsim-sadis|https://ciena.github.io/bbsim-sadis-server/charts|Custom_BBSIM_SADIS_Server \
+    elastic|https://helm.elastic.co|Elastic \
     kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch"
-fi
 REPO_UPDATE_REQ="no"
 
 bspin - "Verify Helm Repository"
