@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a26f2568_dfae1de3",
+        "filename": "VERSION",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-07-07T17:45:33Z",
+      "side": 1,
+      "message": "Shouldn\u0027t this be 5.1.0?",
+      "revId": "d1d2d557cc96ea93469d76a7077cfa862d899002",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
