@@ -22,6 +22,30 @@
       "revId": "f4a278b951ca8f2593374d2b8f6f6a2805cae126",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3a70bd4_31eb525f",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000526
+      },
+      "writtenOn": "2020-07-14T15:32:00Z",
+      "side": 1,
+      "message": "As I understand, it does not matter for helm-charts and kind-voltha repos. Zack also indicate the same in slack the other day",
+      "parentUuid": "652ce116_89e3844d",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 9
+      },
+      "revId": "f4a278b951ca8f2593374d2b8f6f6a2805cae126",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
