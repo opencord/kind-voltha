@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "652ce116_89e3844d",
+        "filename": "VERSION",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2020-07-14T14:49:26Z",
+      "side": 1,
+      "message": "Should this be a release version instead of dev? Does it matter?",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 9
+      },
+      "revId": "f4a278b951ca8f2593374d2b8f6f6a2805cae126",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
