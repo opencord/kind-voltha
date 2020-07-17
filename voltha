@@ -2245,7 +2245,7 @@ if [ "$CONFIG_SADIS" == "external" ]; then
     fi
     wait_for_pods - "$BBSIM_NS" 1 "includes" "Waiting for BBSIM SADIS Server to start" "$NO_LABEL" "bbsim-sadis-server-.*"
 
-    if [ "$WITH_ONOS" == "yes" ]; then
+    if is_in "$WITH_ONOS" "yes,classic,legacy"; then
         if kubectl get -n "$BBSIM_NS" svc/bbsim-sadis-server-bbsim-sadis-server >/dev/null 2>&1; then
             BBSIM_SADIS_SVC="bbsim-sadis-server-bbsim-sadis-server"
         else
@@ -2311,7 +2311,7 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
     if kubectl get -n "$VOLTHA_NS" "svc/voltha-voltha-api" >/dev/null 2>&1; then
         VOLTHA_PREFIX="voltha-"
     fi
-    
+
     port_forward "$VOLTHA_NS"  "${VOLTHA_PREFIX}voltha-api" "$VOLTHA_API_PORT:55555"
     espin - "$VERIFIED"
     if is_in "$WITH_ETCD" "yes,external"; then
