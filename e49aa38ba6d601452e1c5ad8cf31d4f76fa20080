@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "558ecb63_7975ab77",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 2248,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-17T18:12:21Z",
+      "side": 1,
+      "message": "shouldn\u0027t this be `if [ \"$WITH_ONOS\" !\u003d \"no\" ]; then` or `if is_in \"$WITH_ONOS\" \"yes,classic,legacy\"; then`?",
+      "range": {
+        "startLine": 2248,
+        "startChar": 0,
+        "endLine": 2248,
+        "endChar": 71
+      },
+      "revId": "e49aa38ba6d601452e1c5ad8cf31d4f76fa20080",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
