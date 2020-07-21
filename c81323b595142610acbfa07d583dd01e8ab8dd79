@@ -46,6 +46,30 @@
       "revId": "c81323b595142610acbfa07d583dd01e8ab8dd79",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f2c5d646_2f6791c1",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-21T18:48:30Z",
+      "side": 1,
+      "message": "I\u0027m holding for defaulting this to 0.8.1 until we move the ONF test pods.",
+      "parentUuid": "31ecb907_ac6bb955",
+      "range": {
+        "startLine": 41,
+        "startChar": 28,
+        "endLine": 41,
+        "endChar": 35
+      },
+      "revId": "c81323b595142610acbfa07d583dd01e8ab8dd79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
