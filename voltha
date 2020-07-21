@@ -1529,13 +1529,12 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         espin "$VERIFIED"
     fi
 
-    if [ "$HELM_MAJOR" -le 2 ]; then
-        KUBECONFIG="$(kind get kubeconfig-path --name="voltha-$NAME")"; export KUBECONFIG
-    else
-        KUBECONFIG="$HOME/.kube/kind-config-voltha-$NAME"; export KUBECONFIG
-        mkdir -p "$HOME/.kube"
-        kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG"
-    fi
+    KUBECONFIG_TMP=$(mktemp)
+    kind get kubeconfig --name="voltha-$NAME" >"$KUBECONFIG_TMP"
+    mkdir -p "$HOME/.kube"
+    KUBECONFIG="$HOME/.kube/kind-config-voltha-$NAME"; export KUBECONFIG
+    cp "$KUBECONFIG_TMP" "$KUBECONFIG"
+    rm -rf "$KUBECONFIG_TMP"
 
     P="coredns-.* \
         etcd-voltha-$NAME-control-plane \
