@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "435dd3ed_c8828dcc",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-21T18:38:42Z",
+      "side": 1,
+      "message": "should we default kind to v0.8.1?",
+      "range": {
+        "startLine": 41,
+        "startChar": 28,
+        "endLine": 41,
+        "endChar": 35
+      },
+      "revId": "c81323b595142610acbfa07d583dd01e8ab8dd79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
