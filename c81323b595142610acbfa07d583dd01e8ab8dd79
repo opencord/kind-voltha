@@ -22,6 +22,30 @@
       "revId": "c81323b595142610acbfa07d583dd01e8ab8dd79",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "31ecb907_ac6bb955",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-21T18:43:07Z",
+      "side": 1,
+      "message": "we should do that so that if the default changes 2.4 stays on these",
+      "parentUuid": "435dd3ed_c8828dcc",
+      "range": {
+        "startLine": 41,
+        "startChar": 28,
+        "endLine": 41,
+        "endChar": 35
+      },
+      "revId": "c81323b595142610acbfa07d583dd01e8ab8dd79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
