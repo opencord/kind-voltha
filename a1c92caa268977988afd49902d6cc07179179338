@@ -70,6 +70,24 @@
       "revId": "a1c92caa268977988afd49902d6cc07179179338",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9a186f3_31345aa9",
+        "filename": "voltha",
+        "patchSetId": 15
+      },
+      "lineNbr": 2125,
+      "author": {
+        "id": 1000675
+      },
+      "writtenOn": "2020-07-22T18:43:33Z",
+      "side": 1,
+      "message": "Yes.. because of the openonu adapter, these service and port changes are still there.",
+      "parentUuid": "57884846_6fe4cb2d",
+      "revId": "a1c92caa268977988afd49902d6cc07179179338",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
