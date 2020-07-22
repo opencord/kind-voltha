@@ -34,6 +34,24 @@
       "revId": "a1c92caa268977988afd49902d6cc07179179338",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38a2c8ba_03f42b89",
+        "filename": "voltha",
+        "patchSetId": 15
+      },
+      "lineNbr": 2125,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-22T17:49:26Z",
+      "side": 1,
+      "message": "looking at this code, i am wondering if some of the adapters have been changed to the \"address\" format and some haven\u0027t so that this attempting to catch everyone.",
+      "parentUuid": "9068dd2f_8d4af85a",
+      "revId": "a1c92caa268977988afd49902d6cc07179179338",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
