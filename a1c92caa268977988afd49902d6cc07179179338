@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8a1197c6_de55aa6f",
+        "filename": "voltha",
+        "patchSetId": 15
+      },
+      "lineNbr": 2125,
+      "author": {
+        "id": 1000107
+      },
+      "writtenOn": "2020-07-22T17:13:37Z",
+      "side": 1,
+      "message": "Still have service \u0026 port in some places?",
+      "revId": "a1c92caa268977988afd49902d6cc07179179338",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
