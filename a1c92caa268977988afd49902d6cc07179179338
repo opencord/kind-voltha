@@ -52,6 +52,24 @@
       "revId": "a1c92caa268977988afd49902d6cc07179179338",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "57884846_6fe4cb2d",
+        "filename": "voltha",
+        "patchSetId": 15
+      },
+      "lineNbr": 2125,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-22T18:02:05Z",
+      "side": 1,
+      "message": "the olt adapter uses \"address\" and the onu adapter uses \"service\" and \"port\" so this is setting both up. i think the idea was change the onu adapter as it is written in go.",
+      "parentUuid": "38a2c8ba_03f42b89",
+      "revId": "a1c92caa268977988afd49902d6cc07179179338",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
