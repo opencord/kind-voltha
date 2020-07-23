@@ -2294,7 +2294,8 @@ if [ "$CONFIG_SADIS" == "external" ]; then
     bspin - "Verify BBSIM SADIS Service Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim-sadis-server\$")" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
-        helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" "+sadis" "$_HELM_DESC BBSIM SADIS Server"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS="$EXTRA_HELM_FLAGS" helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" "+sadis" "$_HELM_DESC BBSIM SADIS Server"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
     else
         espin - "$VERIFIED"
     fi
