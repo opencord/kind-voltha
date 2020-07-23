@@ -2287,10 +2287,6 @@ fi
 if [ "$CONFIG_SADIS" == "external" ]; then
     STIME="$(date +%s)"
     echo -e "Verify BBSIM SADIS Service $PLUG"
-    bspin - "Verify required configmap"
-    (set -x; kubectl -n "$BBSIM_NS" delete --ignore-not-found configmap kube-config >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    (set -x; kubectl -n "$BBSIM_NS" create configmap kube-config "--from-file=kube_config=$KUBECONFIG" >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    espin - "$VERIFIED"
     bspin - "Verify BBSIM SADIS Service Installed"
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim-sadis-server\$")" -ne 1 ]; then
         espin - "$NOT_VERIFIED"
