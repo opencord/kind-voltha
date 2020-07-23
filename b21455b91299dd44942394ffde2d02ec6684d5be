@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7fe9a0f5_2e20d21e",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 2287,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-23T18:55:23Z",
+      "side": 1,
+      "message": "doesn\u0027t this just make `EXTRA_HELM_FLAGS` part of the message?",
+      "range": {
+        "startLine": 2287,
+        "startChar": 161,
+        "endLine": 2287,
+        "endChar": 177
+      },
+      "revId": "b21455b91299dd44942394ffde2d02ec6684d5be",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
