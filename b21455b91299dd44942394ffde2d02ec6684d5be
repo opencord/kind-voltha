@@ -22,6 +22,30 @@
       "revId": "b21455b91299dd44942394ffde2d02ec6684d5be",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1754c41b_40b74ac9",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 2287,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-23T19:02:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7fe9a0f5_2e20d21e",
+      "range": {
+        "startLine": 2287,
+        "startChar": 161,
+        "endLine": 2287,
+        "endChar": 177
+      },
+      "revId": "b21455b91299dd44942394ffde2d02ec6684d5be",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
