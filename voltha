@@ -1210,9 +1210,15 @@ helm_values() {
         _HELM_ARGS="xxxdryrunxxx"
     else
         _HELM_COMMAND="install"
-        _HELM_ARGS="--name xxxdryrunxxx"
+        if [ "$HELM_MAJOR" -le 2 ]; then
+            _HELM_NAME_ARG="--name xxxdryrunxxx"
+            _HELM_ARGS=
+        else
+            _HELM_NAME_ARG="xxxdryrunxxx"
+            _HELM_ARGS="--create-namespace"
+        fi
     fi
-    CMD=("helm $_HELM_COMMAND --debug --dry-run -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $CHART")
+    CMD=("helm $_HELM_COMMAND --debug --dry-run -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
    ${CMD[*]} 2>/dev/null | awk 'PRINT==1 {print}; /^USER-SUPPLIED VALUES:/ {PRINT = 1}; /^$/ {PRINT = 0}'
 }
 
