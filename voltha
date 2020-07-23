@@ -2050,12 +2050,14 @@ case $WITH_ETCD in
     yes|external)
         _HOST="etcd.$INFRA_NS.svc"
         _PORT=2379
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.address=$_HOST:$_PORT"
         ;;
     *)
         _HOST="$(echo "$WITH_ETCD" | cut -d: -f1)"
         _PORT="$(echo "$WITH_ETCD" | cut -s -d: -f2)"
         _PORT=${_PORT:-2379}
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.address=$_HOST:$_PORT"
         ;;
 esac
@@ -2065,13 +2067,15 @@ case $WITH_KAFKA in
     yes|external)
         _HOST=kafka.$INFRA_NS.svc
         _PORT=9092
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
         ;;
     *)
         _HOST="$(echo "$WITH_KAFKA" | cut -d: -f1)"
         _PORT="$(echo "$WITH_KAFKA" | cut -s -d: -f2)"
         _PORT=${_PORT:-9092}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
         ;;
 esac
 
@@ -2091,10 +2095,12 @@ compare_versions "$RESOLVED_VOLTHA_CHART_VERSION" 2.4.2
 if [ "$?" == "1" ]; then
     # voltha chart > 2.4.2 uses list of controllers
     for NUM in $(seq 0 $((NUM_OF_ONOS-1))); do
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[$NUM].service=onos-onos-classic-$NUM.onos-onos-classic-hs.$INFRA_NS.svc --set services.controller[$NUM].port=6653"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller[$NUM].address=onos-onos-classic-$NUM.onos-onos-classic-hs.$INFRA_NS.svc:6653"
     done
 else
     # voltha chart <= 2.4.2 uses single controller
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.service=$_HOST --set services.controller.port=$_PORT"
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.controller.address=$_HOST:$_PORT"
 fi
 
@@ -2122,22 +2128,26 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     if is_in "$WITH_ETCD" "yes,external"; then
         _HOST=etcd.$INFRA_NS.svc
         _PORT=2379
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT --set services.etcd.address=$_HOST:$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.address=$_HOST:$_PORT"
     elif [ "$WITH_ETCD" != "no" ]; then
         _HOST="$(echo "$WITH_ETCD" | cut -d: -f1)"
         _PORT="$(echo "$WITH_ETCD" | cut -s -d: -f2)"
         _PORT=${_PORT:-2379}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT --set services.etcd.address=$_HOST:$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.service=$_HOST --set services.etcd.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.etcd.address=$_HOST:$_PORT"
     fi
     if is_in "$WITH_KAFKA" "yes,external"; then
         _HOST=kafka.$INFRA_NS.svc
         _PORT=9092
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
     elif [ "$WITH_KAFKA" != "no" ]; then
         _HOST="$(echo "$WITH_KAFKA" | cut -d: -f1)"
         _PORT="$(echo "$WITH_KAFKA" | cut -s -d: -f2)"
         _PORT=${_PORT:-9092}
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set kafka_broker=$_HOST:$_PORT --set services.kafka.adapter.service=$_HOST --set services.kafka.adapter.port=$_PORT --set services.kafka.cluster.service=$_HOST --set services.kafka.cluster.port=$_PORT"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set services.kafka.adapter.address=$_HOST:$_PORT --set services.kafka.cluster.address=$_HOST:$_PORT"
     fi
     echo -e "Verify Adapters $PLUG"
     if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
