@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2f94f966_ab06b22a",
+        "filename": "cluster.cfg",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-28T21:01:08Z",
+      "side": 1,
+      "message": "I was thinking that we would not need a *.cfg file and instead would generate the whole file in temp and perhaps output it as name-kind.cfg in create people wanted to see what it was. Additionally, we should allow the setting of NUM_OF_K8S_WORKERS and NUM_OF_K8S_CONTROLLERS. One last point would be an option of KIND_CONFIG which defaults to dynamic, but could also specify a cfg file so the user could essentially apply any config they wanted, this would also override any NUM_OF_K8S_value",
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "96cca17a_7c40a35b",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-28T21:01:08Z",
+      "side": 1,
+      "message": "Also a NUM_OF_CONTROLLER_NODES which defaults to 1",
+      "range": {
+        "startLine": 139,
+        "startChar": 0,
+        "endLine": 139,
+        "endChar": 19
+      },
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4bc7fd0b_ed2538ad",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1535,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-28T21:01:08Z",
+      "side": 1,
+      "message": "should just generate the complete file and not have an external base file",
+      "range": {
+        "startLine": 1521,
+        "startChar": 8,
+        "endLine": 1535,
+        "endChar": 10
+      },
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d6729702_066e120b",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1537,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-28T21:01:08Z",
+      "side": 1,
+      "message": "might want to copy the config to `$NAME-cluster.cfg` and/or maybe log it as well.",
+      "range": {
+        "startLine": 1537,
+        "startChar": 0,
+        "endLine": 1537,
+        "endChar": 35
+      },
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
