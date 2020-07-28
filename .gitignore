@@ -3,14 +3,11 @@ bin
 onos-apps
 pkg
 src
-install.log
 *.swp
 *.log
 logger/*
-voltha-debug-dump-minimal*
 voltha-system-tests
 voltha-debug-dump-*
-minimal-env.sh
-full-env.sh
+*-env.sh
 .DS_Store
 kube-config-*
