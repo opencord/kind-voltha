@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "441e966f_7e7f1eed",
+        "filename": "cluster.cfg",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-28T22:13:41Z",
+      "side": 1,
+      "message": "Added support for NUM_OF_K8S_WORKERS and NUM_OF_K8S_CONTROLLERS. Not yet to override the file.",
+      "parentUuid": "2f94f966_ab06b22a",
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "96cca17a_7c40a35b",
         "filename": "voltha",
         "patchSetId": 2
@@ -39,6 +57,30 @@
       "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a558b1c2_b72712b9",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-28T22:13:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "96cca17a_7c40a35b",
+      "range": {
+        "startLine": 139,
+        "startChar": 0,
+        "endLine": 139,
+        "endChar": 19
+      },
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "de7b55b5_f7f64489",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1535,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-28T22:13:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4bc7fd0b_ed2538ad",
+      "range": {
+        "startLine": 1521,
+        "startChar": 8,
+        "endLine": 1535,
+        "endChar": 10
+      },
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d6729702_066e120b",
         "filename": "voltha",
         "patchSetId": 2
@@ -85,6 +151,30 @@
       "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9d242418_d8717632",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1537,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-28T22:13:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d6729702_066e120b",
+      "range": {
+        "startLine": 1537,
+        "startChar": 0,
+        "endLine": 1537,
+        "endChar": 35
+      },
+      "revId": "b567f49f7fbdb59c50d52a3c1ff89a31758a6a4e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
