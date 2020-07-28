@@ -2482,11 +2482,18 @@ if [ ! -f "$NAME-env.sh" ]; then
     touch "$NAME-env.sh"
 fi
 
+if [ ! -f "$NAME-unset.sh" ]; then
+    touch "$NAME-unset.sh"
+fi
+
+cat /dev/null > "$NAME-unset.sh"
+
 for O in $ALL_OPTIONS; do
     VAL="$(eval echo "\$$O")"
     if [ -n "$VAL" ] && [ "$(grep -c "^export $O=" "$NAME-env.sh")" -eq 0 ]; then
         echo "export $O=\"$(eval echo "\$$O")\"" >> "$NAME-env.sh"
     fi
+    echo "unset $O" >> "$NAME-unset.sh"
 done
 
 if [ "$DEPLOY_K8S" == "yes" ] && [ "$(grep -c "^export KUBECONFIG=" "$NAME-env.sh")" -eq 0 ]; then
