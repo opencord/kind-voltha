@@ -65,8 +65,7 @@ if [ "$FANCY" -eq 1 ]; then
     CIVIS="$(tput civis)"
 fi
 
-TYPE=${TYPE:-minimal}
-NAME=${NAME:-$TYPE}
+NAME=${NAME:-minimal}
 
 ENABLE_ONOS_EXTRANEOUS_RULES=${ENABLE_ONOS_EXTRANEOUS_RULES:-no}
 INFRA_NS=${INFRA_NS:-default}
@@ -137,7 +136,11 @@ RADIUS_CHART_VERSION=${RADIUS_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
+NUM_OF_WORKER_NODES=${NUM_OF_WORKER_NODES:-2}
+NUM_OF_CONTROLLER_NODES=${NUM_OF_CONTROLLER_NODES:-1}
 NUM_OF_OPENONU=${NUM_OF_OPENONU:-1}
+NUM_OF_KAFKA=${NUM_OF_KAFKA:-1}
+NUM_OF_ETCD=${NUM_OF_ETCD:-1}
 MAX_NUM_OF_BBSIM=10
 MAX_NUM_OF_OPENONU=10
 LEGACY_BBSIM_INDEX=${LEGACY_BBSIM_INDEX:-no}
@@ -150,33 +153,6 @@ if [ "$HOSTARCH" == "x86_64" ]; then
 fi
 BBSIM_LABEL="-l app=bbsim"
 NO_LABEL=
-
-# check number (range) of bbsim, max bbsim must not exceed 10 instances!
-# note: instances will be numbered from 0 to 9
-if [ "$1" == "up" ]; then
-    if [ "$NUM_OF_BBSIM" -lt 1 ]; then
-        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of BBSIM instances. NUM_OF_BBSIM (${NUM_OF_BBSIM}) is less than 1${NORMAL}"
-        exit 1
-    fi
-    if [ "$NUM_OF_BBSIM" -gt "$MAX_NUM_OF_BBSIM" ]; then
-        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of BBSIM instances. NUM_OF_BBSIM (${NUM_OF_BBSIM}) is greater than $MAX_NUM_OF_BBSIM${NORMAL}"
-        exit 1
-    fi
-
-    if [ "$NUM_OF_OPENONU" -lt 1 ]; then
-        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of OPENONU instances. NUM_OF_OPENONU (${NUM_OF_OPENONU}) is less than 1${NORMAL}"
-        exit 1
-    fi
-    if [ "$NUM_OF_OPENONU" -gt "$MAX_NUM_OF_OPENONU" ]; then
-        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of OPENONU instances. NUM_OF_OPENONU (${NUM_OF_OPENONU}) is greater than $MAX_NUM_OF_OPENONU${NORMAL}"
-        exit 1
-    fi
-fi
-# Verify TYPE setting
-if [ "$(echo ":minimal:full:" | grep -ic ":$TYPE:")" -eq 0 ]; then
-    >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid \$TYPE value of '$TYPE'. Should be 'minimal' or 'full'${NORMAL}"
-    exit 1
-fi
 
 # checks to see if a given WORD is in the given LIST of words
 function is_in() {
@@ -304,7 +280,6 @@ OPT_YES_NO="\
 
 ALL_OPTIONS="\
     NAME \
-    TYPE \
     $ALL_YES_NO \
     $OPT_YES_NO \
     WAIT_TIMEOUT \
@@ -316,6 +291,10 @@ ALL_OPTIONS="\
     BBSIM_SADIS_SERVER_CHART \
     BBSIM_SADIS_SERVER_CHART_VERSION \
     NUM_OF_BBSIM \
+    NUM_OF_WORKER_NODES \
+    NUM_OF_CONTROLLER_NODES \
+    NUM_OF_KAFKA \
+    NUM_OF_ETCD \
     ELASTICSEARCH_CHART \
     ELASTICSEARCH_CHART_VERSION \
     KIBANA_CHART \
@@ -379,6 +358,59 @@ done
 for VAR in $OPT_YES_NO; do
     eval "$VAR"="$(normalize_yes_no "$VAR")"
 done
+
+# check number (range) of bbsim, max bbsim must not exceed 10 instances!
+# note: instances will be numbered from 0 to 9
+if [ "$1" == "up" ]; then
+    if [ "$NUM_OF_BBSIM" -lt 1 ]; then
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of BBSIM instances. NUM_OF_BBSIM (${NUM_OF_BBSIM}) is less than 1${NORMAL}"
+        exit 1
+    fi
+    if [ "$NUM_OF_BBSIM" -gt "$MAX_NUM_OF_BBSIM" ]; then
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of BBSIM instances. NUM_OF_BBSIM (${NUM_OF_BBSIM}) is greater than $MAX_NUM_OF_BBSIM${NORMAL}"
+        exit 1
+    fi
+
+    if [ "$NUM_OF_OPENONU" -lt 1 ]; then
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of OPENONU instances. NUM_OF_OPENONU (${NUM_OF_OPENONU}) is less than 1${NORMAL}"
+        exit 1
+    fi
+    if [ "$NUM_OF_OPENONU" -gt "$MAX_NUM_OF_OPENONU" ]; then
+        >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of OPENONU instances. NUM_OF_OPENONU (${NUM_OF_OPENONU}) is greater than $MAX_NUM_OF_OPENONU${NORMAL}"
+        exit 1
+    fi
+
+    # check that NUM_OF_KAFKA, NUM_OF_ONOS, NUM_OF_ATOMIX, NUM_OF_ETCD is:
+    # <= NUM_OF_WORKER_NODES + 1 if SCHEDULE_ON_CONTROL_NODES == y
+    # <= NUM_OF_WORKER_NODES if SCHEDULE_ON_CONTROL_NODES == n
+    SCHEDULABLE_NODES=$NUM_OF_WORKER_NODES
+
+    if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
+      SCHEDULABLE_NODES=$((NUM_OF_CONTROLLER_NODES+NUM_OF_WORKER_NODES))
+    fi
+
+    NODES="SCHEDULE_ON_CONTROL_NODES: $SCHEDULE_ON_CONTROL_NODES, SCHEDULABLE_NODES: $SCHEDULABLE_NODES, NUM_OF_CONTROLLER_NODES: $NUM_OF_CONTROLLER_NODES, NUM_OF_WORKER_NODES: $NUM_OF_WORKER_NODES"
+
+    if [ ! "$NUM_OF_KAFKA" -le "$SCHEDULABLE_NODES" ]; then
+      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of KAFKA replicas. NUM_OF_KAFKA (${NUM_OF_KAFKA}) is greater than the available nodes ($NODES)${NORMAL}"
+      exit 1
+    fi
+
+    if [ ! "$NUM_OF_ETCD" -le "$SCHEDULABLE_NODES" ]; then
+      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ETCD replicas. NUM_OF_ETCD (${NUM_OF_ETCD}) is greater than the available nodes ($NODES)${NORMAL}"
+      exit 1
+    fi
+
+    if [ ! "$NUM_OF_ATOMIX" -le "$SCHEDULABLE_NODES" ]; then
+      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ATOMIX replicas. NUM_OF_ATOMIX (${NUM_OF_ATOMIX}) is greater than the available nodes ($NODES)${NORMAL}"
+      exit 1
+    fi
+
+    if [ ! "$NUM_OF_ONOS" -le "$SCHEDULABLE_NODES" ]; then
+      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ONOS replicas. NUM_OF_ONOS (${NUM_OF_ONOS}) is greater than the available nodes ($NODES)${NORMAL}"
+      exit 1
+    fi
+fi
 
 # normalize non-truth value options
 if is_in "$WITH_KAFKA" "e,external"; then
@@ -1218,7 +1250,7 @@ helm_values() {
             _HELM_ARGS="--create-namespace"
         fi
     fi
-    CMD=("helm $_HELM_COMMAND --debug --dry-run -f $NAME-values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
+    CMD=("helm $_HELM_COMMAND --debug --dry-run -f values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
    ${CMD[*]} 2>/dev/null | awk 'PRINT==1 {print}; /^USER-SUPPLIED VALUES:/ {PRINT = 1}; /^$/ {PRINT = 0}'
 }
 
@@ -1276,13 +1308,13 @@ helm_install() {
 
     VALUES_FILE="$(mktemp)"
     if [ "$FILTER" == "-" ]; then
-        cp "$NAME-values.yaml" "$VALUES_FILE"
+        cp "values.yaml" "$VALUES_FILE"
     elif [ "${FILTER:0:1}" == "+" ]; then
-        cp "$NAME-values.yaml" "$VALUES_FILE"
-        yq r - "${FILTER:1}" <"$NAME-values.yaml" >>"$VALUES_FILE"
+        cp "values.yaml" "$VALUES_FILE"
+        yq r - "${FILTER:1}" <"values.yaml" >>"$VALUES_FILE"
         cat "$VALUES_FILE" >>"$LOG"
     else
-        yq r - "$FILTER" <"$NAME-values.yaml" >"$VALUES_FILE"
+        yq r - "$FILTER" <"values.yaml" >"$VALUES_FILE"
     fi
     if [ "$WITH_PPROF" == "yes" ]; then
         PPROF_ARG="--set profiler.enabled=true"
@@ -1317,7 +1349,7 @@ helm_install() {
     espin "$INDENT" "$VERIFIED"
 }
 
-echo "INSTALL TYPE: $TYPE" >> "$LOG"
+echo "INSTALL NAME: $NAME" >> "$LOG"
 
 STIME="$(date +%s)"
 if [ "$INSTALL_KUBECTL" == "no" ]; then
@@ -1514,22 +1546,28 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     sspin
     if [ "$HAVE" -eq 0 ]; then
         espin "$NOT_VERIFIED"
-        bspin - "Verify cluster configuration"
-        if [ ! -r "./$NAME-cluster.cfg" ]; then
-            espin - "$NOT_VERIFIED"
-            bspin - "Download cluster configuration: $TYPE-cluster.cfg to $NAME-cluster.cfg $DOWNLOAD"
-            ERR_OUT="$(mktemp)"
-            if ! (set -x; curl --fail -o "./$NAME-cluster.cfg" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/$TYPE-cluster.cfg" >>"$LOG" 2>>"$ERR_OUT") >>"$LOG" 2>&1; then
-                espin - "$THEX"
-                echo -e "${RED}${BOLD}${ERROR}ERROR: $NAME-cluster.cfg${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
-                echo "ERROR: $(cat "$ERR_OUT")" >>"$LOG"
-                rm -rf "$ERR_OUT" "./$NAME-cluster.cfg"
-                exit 1
-            fi
-            rm -rf "$ERR_OUT"
-        else
-            espin - "$VERIFIED"
+        bspin - "Generating cluster configuration"
+
+        touch "$NAME-cluster.cfg"
+
+        yq w -i "$NAME-cluster.cfg" kind Cluster
+        yq w -i "$NAME-cluster.cfg" apiVersion "kind.sigs.k8s.io/v1alpha3"
+
+        if [ ! "$NUM_OF_CONTROLLER_NODES" -eq 0 ]; then
+          for instance in $(seq 1 "$NUM_OF_CONTROLLER_NODES"); do
+            yq w -i "$NAME-cluster.cfg" "nodes[+].role" "control-plane"
+          done
         fi
+
+        if [ ! "$NUM_OF_WORKER_NODES" -eq 0 ]; then
+          for instance in $(seq 1 "$NUM_OF_WORKER_NODES"); do
+            yq w -i "$NAME-cluster.cfg" "nodes[+].role" worker
+          done
+        fi
+        espin - "$VERIFIED"
+
+        cat "$NAME-cluster.cfg" >> "$LOG" 2>&1
+
         kind create cluster --name "voltha-$NAME" --config "$NAME-cluster.cfg"
      else
         espin "$VERIFIED"
@@ -1550,9 +1588,14 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         kube-proxy-.* \
         kube-scheduler-voltha-$NAME-control-plane"
 
-    EXPECT="$(test "$TYPE" == "minimal" && echo "12" || echo "14")"
+    EXPECT="8"
+    if [ ! "$NUM_OF_WORKER_NODES" -eq 0 ]; then
+      NUM=$((2*NUM_OF_WORKER_NODES)) # kindnet and kube-proxy are deployed on each node
+      EXPECT=$((EXPECT+NUM))
+    fi
     wait_for_pods - "kube-system" "$EXPECT" "includes" "Waiting for system PODs to start" "$NO_LABEL" "$P"
 fi
+
 if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
@@ -1692,16 +1735,16 @@ Resolved helm charts and versions:
 EOV
 
 STIME="$(date +%s)"
-bspin "Verify Helm values file: $NAME-values.yaml"
-if [ ! -r "./$NAME-values.yaml" ]; then
+bspin "Verify Helm values file: values.yaml"
+if [ ! -r "./values.yaml" ]; then
     espin "$NOT_VERIFIED"
-    bspin - "Download Helm values file: $TYPE-values.yaml to $NAME-values.yaml $DOWNLOAD"
+    bspin - "Download Helm values file: values.yaml to values.yaml $DOWNLOAD"
     ERR_OUT="$(mktemp)"
-    if ! (set -x; curl --fail -o "./$NAME-values.yaml" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/$TYPE-values.yaml" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
+    if ! (set -x; curl --fail -o "./values.yaml" -sSL "https://raw.githubusercontent.com/opencord/kind-voltha/$VK_RELEASE/values.yaml" >>"$LOG" 2>"$ERR_OUT") >>"$LOG" 2>&1; then
         espin - "$THEX"
-        echo -e "${RED}${BOLD}${ERROR}ERROR: $NAME-values.yaml${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
+        echo -e "${RED}${BOLD}${ERROR}ERROR: values.yaml${NORMAL}${RED} - $(cat "$ERR_OUT")${NORMAL}"
         echo "ERROR: $(cat "$ERR_OUT")" >>"$LOG"
-        rm -rf "$ERR_OUT" "./$NAME-values.yaml"
+        rm -rf "$ERR_OUT" "./values.yaml"
         exit 1
     fi
     rm -rf "$ERR_OUT"
@@ -1997,10 +2040,11 @@ fi
 if is_in "$WITH_ETCD" "yes,external"; then
     STIME="$(date +%s)"
     bspin "Verify external ETCD cluster $OLD_KEY"
-    EXPECT="$(yq r - "etcd.replicas" <"$NAME-values.yaml")"
+    EXPECT=$NUM_OF_ETCD
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^etcd\$")" -ne 1 ]; then
         espin "$NOT_VERIFIED"
-        helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ETCD" helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
     else
         espin "$VERIFIED"
     fi
@@ -2013,24 +2057,23 @@ fi
 
 if is_in "$WITH_KAFKA" "yes,external"; then
     _TMP="$(mktemp -u)"
-    _COUNT="$(test "$TYPE" == "minimal" && echo "1" || echo "3")"
     cat << EOC > "$_TMP"
 configurationOverrides:
-  "default.replication.factor": $_COUNT
-  "offsets.topic.replication.factor": $_COUNT
+  "default.replication.factor": $NUM_OF_KAFKA
+  "offsets.topic.replication.factor": $NUM_OF_KAFKA
   "log.retention.hours": 4
   "log.message.timestamp.type": "LogAppendTime"
 persistence:
   enabled: false
 zookeeper:
-  replicaCount: 1
+  replicaCount: $NUM_OF_KAFKA
   persistence:
     enabled: false
-replicas: $_COUNT
+replicas: $NUM_OF_KAFKA
 EOC
     STIME="$(date +%s)"
     bspin "Verify external Kafka cluster $OLD_KEY"
-    EXPECT="$(test "$TYPE" == "minimal" && echo "2" || echo "4")"
+    EXPECT=$((NUM_OF_KAFKA*2))
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kafka\$")" -ne 1 ]; then
         espin "$NOT_VERIFIED"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"

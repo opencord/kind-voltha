@@ -15,7 +15,7 @@ shellcheck: ## check shell scripts with shellcheck
 	shellcheck --version
 	shellcheck $(SHELL_FILES)
 
-YAML_FILES ?= $(shell find . -type f \( -name '*.yaml' -o -name '*.yml' -o -name '*.cfg' \) -print )
+YAML_FILES ?= $(shell find . -type f \( -name '*.yaml' -o -name '*.yml' \) -print )
 yamllint: ## lint check YAML files with yamllint
 	yamllint --version
 	yamllint \

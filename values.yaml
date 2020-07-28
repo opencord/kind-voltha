@@ -85,7 +85,6 @@ images:
 # END_OPENONU_ADAPTER_GO
 
 etcd:
-  replicas: 3
   extraEnv:
     - name: ETCD_AUTO_COMPACTION_RETENTION
       value: "1"
@@ -110,10 +109,8 @@ etcd:
 
 kafka:
   zookeeper:
-    replicaCount: 3
     persistence:
       enabled: false
-  replicas: 3
   persistence:
     enabled: false
   envOverrides:

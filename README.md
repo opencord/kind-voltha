@@ -17,27 +17,17 @@ it deployes VOLTHA and will exit with an error if the tools are not present.
 _NOTE: If you are deploying a KinD Kubernetes cluster using the `voltha`
 script, you must also also have Docker installed_
 
-## INSTALL TYPE
-The `voltha` script can install two variations or types of a VOLTHA deployment:
-**minimal** or **full**. The difference is characterized in the following
-table:
+## NAMING YOUR CLUSTER
 
-| RESOURCE                | MINIMAL       | FULL |
-| ----------------------- | ------------- | ------------------------- |
-| K8s Control Plane Nodes | 1             | 1 |
-| K8s Workers             | 2             | 3 |
-| EtcdOperator Components | Operator only | Operator, Backup, Restore |
-| EtcdCluster             | 1 Member      | 3 Members |
+The `voltha` script can be used to manage multiple clusters at the same time,
+thus it's important to always name your cluster.
 
-Throughout this `README.md` file deployment and configuration files are
-referenced in the form **$TYPE-cluster.cfg** and **$TYPE-values.yaml**.
-Depending on which type of deloyment you wish to install replace **$TYPE**
-with either **minimal** or **full**. If you set the environment variable `TYPE`
-to the desired deployment type, example below, then the commands can be
-executed via a simply copy and paste to your command line.
 ```bash
-export TYPE=minimal
+export NAME=minimal
 ```
+
+Throughout this `README.md` file you'll find multiple references to `$NAME`
+and that can always be replaced with the name your cluster (the default value is `local`).
 
 ## TL;DR
 OK, if you really don't care how it starts and you just want it started. After
@@ -79,8 +69,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 
 | OPTION                                  | DEFAULT                                               | DESCRIPTION |
 | --------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `TYPE`                                  | minimal                                               | `minimal` or `full` and determines number of cluster nodes and etcd cluster members |
-| `NAME`                                  | TYPE                                                  | Name of the KinD Cluster to be created |
+| `NAME`                                  | `minimal`                                             | Name of the KinD Cluster to be created |
 | `DEPLOY_K8S`                            | yes                                                   | Should the KinD Kubernetes cluster be deployed? |
 | `JUST_K8S`                              | no                                                    | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA) |
 | `SCHEDULE_ON_CONTROL_NODES`             | no                                                    | Untaint the control plane (master) K8s nodes so that PODs may be scheduled on them |
@@ -152,6 +141,15 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `ELASTICSEARCH_PORT`                    | dynamic                                               | (advanced) Override dynamic port selection for port forward for elasticsearch |
 | `KIBANA_PORT`                           | dynamic                                               | (advanced) Override dynamic port selection for port forward for  kibana |
 
+### Managing the cluster(s) size
+The `voltha` script supports configuration for cluster of different sizes.
+For example you can setup an HA cluster with:
+
+```bash
+NUM_OF_WORKER_NODES=3 NUM_OF_ONOS=3 NUM_OF_KAFKA=3 NUM_OF_ETCD=3 NUM_OF_ATOMIX=3 ./voltha up
+```
+As usual one can add as many other options, for example `CONFIG_SADIS=y`.
+
 ### Custom Namespaces
 
 Separate namespaces can be specified for various components
@@ -211,18 +209,19 @@ the recommendations as described in the product documenation: https://www.elasti
 ### Controlling VOLTHA with an ONOS cluster
 
 To provide HA, resilinecy and failover ONOS can be configured in cluster mode.
-A 3 node ONOS deployment for example can be achieved via the `full` configuration:
+A 3 node ONOS deployment for example can be achieved via:
 ```bash
-TYPE=full WITH_ONOS=classic NUM_OF_ONOS=3 NUM_OF_ATOMIX=3 ./voltha up
+NUM_OF_WORKER_NODES=3 WITH_ONOS=classic NUM_OF_ONOS=3 NUM_OF_ATOMIX=3 ./voltha up
 ```
-Please note the `TYPE=full` that deploys a 3 worker nodes for k8s and `WITH_ONOS=classic` that uses the
+Please note the above command deploys a 3 worker nodes for k8s and `WITH_ONOS=classic` that uses the
 cluster-enabled [helm chart](https://charts.onosproject.org) for ONOS (version 2.2).
 The `NUM_OF_ONOS=3 NUM_OF_ATOMIX=3` flags set the number of Atomix nodes and ONOS nodes.
+
 As usual one can add as many other options, for example `CONFIG_SADIS=y`.
 
 ## GENERATED CONFIGURATION
 When the voltha script is run it generates a file that contains the
-configuration settings. This file will be named `$TYPE-env.sh`. The user can
+configuration settings. This file will be named `$NAME-env.sh`. The user can
 `source` this file to set the configuration as well as establish key environment
 variables in order to access VOLTHA, including:
 
@@ -235,7 +234,7 @@ variables in order to access VOLTHA, including:
 After `voltha up` is run, it is useful to source this file.
 
 ## QUICK CHECK
-After source the `$TYPE-env.sh` file, you should be able to access VOLTHA via
+After source the `$NAME-env.sh` file, you should be able to access VOLTHA via
 the control application `voltctl`. To validate this you can use the following
 command
 ```bash
@@ -267,8 +266,8 @@ voltctl device create -t openolt -H bbsim0.voltha.svc:50060
 
 ## TROUBLESHOOTING
 When VOLTHA is installed the install log is written to the file
-`install-$TYPE.log`. If the install appears stalled or is not completing
+`install-$NAME.log`. If the install appears stalled or is not completing
 consulting this file may indicate the reason.
 
-Similarly, when VOLTHA is uninstalled `down-$TYPE.log` is written and should
+Similarly, when VOLTHA is uninstalled `down-$NAME.log` is written and should
 be consulted in the event of an error or unexpected result.
