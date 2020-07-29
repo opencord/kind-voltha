@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "ce569d9b_76899bde",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-29T17:52:04Z",
+      "side": 1,
+      "message": "by default NAME\u003d\u003dTYPE today. so if you don\u0027t specify a NAME when you create a cluster it will be named minimal. so if we default the NAME to minimal we should essentially have the same name as we have today, as most people don\u0027t actually specify a name and more importantly the defaults stay the same.",
+      "parentUuid": "3238e94f_7c6dac95",
+      "range": {
+        "startLine": 68,
+        "startChar": 13,
+        "endLine": 68,
+        "endChar": 18
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5c1760ca_485e9f00",
         "filename": "voltha",
         "patchSetId": 4
