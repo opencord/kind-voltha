@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "1403eebe_f0629b63",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-29T17:58:04Z",
+      "side": 1,
+      "message": "yes, what I\u0027m saying is that today in $TYPE-env.sh we store \"export NAME\u003dminimal\" so that will still be used as $NAME for you cluster, if you start from a fresh environment you\u0027ll get a different name.\n\nI renamed it as \"minimal\" doesn\u0027t make sense anymore as $NAME, but I can change it back if that has to be a blocker.",
+      "parentUuid": "ce569d9b_76899bde",
+      "range": {
+        "startLine": 68,
+        "startChar": 13,
+        "endLine": 68,
+        "endChar": 18
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5c1760ca_485e9f00",
         "filename": "voltha",
         "patchSetId": 4
