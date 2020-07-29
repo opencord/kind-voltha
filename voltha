@@ -1575,7 +1575,16 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         cat "$FILE" >> "$LOG" 2>&1
 
         kind create cluster --name "voltha-$NAME" --config "$FILE"
-     else
+    else
+        # verify that the cluster has the expected number of nodes or fail the build
+        WORKER_NODES=$(kubectl get node --selector='!node-role.kubernetes.io/master' --no-headers | wc -l)
+        CONTROL_NODES=$(kubectl get node --selector='node-role.kubernetes.io/master' --no-headers | wc -l)
+        if [ "$WORKER_NODES" -ne "$NUM_OF_WORKER_NODES" ] || [ "$CONTROL_NODES" -ne "$NUM_OF_CONTROLLER_NODES" ]; then
+          espin "$NOT_VERIFIED"
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR: The running cluster has a different number of nodes than requested${NORMAL}"
+          >&2 echo -e "${RED}${BOLD}${ERROR}Tear down the existing cluster with DEPLOY_K8S=y ./voltha down and start again${NORMAL}"
+          exit 1
+        fi
         espin "$VERIFIED"
     fi
 
