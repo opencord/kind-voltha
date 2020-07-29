@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7c5e570e_31dd02cd",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-29T16:53:56Z",
+      "side": 1,
+      "message": "why not default name to `minimal`. this, i think, would essentially create a backward compatibility.",
+      "range": {
+        "startLine": 68,
+        "startChar": 13,
+        "endLine": 68,
+        "endChar": 18
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
