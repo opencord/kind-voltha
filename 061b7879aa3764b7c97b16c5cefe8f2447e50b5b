@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3238e94f_7c6dac95",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-29T17:34:44Z",
+      "side": 1,
+      "message": "how it will create backward compatibility?\nif you had a cluster called \"minimal\" then the \"NAME\" var is still exported and its value will be used",
+      "parentUuid": "7c5e570e_31dd02cd",
+      "range": {
+        "startLine": 68,
+        "startChar": 13,
+        "endLine": 68,
+        "endChar": 18
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5c1760ca_485e9f00",
         "filename": "voltha",
         "patchSetId": 4
@@ -68,6 +92,30 @@
       "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4513646a_f614c2e2",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1572,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-29T17:34:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "50a906d9_449e6459",
+      "range": {
+        "startLine": 1572,
+        "startChar": 61,
+        "endLine": 1572,
+        "endChar": 70
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
