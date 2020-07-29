@@ -22,6 +22,52 @@
       "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5c1760ca_485e9f00",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1569,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-29T16:56:18Z",
+      "side": 1,
+      "message": "why not `cp`",
+      "range": {
+        "startLine": 1569,
+        "startChar": 8,
+        "endLine": 1569,
+        "endChar": 11
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "50a906d9_449e6459",
+        "filename": "voltha",
+        "patchSetId": 4
+      },
+      "lineNbr": 1572,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-29T16:56:18Z",
+      "side": 1,
+      "message": "this file needed deleted else tmp will fill up.",
+      "range": {
+        "startLine": 1572,
+        "startChar": 61,
+        "endLine": 1572,
+        "endChar": 70
+      },
+      "revId": "061b7879aa3764b7c97b16c5cefe8f2447e50b5b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
