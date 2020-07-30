@@ -380,35 +380,38 @@ if [ "$1" == "up" ]; then
         exit 1
     fi
 
-    # check that NUM_OF_KAFKA, NUM_OF_ONOS, NUM_OF_ATOMIX, NUM_OF_ETCD is:
-    # <= NUM_OF_WORKER_NODES + 1 if SCHEDULE_ON_CONTROL_NODES == y
-    # <= NUM_OF_WORKER_NODES if SCHEDULE_ON_CONTROL_NODES == n
-    SCHEDULABLE_NODES=$NUM_OF_WORKER_NODES
+    if [ "$DEPLOY_K8S" == "yes" ]; then
+        # if we're setting up a cluster then
+        # check that NUM_OF_KAFKA, NUM_OF_ONOS, NUM_OF_ATOMIX, NUM_OF_ETCD is:
+        # <= NUM_OF_WORKER_NODES + 1 if SCHEDULE_ON_CONTROL_NODES == y
+        # <= NUM_OF_WORKER_NODES if SCHEDULE_ON_CONTROL_NODES == n
+        SCHEDULABLE_NODES=$NUM_OF_WORKER_NODES
 
-    if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
-      SCHEDULABLE_NODES=$((NUM_OF_CONTROLLER_NODES+NUM_OF_WORKER_NODES))
-    fi
+        if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
+          SCHEDULABLE_NODES=$((NUM_OF_CONTROLLER_NODES+NUM_OF_WORKER_NODES))
+        fi
 
-    NODES="SCHEDULE_ON_CONTROL_NODES: $SCHEDULE_ON_CONTROL_NODES, SCHEDULABLE_NODES: $SCHEDULABLE_NODES, NUM_OF_CONTROLLER_NODES: $NUM_OF_CONTROLLER_NODES, NUM_OF_WORKER_NODES: $NUM_OF_WORKER_NODES"
+        NODES="SCHEDULE_ON_CONTROL_NODES: $SCHEDULE_ON_CONTROL_NODES, SCHEDULABLE_NODES: $SCHEDULABLE_NODES, NUM_OF_CONTROLLER_NODES: $NUM_OF_CONTROLLER_NODES, NUM_OF_WORKER_NODES: $NUM_OF_WORKER_NODES"
 
-    if [ ! "$NUM_OF_KAFKA" -le "$SCHEDULABLE_NODES" ]; then
-      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of KAFKA replicas. NUM_OF_KAFKA (${NUM_OF_KAFKA}) is greater than the available nodes ($NODES)${NORMAL}"
-      exit 1
-    fi
+        if [ ! "$NUM_OF_KAFKA" -le "$SCHEDULABLE_NODES" ]; then
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of KAFKA replicas. NUM_OF_KAFKA (${NUM_OF_KAFKA}) is greater than the available nodes ($NODES)${NORMAL}"
+          exit 1
+        fi
 
-    if [ ! "$NUM_OF_ETCD" -le "$SCHEDULABLE_NODES" ]; then
-      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ETCD replicas. NUM_OF_ETCD (${NUM_OF_ETCD}) is greater than the available nodes ($NODES)${NORMAL}"
-      exit 1
-    fi
+        if [ ! "$NUM_OF_ETCD" -le "$SCHEDULABLE_NODES" ]; then
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ETCD replicas. NUM_OF_ETCD (${NUM_OF_ETCD}) is greater than the available nodes ($NODES)${NORMAL}"
+          exit 1
+        fi
 
-    if [ ! "$NUM_OF_ATOMIX" -le "$SCHEDULABLE_NODES" ]; then
-      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ATOMIX replicas. NUM_OF_ATOMIX (${NUM_OF_ATOMIX}) is greater than the available nodes ($NODES)${NORMAL}"
-      exit 1
-    fi
+        if [ ! "$NUM_OF_ATOMIX" -le "$SCHEDULABLE_NODES" ]; then
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ATOMIX replicas. NUM_OF_ATOMIX (${NUM_OF_ATOMIX}) is greater than the available nodes ($NODES)${NORMAL}"
+          exit 1
+        fi
 
-    if [ ! "$NUM_OF_ONOS" -le "$SCHEDULABLE_NODES" ]; then
-      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ONOS replicas. NUM_OF_ONOS (${NUM_OF_ONOS}) is greater than the available nodes ($NODES)${NORMAL}"
-      exit 1
+        if [ ! "$NUM_OF_ONOS" -le "$SCHEDULABLE_NODES" ]; then
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ONOS replicas. NUM_OF_ONOS (${NUM_OF_ONOS}) is greater than the available nodes ($NODES)${NORMAL}"
+          exit 1
+        fi
     fi
 fi
 
