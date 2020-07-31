@@ -22,6 +22,30 @@
       "revId": "dd94647da127ca97960ef5265aae09b3290b46cd",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "edb17a7f_9a2e8167",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1551,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-07-31T15:12:55Z",
+      "side": 1,
+      "message": "I needed the patch quick and I was not aware of such requirements, can make fixes now.",
+      "parentUuid": "b77ae914_f4d99f20",
+      "range": {
+        "startLine": 1551,
+        "startChar": 8,
+        "endLine": 1551,
+        "endChar": 12
+      },
+      "revId": "dd94647da127ca97960ef5265aae09b3290b46cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
