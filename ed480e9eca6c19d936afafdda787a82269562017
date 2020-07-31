@@ -45,6 +45,30 @@
       "revId": "ed480e9eca6c19d936afafdda787a82269562017",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6ba367d8_dbbaef93",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 396,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-31T21:45:45Z",
+      "side": 1,
+      "message": "that doesn\u0027t seem to be the case,\nwhen I try it it fails with:\n\"✗ ERROR: Invalid setting of ONOS replicas. NUM_OF_ONOS (5) is greater than the available nodes (SCHEDULABLE_NODES: 4)\"",
+      "parentUuid": "2d844a63_18f59441",
+      "range": {
+        "startLine": 396,
+        "startChar": 253,
+        "endLine": 396,
+        "endChar": 258
+      },
+      "revId": "ed480e9eca6c19d936afafdda787a82269562017",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
