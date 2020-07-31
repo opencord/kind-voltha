@@ -22,6 +22,29 @@
       "revId": "ed480e9eca6c19d936afafdda787a82269562017",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d844a63_18f59441",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 396,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-31T18:13:57Z",
+      "side": 1,
+      "message": "`wc -l` adds space before the result os SCHEDULABLE_NODES will be \"        #\". need to pipe the result through `sed -e \u0027s/ //g\u0027 or similar",
+      "range": {
+        "startLine": 396,
+        "startChar": 253,
+        "endLine": 396,
+        "endChar": 258
+      },
+      "revId": "ed480e9eca6c19d936afafdda787a82269562017",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
