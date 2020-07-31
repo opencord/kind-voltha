@@ -145,6 +145,7 @@ MAX_NUM_OF_BBSIM=10
 MAX_NUM_OF_OPENONU=10
 LEGACY_BBSIM_INDEX=${LEGACY_BBSIM_INDEX:-no}
 PF_ADDRESS=${PF_ADDRESS:-0.0.0.0}
+KIND_CFG_FILE=${KIND_CFG_FILE:-}
 
 HOSTOS="$(uname -s | tr "[:upper:]" "[:lower:"])"
 HOSTARCH="$(uname -m | tr "[:upper:]" "[:lower:"])"
@@ -343,6 +344,7 @@ ALL_OPTIONS="\
     SADIS_BANDWIDTH_PROFILES \
     SADIS_SUBSCRIBERS \
     PF_ADDRESS \
+    KIND_CFG_FILE \
     "
 
 # Iterate over yes/no configuration options and validate
@@ -380,35 +382,55 @@ if [ "$1" == "up" ]; then
         exit 1
     fi
 
-    # check that NUM_OF_KAFKA, NUM_OF_ONOS, NUM_OF_ATOMIX, NUM_OF_ETCD is:
-    # <= NUM_OF_WORKER_NODES + 1 if SCHEDULE_ON_CONTROL_NODES == y
-    # <= NUM_OF_WORKER_NODES if SCHEDULE_ON_CONTROL_NODES == n
-    SCHEDULABLE_NODES=$NUM_OF_WORKER_NODES
+    HAVE_CLUSTER="$(kind get clusters 2>/dev/null | grep -c "voltha-$NAME")"
+    if [ "$HAVE_CLUSTER" -eq 0 ]; then
+        # If the user has specified a kind cluster configuration file,
+        # 'KIND_CFG_FILE` then we need to gleem from that file the number
+        # of worker and controller nodes as this overrides any setting of
+        # these values
+        if [ -n "$KIND_CFG_FILE" ]; then
+            NUM_OF_WORKER_NODES="$(sed 's/ //g' "$KIND_CFG_FILE" | grep -c "^-role:worker$")"
+            NUM_OF_CONTROLLER_NODES="$(sed 's/ //g' "$KIND_CFG_FILE" | grep -c "^-role:control-plane$")"
+        fi
 
-    if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
-      SCHEDULABLE_NODES=$((NUM_OF_CONTROLLER_NODES+NUM_OF_WORKER_NODES))
+        # check that NUM_OF_KAFKA, NUM_OF_ONOS, NUM_OF_ATOMIX, NUM_OF_ETCD is:
+        # <= NUM_OF_WORKER_NODES + 1 if SCHEDULE_ON_CONTROL_NODES == y
+        # <= NUM_OF_WORKER_NODES if SCHEDULE_ON_CONTROL_NODES == n
+        SCHEDULABLE_NODES=$NUM_OF_WORKER_NODES
+
+        if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
+          SCHEDULABLE_NODES=$((NUM_OF_CONTROLLER_NODES+NUM_OF_WORKER_NODES))
+        fi
+    else
+        TOTAL_NODES=$(kubectl get --all-namespaces nodes -o name | wc -l)
+        NUM_OF_CONTROLLER_NODES=$(kubectl get --all-namespaces nodes -l node-role.kubernetes.io/master -o name | wc -l)
+        NUM_OF_WORKER_NODES=$((TOTAL_NODES - NUM_OF_CONTROLLER_NODES))
+	# shellcheck disable=SC2016
+        SCHEDULABLE_NODES=$(kubectl get no -o 'go-template={{range .items}}{{$taints:=""}}{{range .spec.taints}}{{if eq .effect "NoSchedule"}}{{$taints = print $taints .key ","}}{{end}}{{end}}{{if not $taints}}{{.metadata.name}}{{ "\n"}}{{end}}{{end}}' | wc -l | sed -e 's/ //g')
+        rm -f "$TMP_KUBECFG"
     fi
-
     NODES="SCHEDULE_ON_CONTROL_NODES: $SCHEDULE_ON_CONTROL_NODES, SCHEDULABLE_NODES: $SCHEDULABLE_NODES, NUM_OF_CONTROLLER_NODES: $NUM_OF_CONTROLLER_NODES, NUM_OF_WORKER_NODES: $NUM_OF_WORKER_NODES"
 
-    if [ ! "$NUM_OF_KAFKA" -le "$SCHEDULABLE_NODES" ]; then
+    if is_in "$WITH_KAFKA" "yes,external" && [ ! "$NUM_OF_KAFKA" -le "$SCHEDULABLE_NODES" ]; then
       >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of KAFKA replicas. NUM_OF_KAFKA (${NUM_OF_KAFKA}) is greater than the available nodes ($NODES)${NORMAL}"
       exit 1
     fi
 
-    if [ ! "$NUM_OF_ETCD" -le "$SCHEDULABLE_NODES" ]; then
+    if is_in "$WITH_ETCD" "yes,external" && [ ! "$NUM_OF_ETCD" -le "$SCHEDULABLE_NODES" ]; then
       >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ETCD replicas. NUM_OF_ETCD (${NUM_OF_ETCD}) is greater than the available nodes ($NODES)${NORMAL}"
       exit 1
     fi
 
-    if [ ! "$NUM_OF_ATOMIX" -le "$SCHEDULABLE_NODES" ]; then
-      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ATOMIX replicas. NUM_OF_ATOMIX (${NUM_OF_ATOMIX}) is greater than the available nodes ($NODES)${NORMAL}"
-      exit 1
-    fi
+    if is_in "$WITH_ONOS" "yes,legacy,classic,micro"; then
+       if [ ! "$NUM_OF_ATOMIX" -le "$SCHEDULABLE_NODES" ]; then
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ATOMIX replicas. NUM_OF_ATOMIX (${NUM_OF_ATOMIX}) is greater than the available nodes ($NODES)${NORMAL}"
+          exit 1
+        fi
 
-    if [ ! "$NUM_OF_ONOS" -le "$SCHEDULABLE_NODES" ]; then
-      >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ONOS replicas. NUM_OF_ONOS (${NUM_OF_ONOS}) is greater than the available nodes ($NODES)${NORMAL}"
-      exit 1
+        if [ ! "$NUM_OF_ONOS" -le "$SCHEDULABLE_NODES" ]; then
+          >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Invalid setting of ONOS replicas. NUM_OF_ONOS (${NUM_OF_ONOS}) is greater than the available nodes ($NODES)${NORMAL}"
+          exit 1
+        fi
     fi
 fi
 
@@ -1002,7 +1024,7 @@ if [ "$1" == "down" ]; then
         kill_port_forward onos-ui
         sspin "Remove port-forwards: onos-ssh-$NAME$CEOL"
         kill_port_forward onos-ssh
-        bspin "Remove port-forwards: onos-onos-classic-hs-$NAME$CEOL"
+        sspin "Remove port-forwards: onos-onos-classic-hs-$NAME$CEOL"
         kill_port_forward onos-onos-classic-hs
     fi
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
@@ -1546,31 +1568,34 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
     sspin
     if [ "$HAVE" -eq 0 ]; then
         espin "$NOT_VERIFIED"
-        bspin - "Generating cluster configuration"
-
         FILE="$NAME-cluster.cfg"
+        if [ -n "$KIND_CFG_FILE" ]; then
+            FILE="$KIND_CFG_FILE"
+        else
+            bspin - "Generating cluster configuration"
 
-        if [ -f "$FILE" ] ; then
-          rm "$FILE"
+            if [ -f "$FILE" ] ; then
+              rm "$FILE"
+            fi
+
+            touch "$FILE"
+
+            yq w -i "$FILE" kind Cluster
+            yq w -i "$FILE" apiVersion "kind.sigs.k8s.io/v1alpha3"
+
+            if [ ! "$NUM_OF_CONTROLLER_NODES" -eq 0 ]; then
+              for instance in $(seq 1 "$NUM_OF_CONTROLLER_NODES"); do
+                yq w -i "$FILE" "nodes[+].role" "control-plane"
+              done
+            fi
+
+            if [ ! "$NUM_OF_WORKER_NODES" -eq 0 ]; then
+              for instance in $(seq 1 "$NUM_OF_WORKER_NODES"); do
+                yq w -i "$FILE" "nodes[+].role" worker
+              done
+            fi
+            espin - "$VERIFIED"
         fi
-
-        touch "$FILE"
-
-        yq w -i "$FILE" kind Cluster
-        yq w -i "$FILE" apiVersion "kind.sigs.k8s.io/v1alpha3"
-
-        if [ ! "$NUM_OF_CONTROLLER_NODES" -eq 0 ]; then
-          for instance in $(seq 1 "$NUM_OF_CONTROLLER_NODES"); do
-            yq w -i "$FILE" "nodes[+].role" "control-plane"
-          done
-        fi
-
-        if [ ! "$NUM_OF_WORKER_NODES" -eq 0 ]; then
-          for instance in $(seq 1 "$NUM_OF_WORKER_NODES"); do
-            yq w -i "$FILE" "nodes[+].role" worker
-          done
-        fi
-        espin - "$VERIFIED"
 
         cat "$FILE" >> "$LOG" 2>&1
 
@@ -1594,11 +1619,9 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         kube-proxy-.* \
         kube-scheduler-voltha-$NAME-control-plane"
 
-    EXPECT="8"
-    if [ ! "$NUM_OF_WORKER_NODES" -eq 0 ]; then
-      NUM=$((2*NUM_OF_WORKER_NODES)) # kindnet and kube-proxy are deployed on each node
-      EXPECT=$((EXPECT+NUM))
-    fi
+    EXPECT=2 # Always 2 DNS instances
+    EXPECT=$((EXPECT + 4 * NUM_OF_CONTROLLER_NODES)) # etcd, apiserver, controller manager, scheduler
+    EXPECT=$((EXPECT + 2 * (NUM_OF_CONTROLLER_NODES + NUM_OF_WORKER_NODES))) # kindnet, proxy
     wait_for_pods - "kube-system" "$EXPECT" "includes" "Waiting for system PODs to start" "$NO_LABEL" "$P"
 fi
 
