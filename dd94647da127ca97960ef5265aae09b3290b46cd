@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b77ae914_f4d99f20",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1551,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-31T14:53:43Z",
+      "side": 1,
+      "message": "pattern in file is use all caps for variable names and if you are going to define this variable it likely should be used else where, such as `touch $FILE` and in the `yq` commands.",
+      "range": {
+        "startLine": 1551,
+        "startChar": 8,
+        "endLine": 1551,
+        "endChar": 12
+      },
+      "revId": "dd94647da127ca97960ef5265aae09b3290b46cd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
