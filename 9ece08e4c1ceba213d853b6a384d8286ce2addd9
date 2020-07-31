@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8342940d_a1729e60",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-07-31T21:48:04Z",
+      "side": 1,
+      "message": "this is entirely based on \"kind\", what happens when I deploy on a physical cluster?",
+      "range": {
+        "startLine": 385,
+        "startChar": 4,
+        "endLine": 410,
+        "endChar": 28
+      },
+      "revId": "9ece08e4c1ceba213d853b6a384d8286ce2addd9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
