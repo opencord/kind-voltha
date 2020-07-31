@@ -11,3 +11,4 @@ voltha-debug-dump-*
 *-env.sh
 .DS_Store
 kube-config-*
+*.cfg
