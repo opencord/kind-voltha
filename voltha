@@ -1548,6 +1548,12 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         espin "$NOT_VERIFIED"
         bspin - "Generating cluster configuration"
 
+        file="$NAME-cluster.cfg"
+
+        if [ -f "$file" ] ; then
+          rm "$file"
+        fi
+
         touch "$NAME-cluster.cfg"
 
         yq w -i "$NAME-cluster.cfg" kind Cluster
