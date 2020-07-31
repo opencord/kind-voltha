@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fe3d8f0f_a9321ada",
+        "filename": "voltha",
+        "patchSetId": 3
+      },
+      "lineNbr": 383,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-07-31T18:03:37Z",
+      "side": 1,
+      "message": "not sure if the condition is if `\"$DEPLOY_K8S\" \u003d\u003d \"yes\"` v. does the cluster already exist, i.e. `\"$(kind get clusters 2\u003e/dev/null | grep -c \"voltha-$NAME\")\" -ne 0`. so if no cluster exists and we are creating one then looking at NUM_OF, else if cluster exists then use kubectl.\n\nas is this could lead to the error where `DEPLOY_K8S\u003dn` and we then attempt to execute kubectl when no cluster exists.\n\nthere are similar errors already in the script where we assume a cluster exists and call kubectl when one might not exists, but i don\u0027t think we should add another one ;)",
+      "range": {
+        "startLine": 383,
+        "startChar": 11,
+        "endLine": 383,
+        "endChar": 21
+      },
+      "revId": "ed480e9eca6c19d936afafdda787a82269562017",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
