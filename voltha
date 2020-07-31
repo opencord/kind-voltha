@@ -1548,33 +1548,33 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
         espin "$NOT_VERIFIED"
         bspin - "Generating cluster configuration"
 
-        file="$NAME-cluster.cfg"
+        FILE="$NAME-cluster.cfg"
 
-        if [ -f "$file" ] ; then
-          rm "$file"
+        if [ -f "$FILE" ] ; then
+          rm "$FILE"
         fi
 
-        touch "$NAME-cluster.cfg"
+        touch "$FILE"
 
-        yq w -i "$NAME-cluster.cfg" kind Cluster
-        yq w -i "$NAME-cluster.cfg" apiVersion "kind.sigs.k8s.io/v1alpha3"
+        yq w -i "$FILE" kind Cluster
+        yq w -i "$FILE" apiVersion "kind.sigs.k8s.io/v1alpha3"
 
         if [ ! "$NUM_OF_CONTROLLER_NODES" -eq 0 ]; then
           for instance in $(seq 1 "$NUM_OF_CONTROLLER_NODES"); do
-            yq w -i "$NAME-cluster.cfg" "nodes[+].role" "control-plane"
+            yq w -i "$FILE" "nodes[+].role" "control-plane"
           done
         fi
 
         if [ ! "$NUM_OF_WORKER_NODES" -eq 0 ]; then
           for instance in $(seq 1 "$NUM_OF_WORKER_NODES"); do
-            yq w -i "$NAME-cluster.cfg" "nodes[+].role" worker
+            yq w -i "$FILE" "nodes[+].role" worker
           done
         fi
         espin - "$VERIFIED"
 
-        cat "$NAME-cluster.cfg" >> "$LOG" 2>&1
+        cat "$FILE" >> "$LOG" 2>&1
 
-        kind create cluster --name "voltha-$NAME" --config "$NAME-cluster.cfg"
+        kind create cluster --name "voltha-$NAME" --config "$FILE"
      else
         espin "$VERIFIED"
     fi
