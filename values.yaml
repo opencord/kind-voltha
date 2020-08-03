@@ -147,6 +147,20 @@ onos:
         fieldPath: metadata.namespace
     - name: ONOS_APPS
       value: "drivers,openflow-base,hostprovider"
+  apps:
+    - org.onosproject.lldpprovider
+    - org.onosproject.openflow-base
+    - org.onosproject.gui2
+    - org.onosproject.drivers
+    - org.onosproject.mcast
+    - org.opencord.kafka
+    - org.opencord.sadis
+    - org.opencord.dhcpl2relay
+    - org.opencord.maclearner
+    - org.opencord.igmpproxy
+    - org.opencord.mcast
+    - org.opencord.olt
+    - org.opencord.aaa
   # No persistent volume in Atomix to have clean state for each re-deploy of ONOS
   atomix:
     persistence:
