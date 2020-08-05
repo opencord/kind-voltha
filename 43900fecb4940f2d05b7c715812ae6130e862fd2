@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4bd80e7b_292b3183",
+        "filename": "voltha",
+        "patchSetId": 19
+      },
+      "lineNbr": 2289,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-08-05T16:58:12Z",
+      "side": 1,
+      "message": "this should be services.tracing_agent.address\u003d$_HOST:$PORT",
+      "range": {
+        "startLine": 2289,
+        "startChar": 77,
+        "endLine": 2289,
+        "endChar": 137
+      },
+      "revId": "43900fecb4940f2d05b7c715812ae6130e862fd2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
