@@ -22,6 +22,30 @@
       "revId": "43900fecb4940f2d05b7c715812ae6130e862fd2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e1100ad_683f1c8d",
+        "filename": "voltha",
+        "patchSetId": 19
+      },
+      "lineNbr": 2289,
+      "author": {
+        "id": 1000526
+      },
+      "writtenOn": "2020-08-05T17:13:57Z",
+      "side": 1,
+      "message": "Sorry, my bad. Should have done this change. This explains why traces from Openolt Adapter are not sent but RwCore traces should have been visible in Jaeger UI.",
+      "parentUuid": "4bd80e7b_292b3183",
+      "range": {
+        "startLine": 2289,
+        "startChar": 77,
+        "endLine": 2289,
+        "endChar": 137
+      },
+      "revId": "43900fecb4940f2d05b7c715812ae6130e862fd2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
