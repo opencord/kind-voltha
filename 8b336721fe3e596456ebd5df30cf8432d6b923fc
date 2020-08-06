@@ -1,0 +1,9 @@
+Verified+1: Jenkins Jenkins <do-not-reply@opencord.org>
+Code-Review+1: David Bainbridge <dbainbri@ciena.com>
+Code-Review+2: Andrea Campanella <andrea@opennetworking.org>
+Code-Review+1: Matteo Scandolo <teo@opennetworking.org>
+Submitted-by: Andrea Campanella <andrea@opennetworking.org>
+Submitted-at: Thu, 06 Aug 2020 08:36:08 +0000
+Reviewed-on: https://gerrit.opencord.org/c/kind-voltha/+/19978
+Project: kind-voltha
+Branch: refs/heads/master
