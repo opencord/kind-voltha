@@ -1,0 +1,9 @@
+Verified+1: Jenkins Technical User <do-not-reply@opennetworking.org>
+Code-Review+1: David Bainbridge <dbainbri@ciena.com>
+Code-Review+1: Girish Gowdra <girish@opennetworking.org>
+Code-Review+2: Matteo Scandolo <teo@opennetworking.org>
+Submitted-by: Matteo Scandolo <teo@opennetworking.org>
+Submitted-at: Fri, 14 Aug 2020 17:16:31 +0000
+Reviewed-on: https://gerrit.opencord.org/c/kind-voltha/+/20118
+Project: kind-voltha
+Branch: refs/heads/master
