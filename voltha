@@ -2353,18 +2353,14 @@ if [ "$WITH_BBSIM" == "yes" ]; then
 
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim${instance_num}\$")" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            S_TAG="$((900+instance))"
-            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
-            if [ "$WITH_EAPOL" == "yes" ]; then
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=true"
-            else
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=false"
-            fi
-            if [ "$WITH_DHCP" == "yes" ]; then
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=true"
-            else
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
-            fi
+
+            # FIXME address different S_TAG
+            # as now the service config is mounted as a configmap computed by the values.yaml file
+            # but that cannot be templated while maintaining the yaml format
+            # S_TAG="$((900+instance))"
+            # INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
+            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance"
+
             if is_in "$WITH_KAFKA" "yes,external"; then
                 _HOST=kafka.$INFRA_NS.svc
                 _PORT=9092
