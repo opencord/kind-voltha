@@ -100,6 +100,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `SADIS_SUBSCRIBERS`                     | http://bbsim0.voltha.svc:50074/v2/subscribers/%s      | URL for ONOS to use to query subsriber information if `CONFIG_SADIS` is set to `url` |
 | `SADIS_BANDWIDTH_PROFILES`              | http://bbsim0.voltha.svc:50074/v2/bandwidthprofiles/%s| URL for ONOS to use to query bandwidth profiles if `CONFIG_SADIS` is set to `url` |
 | `SADIS_CFG`                             | onos-files/onos-sadis-sample.json                     | SADIS Configuration File to push, if CONFIG_SADIS set |
+| `BBSIM_CFG`                             | configs/bbsim-sadis-att.yaml                          | Configuration for BBSim services |
 | `INSTALL_ONOS_APPS`                     | no                                                    | Replaces/installs ONOS OAR files in onos-files/onos-apps |
 | `INSTALL_KUBECTL`                       | yes                                                   | Should a copy of `kubectl` be installed locally? |
 | `INSTALL_HELM`                          | yes                                                   | Should a copy of `helm` be installed locallly? |
@@ -189,6 +190,15 @@ starts VOLTHA with external ONOS,KAFKA,ETCD in the `infra` namespace.
 | `url`            | configure ONOS to use SADIS via a URL. The URL used for subscriber information<br> is specified in the variable `SADIS_SUBSCRIBERS` and the URL used for bandwidth<br> profiles is specified in the variable `SADIS_BANDWIDTH_PROFILES` |
 | `bbsim`          | configure ONOS use use the SADIS servers that are part of BBSIM |
 | `external`       | an additional helm chart will be installed (`bbsim-sadis-server`) and ONOS will be configured to use that service for SADIS queries |
+
+### `BBSIM_CFG` Values
+
+`BBSIM_CFG` contains a description of the services that is needed to properly configure BBSim.
+Examples are available in the `configs` folder. It can be pointed to any valid BBSim service configuration.
+
+You'll note that the examples contain a `:TAG:` placeholder. That is used by `kind-voltha`
+to generate different `C/S_TAG` combinations when deploying multiple instances of BBSim and it's
+replaced with an incremental number starting from `900`.
 
 ### EFK Configuration for accessing Voltha component logs
 If EFK is selected for deployment with VOLTHA, `WITH_EFK=yes`, then a single node elasticsearch and kibana

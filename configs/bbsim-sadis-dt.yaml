@@ -1,0 +1,11 @@
+---
+servicesConfig:
+  workflow: dt
+  services:
+    - name: hsia
+      uni_tag_match: 4096
+      c_tag: ":TAG:"
+      c_tag_allocation: shared
+      s_tag: 7
+      s_tag_allocation: unique
+      tp_id: 64

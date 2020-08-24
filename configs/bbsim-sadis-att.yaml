@@ -1,0 +1,12 @@
+---
+servicesConfig:
+  workflow: att
+  services:
+    - name: hsia
+      c_tag: 900
+      c_tag_allocation: unique
+      s_tag: ":TAG:"
+      s_tag_allocation: shared
+      needs_eapol: true
+      needs_dhcp: true
+      tp_id: 64

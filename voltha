@@ -95,6 +95,7 @@ WITH_INCREMENTAL_EVTO_UPDATE=${WITH_INCREMENTAL_EVTO_UPDATE:-no}
 SCHEDULE_ON_CONTROL_NODES=${SCHEDULE_ON_CONTROL_NODES:-no}
 CONFIG_SADIS=${CONFIG_SADIS:-no} # yes | no | file | bbsim | external | URL
 SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
+BBSIM_CFG=${BBSIM_CFG:-configs/bbsim-sadis-att.yaml}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
@@ -109,7 +110,7 @@ VOLTHA_LOG_LEVEL=${VOLTHA_LOG_LEVEL:-WARN}
 VOLTHA_CHART=${VOLTHA_CHART:-onf/voltha}
 VOLTHA_CHART_VERSION=${VOLTHA_CHART_VERSION:-latest}
 VOLTHA_BBSIM_CHART=${VOLTHA_BBSIM_CHART:-onf/bbsim}
-VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-latest}
+VOLTHA_BBSIM_CHART_VERSION=${VOLTHA_BBSIM_CHART_VERSION:-4.0.0-dev}
 ELASTICSEARCH_CHART=${ELASTICSEARCH_CHART:-elastic/elasticsearch}
 ELASTICSEARCH_CHART_VERSION=${ELASTICSEARCH_CHART_VERSION:-latest}
 KIBANA_CHART=${KIBANA_CHART:-elastic/kibana}
@@ -201,6 +202,95 @@ function get_service_ep() {
     local NS=$1
     local NAME=$2
     kubectl -n "$NS" get service "$NAME" -o json | jq -r '.spec.clusterIP + ":" + (.spec.ports[0].port|tostring)'
+}
+
+# returns the greater version (0 if equal)
+function semvercompare() {
+    if [[ "$1" == "$2" ]]
+    then
+        echo 0
+        return
+    fi
+
+    local tmp1 tmp2
+    tmp1=$(echo "${1//v/}" | awk -F'-' '{print $1}')
+    tmp2=$(echo "${2//v/}" | awk -F'-' '{print $1}')
+
+    local IFS=.
+    # shellcheck disable=SC2206
+    local i ver1=($tmp1) ver2=($tmp2)
+
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+    do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++))
+    do
+        if [[ -z ${ver2[i]} ]]
+        then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]}))
+        then
+            echo 1
+            return
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]}))
+        then
+            echo 2
+            return
+        fi
+    done
+    echo 0
+    return
+}
+
+# returns true if v1 is less than v2
+function semver_greater() {
+  local v1
+  local v2
+  v1=("$1") v2=("$2")
+
+  # shellcheck disable=SC2128
+  if [[ "$v1" == "latest" ]] || [[ "$v1" == "master" ]]; then
+    # if the version is latest or master we can't really compare,
+    # but we assume is greater
+    echo "true"
+    return
+  fi
+
+  # shellcheck disable=SC2128
+  res=$(semvercompare "$v1" "$v2")
+  if [[ $res == 1 ]]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
+
+# returns true if v2 is less than v1
+function semver_lesser() {
+  local v1
+  local v2
+  v1=("$1") v2=("$2")
+
+  # shellcheck disable=SC2128
+  if [[ "$v1" == "latest" ]] || [[ "$v1" == "master" ]]; then
+    # if the version is latest or master we can't really compare,
+    # but we assume is greater
+    echo "false"
+    return
+  fi
+
+  # shellcheck disable=SC2128
+  res=$(semvercompare "$v1" "$v2")
+  if [[ $res == 2 ]]; then
+    echo "true"
+  else
+    echo "false"
+  fi
 }
 
 # Used to verify configuration values are set to "yes" or "no" value or convert
@@ -328,6 +418,7 @@ ALL_OPTIONS="\
     ONOS_API_PORT \
     ONOS_SSH_PORT \
     SADIS_CFG \
+    BBSIM_CFG \
     VOLTHA_API_PORT \
     VOLTHA_SSH_PORT \
     VOLTHA_ETCD_PORT \
@@ -2354,18 +2445,32 @@ if [ "$WITH_BBSIM" == "yes" ]; then
 
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim${instance_num}\$")" -ne 1 ]; then
             espin - "$NOT_VERIFIED"
-            S_TAG="$((900+instance))"
-            INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
-            if [ "$WITH_EAPOL" == "yes" ]; then
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=true"
+
+            if [[ $(semver_greater "$VOLTHA_BBSIM_CHART_VERSION" "3.1.0") == "true" ]]; then
+              # this is the latest BBSim with support for TT
+              # when we deploy multiple BBSims we need to update the configuration
+              # to avoid overlapping tags.
+              _TAG="$((900+instance))"
+              BBSIM_TMP="$(mktemp -u)"
+              sed -e "s/\":TAG:\"/$_TAG/g" "$BBSIM_CFG" > "$BBSIM_TMP"
+
+              INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance -f $BBSIM_TMP"
             else
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=false"
+              # these are older versio of BBSim
+              S_TAG="$((900+instance))"
+              INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance,s_tag=$S_TAG"
+              if [ "$WITH_EAPOL" == "yes" ]; then
+                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=true"
+              else
+                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set auth=false"
+              fi
+              if [ "$WITH_DHCP" == "yes" ]; then
+                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=true"
+              else
+                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
+              fi
             fi
-            if [ "$WITH_DHCP" == "yes" ]; then
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=true"
-            else
-                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set dhcp=false"
-            fi
+
             if is_in "$WITH_KAFKA" "yes,external"; then
                 _HOST=kafka.$INFRA_NS.svc
                 _PORT=9092
@@ -2378,6 +2483,7 @@ if [ "$WITH_BBSIM" == "yes" ]; then
             fi
             helm_install - "$BBSIM_NS" "bbsim${instance_num}" "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION" "+bbsim" "$_HELM_DESC BBSIM${instance_num}"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+            rm -f "$BBSIM_TMP"
         else
             espin - "$VERIFIED"
         fi
