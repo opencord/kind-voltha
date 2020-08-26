@@ -224,6 +224,46 @@ fluentd-elasticsearch:
 tracing:
   maxTraces: 500000
 
+tacacs:
+  customConfig: |
+#    group = sysadmin {
+#        service = shell {
+#            default command = permit
+#            default attribute = permit
+#        }
+#    }
+#    user = user1 {
+#        password = clear voltha
+#        member = sysadmin
+#    }
+#
+#    group = admin {
+#        service = shell {
+#            default command = permit
+#            default attribute = permit
+#        }
+#    }
+#
+#    group = operator {
+#        service = shell {
+#            default command = permit
+#            default attribute = permit
+#        }
+#    }
+#
+#
+#    # This is the unpriv'd user, linked to the priv-1 group.
+#    user = user2 {
+#        password = clear voltha
+#        member = admin
+#    }
+#
+#    # This is the unpriv'd user, linked to the priv-0 group.
+#    user = user3 {
+#        password = clear voltha
+#        member = operator
+#    }
+
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
 # pods. These extra labels can be used to integrate with other utilities
