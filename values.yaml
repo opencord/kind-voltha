@@ -224,6 +224,50 @@ fluentd-elasticsearch:
 tracing:
   maxTraces: 500000
 
+configMaps:
+  tac_user.cfg: |
+    host = world {
+    address = 0.0.0.0/0 # Which devices can use this server
+    key = tacacs # Modify this value to change TACACS key to device.
+    enable = clear voltha # Added this to support ASAs which require enable secrets
+    }
+
+    group = sysadmin {
+        service = shell {
+            default command = permit
+            default attribute = permit
+        }
+    }
+
+    group = admin {
+        service = shell {
+            default command = permit
+            default attribute = permit
+        }
+    }
+
+    group = operator {
+        service = shell {
+            default command = permit
+            default attribute = permit
+        }
+    }
+
+    user = user1 {
+        password = clear voltha
+        member = sysadmin
+    }
+
+    user = user2 {
+        password = clear voltha
+        member = admin
+    }
+
+    user = user3 {
+        password = clear voltha
+        member = operator
+    }
+
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
 # pods. These extra labels can be used to integrate with other utilities
