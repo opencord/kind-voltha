@@ -84,6 +84,12 @@ images:
 #    tag: master
 # END_OPENONU_ADAPTER_GO
 
+# Credentials for accessing openolt agent GRPC API
+# Should be base64 encoded values
+# olt_credentials:
+#   username: dm9sdGhhb2x0YWdlbnQ= # volthaoltagent
+#   password: c2VjcmV0MTIzNA== # secret1234
+
 etcd:
   extraEnv:
     - name: ETCD_AUTO_COMPACTION_RETENTION
@@ -223,6 +229,70 @@ fluentd-elasticsearch:
 # But tracing pod will consume more memory
 tracing:
   maxTraces: 500000
+
+configurations:
+  tac_user.cfg: |
+    host = world {
+    address = 0.0.0.0/0 # Which devices can use this server
+    key = tacacs # Modify this value to change TACACS key to device.
+    enable = clear voltha # Added this to support ASAs which require enable secrets
+    }
+
+    group = sysadmin {
+        service = shell {
+            cmd = reenableolt
+            cmd = disableolt
+            cmd = activateonu
+            cmd = deactivateonu
+            cmd = enableindications
+            cmd = reboot
+            cmd = flowadd
+            cmd = flowremove
+            cmd = collectstatistics
+            cmd = deletegroup
+            cmd = getextvalue
+            cmd = omcimsgout
+            cmd = onupacketout
+            cmd = getdeviceinfo
+        }
+    }
+
+    group = admin {
+        service = shell {
+            cmd = flowadd
+            cmd = flowremove
+            cmd = collectstatistics
+            cmd = getextvalue
+            cmd = omcimsgout
+            cmd = onupacketout
+            cmd = getdeviceinfo
+        }
+    }
+
+    group = operator {
+        service = shell {
+            cmd = collectstatistics
+            cmd = getextvalue
+            cmd = omcimsgout
+            cmd = onupacketout
+            cmd = getdeviceinfo
+        }
+    }
+
+    user = user1 {
+        password = clear voltha
+        member = sysadmin
+    }
+
+    user = user2 {
+        password = clear voltha
+        member = admin
+    }
+
+    user = user3 {
+        password = clear voltha
+        member = operator
+    }
 
 # SHOCK THE MONKEY OR LET LOSE THE DOGS OF WAR
 # The VOLTHA charts have support for adding extra labels to deployments and
