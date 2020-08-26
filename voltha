@@ -76,6 +76,7 @@ WITH_TIMINGS=${WITH_TIMINGS:-no}
 WITH_BBSIM=${WITH_BBSIM:-no}
 WITH_EFK=${WITH_EFK:-no}
 WITH_TRACING=${WITH_TRACING:-no}
+WITH_TACACS=${WITH_TACACS:-no}
 WITH_RADIUS=${WITH_RADIUS:-no}
 WITH_EAPOL=${WITH_EAPOL:-yes}
 WITH_DHCP=${WITH_DHCP:-yes}
@@ -118,6 +119,8 @@ FLUENTD_ELASTICSEARCH_CHART=${FLUENTD_ELASTICSEARCH_CHART:-kiwigrid/fluentd-elas
 FLUENTD_ELASTICSEARCH_CHART_VERSION=${FLUENTD_ELASTICSEARCH_CHART_VERSION:-latest}
 VOLTHA_TRACING_CHART=${VOLTHA_TRACING_CHART:-onf/voltha-tracing}
 VOLTHA_TRACING_CHART_VERSION=${VOLTHA_TRACING_CHART_VERSION:-latest}
+VOLTHA_TACACS_CHART=${VOLTHA_TACACS_CHART:-onf/voltha-tacacs-server}
+VOLTHA_TACACS_CHART_VERSION=${VOLTHA_TACACS_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_SIM_CHART=${VOLTHA_ADAPTER_SIM_CHART:-onf/voltha-adapter-simulated}
 VOLTHA_ADAPTER_SIM_CHART_VERSION=${VOLTHA_ADAPTER_SIM_CHART_VERSION:-latest}
 VOLTHA_ADAPTER_OPEN_OLT_CHART=${VOLTHA_ADAPTER_OPEN_OLT_CHART:-onf/voltha-adapter-openolt}
@@ -252,6 +255,7 @@ ALL_YES_NO="\
     WITH_BBSIM \
     WITH_EFK \
     WITH_TRACING \
+    WITH_TACACS \
     WITH_EAPOL \
     WITH_DHCP \
     WITH_IGMP \
@@ -297,6 +301,8 @@ ALL_OPTIONS="\
     BBSIM_SADIS_SERVER_CHART_VERSION \
     VOLTHA_TRACING_CHART \
     VOLTHA_TRACING_CHART_VERSION \
+    VOLTHA_TACACS_CHART \
+    VOLTHA_TACACS_CHART_VERSION \
     NUM_OF_BBSIM \
     NUM_OF_WORKER_NODES \
     NUM_OF_CONTROLLER_NODES \
@@ -1109,6 +1115,9 @@ if [ "$1" == "down" ]; then
         if [ "$WITH_TRACING" == "yes" ]; then
             EXPECT+=" tracing"
         fi
+        if [ "$WITH_TACACS" == "yes" ]; then
+            EXPECT+=" tacacs"
+        fi
         if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
             EXPECT+=" open-olt open-onu"
         fi
@@ -1157,6 +1166,9 @@ if [ "$1" == "down" ]; then
             fi
             if [ "$WITH_TRACING" == "yes" ]; then
                 INFRA_PODS+=" jaeger.*"
+            fi
+            if [ "$WITH_TACACS" == "yes" ]; then
+                INFRA_PODS+=" tacacs.*"
             fi
             if is_in "$WITH_ONOS" "yes,legacy,classic"; then
                 INFRA_PODS+=" onos-.*"
@@ -1764,6 +1776,7 @@ fi
 RESOLVED_VOLTHA_CHART_VERSION=$(resolve_chart_version "$VOLTHA_CHART" "$VOLTHA_CHART_VERSION")
 RESOLVED_VOLTHA_BBSIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_BBSIM_CHART" "$VOLTHA_BBSIM_CHART_VERSION")
 RESOLVED_VOLTHA_TRACING_CHART_VERSION=$(resolve_chart_version "$VOLTHA_TRACING_CHART" "$VOLTHA_TRACING_CHART_VERSION")
+RESOLVED_VOLTHA_TACACS_CHART_VERSION=$(resolve_chart_version "$VOLTHA_TACACS_CHART" "$VOLTHA_TACACS_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_SIM_CHART" "$VOLTHA_ADAPTER_SIM_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_OLT_CHART" "$VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION")
 RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=$(resolve_chart_version "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION")
@@ -1780,6 +1793,7 @@ Resolved helm charts and versions:
     $VOLTHA_CHART:$RESOLVED_VOLTHA_CHART_VERSION
     $VOLTHA_BBSIM_CHART:$RESOLVED_VOLTHA_BBSIM_CHART_VERSION
     $VOLTHA_TRACING_CHART:$RESOLVED_VOLTHA_TRACING_CHART_VERSION
+    $VOLTHA_TACACS_CHART:$RESOLVED_VOLTHA_TACACS_CHART_VERSION
     $VOLTHA_ADAPTER_SIM_CHART:$RESOLVED_VOLTHA_ADAPTER_SIM_CHART_VERSION
     $VOLTHA_ADAPTER_OPEN_OLT_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION
     $VOLTHA_ADAPTER_OPEN_ONU_CHART:$RESOLVED_VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION
@@ -2167,6 +2181,24 @@ if [ "$WITH_TRACING" == "yes" ]; then
     fi
 fi
 
+if [ "$WITH_TACACS" == "yes" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify Tacacs $PLUG"
+    bspin - "Verify Tacacs Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^tacacs\$")" -ne 1 ]; then
+        espin - "$NOT_VERIFIED"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+        helm_install - "$INFRA_NS" tacacs "$VOLTHA_TACACS_CHART" "$VOLTHA_TACACS_CHART_VERSION" tacacs "$_HELM_DESC Tacacs"
+    else
+        espin - "$VERIFIED"
+    fi
+    wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for Tacacs to start" "$NO_LABEL" "tacacs*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
 STIME="$(date +%s)"
 EXPECT=2
 # therecanbeonlyone set hardcoded to true for backward compatibility
@@ -2238,6 +2270,12 @@ if [ "$WITH_TRACING" == "yes" ]; then
     INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set tracing.enabled=true --set services.tracing_agent.address=$_HOST:$_PORT"
 fi
 
+if [ "$WITH_TACACS" == "yes" ]; then
+    VOLTHA_TACACS_CHART_NAME=$(resolve_chart_name "$VOLTHA_TACACS_CHART")
+    _HOST="tacacs-${VOLTHA_TACACS_CHART_NAME}.$INFRA_NS.svc"
+    _PORT=49
+fi
+
 bspin "Verify VOLTHA installed $HIGH_VOLTAGE"
 if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$VOLTHA_NS" "^voltha\$")" -ne 1 ]; then
     espin "$NOT_VERIFIED"
@@ -2288,6 +2326,11 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
         _HOST="tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-agent.$INFRA_NS.svc"
         _PORT=6831
         INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set tracing.enabled=true --set services.tracing_agent.address=$_HOST:$_PORT"
+    fi
+    if [ "$WITH_TACACS" == "yes" ]; then
+        VOLTHA_TACACS_CHART_NAME=$(resolve_chart_name "$VOLTHA_TACACS_CHART")
+        _HOST="tacacs-${VOLTHA_TACACS_CHART_NAME}.$INFRA_NS.svc"
+        _PORT=49
     fi
     echo -e "Verify Adapters $PLUG"
     if [ "$WITH_SIM_ADAPTERS" == "yes" ]; then
