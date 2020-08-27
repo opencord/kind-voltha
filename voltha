@@ -2013,17 +2013,17 @@ EOJ
     elif [ "$WITH_EAPOL" == "no" ]; then
       push_onos_config "json" "Disable VOLTHA ONOS EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableEapol":false}'
     fi
-    # Default value for "enableDhcpOnProvisioning" is false and for "enableDhcpV4" is true in OLT App
+    # Default value for "enableDhcpOnNni" is false and for "enableDhcpV4" is true in OLT App
     if [ "$WITH_DHCP" == "yes" ]; then
-      push_onos_config "json" "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":true,"enableDhcpV4":true}'
+      push_onos_config "json" "Enable VOLTHA ONOS DHCP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnNni":true,"enableDhcpV4":true}'
     elif [ "$WITH_DHCP" == "no" ]; then
-      push_onos_config "json" "Disable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":false,"enableDhcpV4":false}'
+      push_onos_config "json" "Disable VOLTHA ONOS DHCP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnNni":false,"enableDhcpV4":false}'
     fi
-    # Default value for "enableIgmpOnProvisioning" is false in OLT App
+    # Default value for "enableIgmpOnNni" is false in OLT App
     if [ "$WITH_IGMP" == "yes" ]; then
-      push_onos_config "json" "Enable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":true}'
+      push_onos_config "json" "Enable VOLTHA ONOS IGMP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnNni":true}'
     elif [ "$WITH_IGMP" == "no" ]; then
-      push_onos_config "json" "Disable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":false}'
+      push_onos_config "json" "Disable VOLTHA ONOS IGMP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnNni":false}'
     fi
     if [ "$ENABLE_ONOS_EXTRANEOUS_RULES" == "yes" ]; then
         push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
