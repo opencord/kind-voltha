@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "96eef26e_fd595a12",
+        "filename": "values.yaml",
+        "patchSetId": 2
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-08-27T11:54:34Z",
+      "side": 1,
+      "message": "should this be uncommented ? otherwise no configuration is passed and the server will not really work, correct ?",
+      "revId": "ec9ba648e94db0a6db5c52ff57766c333f104445",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
