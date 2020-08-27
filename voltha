@@ -2013,17 +2013,37 @@ EOJ
     elif [ "$WITH_EAPOL" == "no" ]; then
       push_onos_config "json" "Disable VOLTHA ONOS EAPOL provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableEapol":false}'
     fi
-    # Default value for "enableDhcpOnProvisioning" is false and for "enableDhcpV4" is true in OLT App
-    if [ "$WITH_DHCP" == "yes" ]; then
-      push_onos_config "json" "Enable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":true,"enableDhcpV4":true}'
-    elif [ "$WITH_DHCP" == "no" ]; then
-      push_onos_config "json" "Disable VOLTHA ONOS DHCP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":false,"enableDhcpV4":false}'
+    # Enable DHCP via component configs for dhcp programming in the OLT app. Note that sadis config per UNI port/service is also required for dhcp to work.
+    # Two component configs are "enableDhcpV4" which is true by default, and "enableDhcpV6" which is false by default. These don't need to change until we support v6.
+    if [[ "$_ONOS_TAG" == "4.1.4" ]] || [[ "$_ONOS_TAG" < "4.1.4" ]]; then
+	# older versions use "enableDhcpOnProvisioning" which is false by default
+	if [ "$WITH_DHCP" == "yes" ]; then
+	    push_onos_config "json" "Enable VOLTHA ONOS DHCP on provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":true}'
+	elif [ "$WITH_DHCP" == "no" ]; then
+	    push_onos_config "json" "Disable VOLTHA ONOS DHCP on provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":false}'
+	fi
+    else
+	# newer versions use "enableDhcpOnNni" which is false by default
+	if [ "$WITH_DHCP" == "yes" ]; then
+	    push_onos_config "json" "Enable VOLTHA ONOS DHCP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnNni":true}'
+	elif [ "$WITH_DHCP" == "no" ]; then
+	    push_onos_config "json" "Disable VOLTHA ONOS DHCP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnNni":false}'
+	fi
     fi
-    # Default value for "enableIgmpOnProvisioning" is false in OLT App
-    if [ "$WITH_IGMP" == "yes" ]; then
-      push_onos_config "json" "Enable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":true}'
-    elif [ "$WITH_IGMP" == "no" ]; then
-      push_onos_config "json" "Disable VOLTHA ONOS IGMP provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":false}'
+    # Enable IGMP via component configs for IGMP programming in the OLT app. Note that sadis config on UNI port/service is also required for igmp to work.
+    # Default value for "enableIgmpOnNni" is false in OLT App
+    if [[ "$_ONOS_TAG" == "4.1.4" ]] || [[ "$_ONOS_TAG" < "4.1.4" ]]; then
+	if [ "$WITH_IGMP" == "yes" ]; then
+	    push_onos_config "json" "Enable VOLTHA ONOS IGMP on provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":true}'
+	elif [ "$WITH_IGMP" == "no" ]; then
+	    push_onos_config "json" "Disable VOLTHA ONOS IGMP on provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnProvisioning":false}'
+	fi
+    else
+	if [ "$WITH_IGMP" == "yes" ]; then
+	    push_onos_config "json" "Enable VOLTHA ONOS IGMP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnNni":true}'
+	elif [ "$WITH_IGMP" == "no" ]; then
+	    push_onos_config "json" "Disable VOLTHA ONOS IGMP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableIgmpOnNni":false}'
+	fi
     fi
     if [ "$ENABLE_ONOS_EXTRANEOUS_RULES" == "yes" ]; then
         push_onos_config "file" "Enabling extraneous rules for ONOS" "configuration/org.onosproject.net.flow.impl.FlowRuleManager" "onos-files/olt-onos-enableExtraneousRules.json"
