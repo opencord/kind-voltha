@@ -1875,6 +1875,59 @@ if [ "$JUST_K8S" == "yes" ]; then
     exit 0
 fi
 
+if is_in "$WITH_ETCD" "yes,external"; then
+    STIME="$(date +%s)"
+    bspin "Verify external ETCD cluster $OLD_KEY"
+    EXPECT=$NUM_OF_ETCD
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^etcd\$")" -ne 1 ]; then
+        espin "$NOT_VERIFIED"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ETCD" helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+    else
+        espin "$VERIFIED"
+    fi
+    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for ETCD cluster to start" "$NO_LABEL" "etcd-.*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
+if is_in "$WITH_KAFKA" "yes,external"; then
+    _TMP="$(mktemp -u)"
+    cat << EOC > "$_TMP"
+configurationOverrides:
+  "default.replication.factor": $NUM_OF_KAFKA
+  "offsets.topic.replication.factor": $NUM_OF_KAFKA
+  "log.retention.hours": 4
+  "log.message.timestamp.type": "LogAppendTime"
+persistence:
+  enabled: false
+zookeeper:
+  replicaCount: $NUM_OF_KAFKA
+  persistence:
+    enabled: false
+replicas: $NUM_OF_KAFKA
+EOC
+    STIME="$(date +%s)"
+    bspin "Verify external Kafka cluster $OLD_KEY"
+    EXPECT=$((NUM_OF_KAFKA*2))
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kafka\$")" -ne 1 ]; then
+        espin "$NOT_VERIFIED"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
+        helm_install - "$INFRA_NS" kafka "$KAFKA_CHART" "$KAFKA_CHART_VERSION" kafka "$_HELM_DESC external Kafka cluster"
+    else
+        espin "$VERIFIED"
+    fi
+    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for Kafka cluster to start" "$NO_LABEL" "kafka-.*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+    rm -rf "$_TMP"
+fi
+
+
 STIME="$(date +%s)"
 if is_in "$WITH_ONOS" "yes,legacy,classic"; then
     if is_in "$WITH_ONOS" "legacy"; then
@@ -2094,58 +2147,6 @@ fi
 if [ "$WITH_TIMINGS" == "yes" ]; then
     NOW="$(date +%s)"
     printtime $((NOW - STIME))
-fi
-
-if is_in "$WITH_ETCD" "yes,external"; then
-    STIME="$(date +%s)"
-    bspin "Verify external ETCD cluster $OLD_KEY"
-    EXPECT=$NUM_OF_ETCD
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^etcd\$")" -ne 1 ]; then
-        espin "$NOT_VERIFIED"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ETCD" helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
-    else
-        espin "$VERIFIED"
-    fi
-    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for ETCD cluster to start" "$NO_LABEL" "etcd-.*"
-    if [ "$WITH_TIMINGS" == "yes" ]; then
-        NOW="$(date +%s)"
-        printtime $((NOW - STIME))
-    fi
-fi
-
-if is_in "$WITH_KAFKA" "yes,external"; then
-    _TMP="$(mktemp -u)"
-    cat << EOC > "$_TMP"
-configurationOverrides:
-  "default.replication.factor": $NUM_OF_KAFKA
-  "offsets.topic.replication.factor": $NUM_OF_KAFKA
-  "log.retention.hours": 4
-  "log.message.timestamp.type": "LogAppendTime"
-persistence:
-  enabled: false
-zookeeper:
-  replicaCount: $NUM_OF_KAFKA
-  persistence:
-    enabled: false
-replicas: $NUM_OF_KAFKA
-EOC
-    STIME="$(date +%s)"
-    bspin "Verify external Kafka cluster $OLD_KEY"
-    EXPECT=$((NUM_OF_KAFKA*2))
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kafka\$")" -ne 1 ]; then
-        espin "$NOT_VERIFIED"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" -f $_TMP"
-        helm_install - "$INFRA_NS" kafka "$KAFKA_CHART" "$KAFKA_CHART_VERSION" kafka "$_HELM_DESC external Kafka cluster"
-    else
-        espin "$VERIFIED"
-    fi
-    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for Kafka cluster to start" "$NO_LABEL" "kafka-.*"
-    if [ "$WITH_TIMINGS" == "yes" ]; then
-        NOW="$(date +%s)"
-        printtime $((NOW - STIME))
-    fi
-    rm -rf "$_TMP"
 fi
 
 if [ "$WITH_TRACING" == "yes" ]; then
