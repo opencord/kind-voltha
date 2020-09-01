@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4bac0a9d_42ad7bd0",
+        "filename": "configs/bbsim-sadis-dt.yaml",
+        "patchSetId": 5
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-09-01T12:40:16Z",
+      "side": 1,
+      "message": "minor, DT uses 7 here",
+      "revId": "aa84bb29dae7ab30a8d9dc560833acdde42c9047",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
