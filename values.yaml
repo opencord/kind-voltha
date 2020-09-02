@@ -84,6 +84,12 @@ images:
 #    tag: master
 # END_OPENONU_ADAPTER_GO
 
+# Credentials for accessing openolt agent GRPC API
+# Should be base64 encoded values
+# olt_credentials:
+#   username: dm9sdGhhb2x0YWdlbnQ= # volthaoltagent
+#   password: c2VjcmV0MTIzNA== # secret1234
+
 etcd:
   extraEnv:
     - name: ETCD_AUTO_COMPACTION_RETENTION
