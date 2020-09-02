@@ -46,6 +46,30 @@
       "revId": "f16b5d3d162f0f9a090133418c05c40403db0e86",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b1fbe929_be9771ac",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 2071,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-09-02T22:01:27Z",
+      "side": 1,
+      "message": "ah interesting, I didn\u0027t know this was the case.\n\nregardless I added function to compare semver in this patch as they where needed for BBSim: https://gerrit.opencord.org/c/kind-voltha/+/20209/7..8/voltha",
+      "parentUuid": "b1e6b29f_02045b60",
+      "range": {
+        "startLine": 2071,
+        "startChar": 43,
+        "endLine": 2071,
+        "endChar": 65
+      },
+      "revId": "f16b5d3d162f0f9a090133418c05c40403db0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
