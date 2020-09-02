@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b8f05b83_f9380382",
+        "filename": "voltha",
+        "patchSetId": 6
+      },
+      "lineNbr": 2071,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-09-02T16:48:33Z",
+      "side": 1,
+      "message": "I don\u0027t think this comparison will actually work, we are comparing two strings.\n\nThis is a comparison example done in pure bash: https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash",
+      "range": {
+        "startLine": 2071,
+        "startChar": 43,
+        "endLine": 2071,
+        "endChar": 65
+      },
+      "revId": "f16b5d3d162f0f9a090133418c05c40403db0e86",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
