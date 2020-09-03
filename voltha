@@ -248,11 +248,11 @@ function semvercompare() {
     return
 }
 
-# returns true if v1 is less than v2
+# returns true if v1 is greater than v2 (false if they are the same)
 function semver_greater() {
   local v1
   local v2
-  v1=("$1") v2=("$2")
+  v1="$1" v2="$2"
 
   # shellcheck disable=SC2128
   if [[ "$v1" == "latest" ]] || [[ "$v1" == "master" ]]; then
@@ -271,11 +271,11 @@ function semver_greater() {
   fi
 }
 
-# returns true if v2 is less than v1
+# returns true if v1 is lesser than v2 (false if they are the same)
 function semver_lesser() {
   local v1
   local v2
-  v1=("$1") v2=("$2")
+  v1="$1" v2="$2"
 
   # shellcheck disable=SC2128
   if [[ "$v1" == "latest" ]] || [[ "$v1" == "master" ]]; then
