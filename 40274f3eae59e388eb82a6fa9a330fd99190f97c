@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4a3a2176_933f34ad",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2020-09-03T18:27:05Z",
+      "side": 1,
+      "message": "This comment seems incorrect.\nIt should return true if v1 is greater than v2 (as the code is doing)\n\nAlso maybe you should say clarify that if the versions are the same you will return false",
+      "revId": "40274f3eae59e388eb82a6fa9a330fd99190f97c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "65acf569_e4f21e6e",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 247,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2020-09-03T18:27:05Z",
+      "side": 1,
+      "message": "What is the purpose of this array definition for v1 and v2?\nEverything can be achieved with $1 and $2\n...\nif [[ \"$1\" \u003d\u003d \"latest\" ]] || [[ \"$1\" \u003d\u003d \"master\" ]]; then\n...\nres\u003d$(semvercompare $1 $2)",
+      "revId": "40274f3eae59e388eb82a6fa9a330fd99190f97c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f2c6a72b_9b83086a",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 266,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2020-09-03T18:27:05Z",
+      "side": 1,
+      "message": "Again this seems wrong.\nIt should return true if v1 is less than v2, and false if they are equal or v1 is greater.\n\nAlso, shouldn\u0027t this just be a call to semver_greater \n\nif [[ $(semver_greater $1 $2) \u003d\u003d \"true\" ]]; then\n    echo \"false\"\nelse \n    [[ $1 \u003d\u003d $2 ]] \u0026\u0026 echo \"false\" || echo \"true\" \nfi",
+      "revId": "40274f3eae59e388eb82a6fa9a330fd99190f97c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
