@@ -205,6 +205,7 @@ function get_service_ep() {
 }
 
 # returns the greater version (0 if equal)
+# inspired by https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
 function semvercompare() {
     if [[ "$1" == "$2" ]]
     then
