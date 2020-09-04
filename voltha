@@ -2159,7 +2159,9 @@ EOJ
     fi
     # Enable DHCP via component configs for dhcp programming in the OLT app. Note that sadis config per UNI port/service is also required for dhcp to work.
     # Two component configs are "enableDhcpV4" which is true by default, and "enableDhcpV6" which is false by default. These don't need to change until we support v6.
+    echo "============================ > onos $_ONOS_TAG"
     if [[ $(semver_greater "$_ONOS_TAG" "4.1.4") == "true" ]]; then
+      echo "============================ > new onos"
         # newer versions use "enableDhcpOnNni" which is false by default
         if [ "$WITH_DHCP" == "yes" ]; then
             push_onos_config "json" "Enable VOLTHA ONOS DHCP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnNni":true}'
@@ -2167,6 +2169,7 @@ EOJ
             push_onos_config "json" "Disable VOLTHA ONOS DHCP on NNI port(s)" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnNni":false}'
         fi
     else
+      echo "============================ > old onos"
         # older versions use "enableDhcpOnProvisioning" which is false by default
         if [ "$WITH_DHCP" == "yes" ]; then
             push_onos_config "json" "Enable VOLTHA ONOS DHCP on provisioning" "configuration/org.opencord.olt.impl.OltFlowService" '{"enableDhcpOnProvisioning":true}'
