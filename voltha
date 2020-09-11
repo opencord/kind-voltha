@@ -255,9 +255,8 @@ function semver_greater() {
   v1="$1" v2="$2"
 
   # shellcheck disable=SC2128
-  if [[ "$v1" == "latest" ]] || [[ "$v1" == "master" ]]; then
-    # if the version is latest or master we can't really compare,
-    # but we assume is greater
+  if [[ ! "$v1" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    # if the version is custom, we assume it's newer than master
     echo "true"
     return
   fi
@@ -278,9 +277,8 @@ function semver_lesser() {
   v1="$1" v2="$2"
 
   # shellcheck disable=SC2128
-  if [[ "$v1" == "latest" ]] || [[ "$v1" == "master" ]]; then
-    # if the version is latest or master we can't really compare,
-    # but we assume is greater
+  if [[ ! "$v1" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    # if the version is custom, we assume it's newer than master
     echo "false"
     return
   fi
@@ -2048,12 +2046,12 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         fi
     elif is_in "$WITH_ONOS" "yes,classic"; then
         bspin "Verify ONOS CLASSIC installed $BIRD"
+        # ONOS CLASSIC identifies its image repo/tag/pullPolicy differently, so yq is used to grab the values from the
+        # values value
+        YAML_VALUES=$(INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
+        helm_values "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^onos\$")" -ne 1 ]; then
             espin "$NOT_VERIFIED"
-            # ONOS CLASSIC identifies its image repo/tag/pullPolicy differently, so yq is used to grab the values from the
-            # values value
-            YAML_VALUES=$(INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ONOS --set atomix.replicas=$NUM_OF_ATOMIX" \
-                helm_values "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION")
             _ONOS_REPO="$(echo "$YAML_VALUES" | yq read - images.onos.repository)"
             if [ -z "$_ONOS_REPO" ]; then
                 _ONOS_REPO="voltha/voltha-onos"
@@ -2077,6 +2075,13 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
                 helm_install - "$INFRA_NS" onos "$ONOS_CLASSIC_CHART" "$ONOS_CLASSIC_CHART_VERSION" "+onos" "$_HELM_DESC ONOS CLASSIC"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS=
         else
+            _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
+            if [ -z "$_ONOS_TAG" ]; then
+                _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
+            fi
+            if [ -z "$_ONOS_TAG" ]; then
+                _ONOS_TAG="master"
+            fi
             espin "$VERIFIED"
         fi
         wait_for_pods - "$INFRA_NS" $((NUM_OF_ONOS + NUM_OF_ATOMIX)) "includes" "Waiting for ONOS CLASSIC to start" "$NO_LABEL" "onos-.*"
