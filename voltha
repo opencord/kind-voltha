@@ -2048,6 +2048,9 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         fi
     elif is_in "$WITH_ONOS" "yes,classic"; then
         bspin "Verify ONOS CLASSIC installed $BIRD"
+        if [ "$(helm_is_deployed "$INFRA_NS" "^onos\$")" -eq 1 ] && [ "$HELM_USE_UPGRADE" != "yes" ]; then
+	    _ONOS_TAG="$(helm get values onos -n "$INFRA_NS" --output json 2>/dev/null | jq -r .onos.image.tag)"
+        fi
         if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^onos\$")" -ne 1 ]; then
             espin "$NOT_VERIFIED"
             # ONOS CLASSIC identifies its image repo/tag/pullPolicy differently, so yq is used to grab the values from the
