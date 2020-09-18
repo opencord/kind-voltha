@@ -41,14 +41,14 @@ use_openonu_adapter_go: false
 
 images:
   onos:
-    repository: voltha/voltha-onos
+    repository: andreacampanella/voltha-onos
     # IMAGE_SELECTION
     # ---------------
     # The helm chart used to deploy ONOS is the public ONOS helm chart so,
     # there is a need to specify the exact image repository and image tag.
     # If you would like to use the "master", "voltha-2.1", or other image
     # just replace the "tag" value below.
-    tag: master
+    tag: trap-flows-fix-no-pcp
 
 # IMAGE_SELECTION
 # ---------------
@@ -74,9 +74,9 @@ images:
 #  ofagent:
 #    repository: voltha/voltha-ofagent-go
 #    tag: master
-#  rw_core:
-#    repository: voltha/voltha-rw-core
-#    tag: 2.1.1
+  rw_core:
+    repository: gcgirish/voltha-rw-core
+    tag: trapFlowFix
 # START_OPENONU_ADAPTER_GO - Uncomment the following block to use the
 # Go implementation of the openonu-adapter
 #  adapter_open_onu_go:
