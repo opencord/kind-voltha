@@ -133,7 +133,7 @@ KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=latest}
 BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-server}
 BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
-ETCD_CHART=${ETCD_CHART:-etcd/etcd}
+ETCD_CHART=${ETCD_CHART:-incubator/etcd}
 ETCD_CHART_VERSION=${ETCD_CHART_VERSION:-latest}
 RADIUS_CHART=${RADIUS_CHART:-onf/freeradius}
 RADIUS_CHART_VERSION=${RADIUS_CHART_VERSION:-latest}
@@ -1820,8 +1820,7 @@ REPOS="onf|https://charts.opencord.org|ONF_VOLTHA \
     atomix|https://charts.atomix.io|ONF_Atomix \
     bbsim-sadis|https://ciena.github.io/bbsim-sadis-server/charts|Custom_BBSIM_SADIS_Server \
     elastic|https://helm.elastic.co|Elastic \
-    kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch \
-    etcd|https://dbainbri-ciena.github.io/etcd-helm-chart"
+    kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch"
 
 REPO_UPDATE_REQ="no"
 bspin - "Verify Helm Repository"
