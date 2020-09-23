@@ -160,6 +160,12 @@ onos:
     - org.opencord.mcast
     - org.opencord.olt
     - org.opencord.aaa
+  java_opts: >
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=200
+    -XX:-UseContainerSupport
+    -Dkaraf.log.console=INFO
+    -Dds.lock.timeout.milliseconds=10000
   # No persistent volume in Atomix to have clean state for each re-deploy of ONOS
   atomix:
     persistence:
