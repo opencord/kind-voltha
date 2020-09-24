@@ -170,6 +170,9 @@ onos:
   atomix:
     persistence:
       enabled: false
+    java_opts: >
+      -Xmx2G
+      -XX:-UseContainerSupport
 
 # Customization for BBSIM
 bbsim:
