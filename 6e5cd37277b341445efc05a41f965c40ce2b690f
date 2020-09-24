@@ -22,6 +22,30 @@
       "revId": "6e5cd37277b341445efc05a41f965c40ce2b690f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d75fd83e_8a068f90",
+        "filename": "releases/voltha-2.5",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-09-24T03:58:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b6065227_1cf0d0c8",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 39
+      },
+      "revId": "6e5cd37277b341445efc05a41f965c40ce2b690f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
