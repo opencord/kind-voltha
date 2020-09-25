@@ -170,6 +170,12 @@ onos:
   atomix:
     persistence:
       enabled: false
+    java_opts: >
+      -Xmx2G
+      -XX:-UseContainerSupport
+    image:
+      repository: pierventre/atomix
+      tag: latest
 
 # Customization for BBSIM
 bbsim:
