@@ -60,10 +60,9 @@ following command:
 WITH_BBSIM=yes WITH_RADIUS=y WITH_EFK=y CONFIG_SADIS=y  voltha up
 ```
 
-To start a specific version of VOLTHA, e.g. 2.3, you could use the following commands:
+To start a specific version of VOLTHA, e.g. 2.5, you could use the following commands:
 ```bash
-git checkout tags/3.0.3 -b 3.0.3
-source releases/voltha-2.3 && voltha up
+source releases/voltha-2.5 && voltha up
 ```
 Please check the `releases` folder to see the available ones and pick the correct tag associatet do that release.
 
