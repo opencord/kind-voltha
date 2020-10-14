@@ -2513,6 +2513,16 @@ if [ "$WITH_BBSIM" == "yes" ]; then
         fi
     done
     wait_for_pods - "$BBSIM_NS" "$NUM_OF_BBSIM" "includes" "Waiting for BBSIM to start" "$BBSIM_LABEL" "bbsim*"
+    if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+      for instance in $(seq 0 $((NUM_OF_BBSIM-1))); do
+          bspin - "Forward BBSIM DMI port $FORWARD"
+          kill_port_forward "bbsim${instance_num}"
+          _PORT=$((50075 + "${instance_num}"))
+          port_forward "$BBSIM_NS" "bbsim${instance_num}" "50075:$_PORT"
+          espin - "$VERIFIED"
+      done
+    fi
+
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
         printtime $((NOW - STIME))
