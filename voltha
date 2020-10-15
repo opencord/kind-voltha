@@ -1059,7 +1059,7 @@ kill_port_forward() {
         PF=$1; shift
         TAG=
         if [ "$PF" != "__ALL__" ]; then
-            TAG="$PF-$NAME"
+            TAG="$PF"
         fi
         PARENTS=
         KIDS=
@@ -1142,6 +1142,11 @@ if [ "$1" == "down" ]; then
     if is_in "$WITH_KAFKA" "yes,external"; then
         sspin "Remove port-forwards: kafka-$NAME$CEOL"
         kill_port_forward "kafka"
+    fi
+
+    if is_in "$WITH_BBSIM" "yes"; then
+        sspin "Remove port-forwards: bbsim$CEOL"
+        kill_port_forward bbsim
     fi
 
     if [ "$WITH_PPROF" == "yes" ]; then
@@ -2516,9 +2521,9 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
       for instance in $(seq 0 $((NUM_OF_BBSIM-1))); do
           bspin - "Forward BBSIM DMI port $FORWARD"
-          kill_port_forward "bbsim${instance_num}"
-          _PORT=$((50075 + "${instance_num}"))
-          port_forward "$BBSIM_NS" "bbsim${instance_num}" "50075:$_PORT"
+          kill_port_forward "bbsim"
+          _PORT=$((50075+instance))
+          port_forward "$BBSIM_NS" "bbsim${instance}" "50075:$_PORT"
           espin - "$VERIFIED"
       done
     fi
