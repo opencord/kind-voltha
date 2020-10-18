@@ -2553,7 +2553,7 @@ if [ "$WITH_EFK" == "yes" ]; then
             espin - "$VERIFIED"
     fi
     EXPECT=2 # for elastic and kibana
-    if [ "$TYPE" == "minimal" ]; then
+    if [ "$NAME" == "minimal" ]; then
         EXPECT=$((EXPECT + 2)) # for fluentd on worker 2 worker nodes
     else
         EXPECT=$((EXPECT + 3)) # for fluentd on worker 3 worker nodes
