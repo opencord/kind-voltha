@@ -71,6 +71,7 @@ Please check the `releases` folder to see the available ones and pick the correc
 | `NAME`                                  | `minimal`                                             | Name of the KinD Cluster to be created |
 | `DEPLOY_K8S`                            | yes                                                   | Should the KinD Kubernetes cluster be deployed? |
 | `JUST_K8S`                              | no                                                    | Should just the KinD Kubernetes cluster be depoyed? (i.e. no VOLTHA) |
+| `JUST_INFRA`                            | no                                                    | Should just the infrastructure components (ETCD, KAFKA, ONOS) be deployed? |
 | `SCHEDULE_ON_CONTROL_NODES`             | no                                                    | Untaint the control plane (master) K8s nodes so that PODs may be scheduled on them |
 | `VOLTHA_NS`                             | `voltha`                                              | K8s namespace into which to deploy voltha PODs |
 | `INFRA_NS`                              | `default`                                             | K8s namespace into which to deploy infrastructure PODs |
