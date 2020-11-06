@@ -98,6 +98,7 @@ SADIS_CFG=${SADIS_CFG:-onos-files/onos-sadis-sample.json}
 BBSIM_CFG=${BBSIM_CFG:-configs/bbsim-sadis-att.yaml}
 INSTALL_ONOS_APPS=${INSTALL_ONOS_APPS:-no}
 JUST_K8S=${JUST_K8S:-no}
+JUST_INFRA=${JUST_INFRA:-no}
 DEPLOY_K8S=${DEPLOY_K8S:-yes}
 INSTALL_KUBECTL=${INSTALL_KUBECTL:-yes}
 INSTALL_HELM=${INSTALL_HELM:-yes}
@@ -131,7 +132,7 @@ ONOS_CLASSIC_CHART=${ONOS_CLASSIC_CHART:-onos/onos-classic}
 ONOS_CLASSIC_CHART_VERSION=${ONOS_CLASSIC_CHART_VERSION:-latest}
 KAFKA_CHART=${KAFKA_CHART:-bitnami/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=latest}
-BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-server}
+BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-onf/bbsim-sadis-server}
 BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
 ETCD_CHART=${ETCD_CHART:-bitnami/etcd}
 ETCD_CHART_VERSION=${ETCD_CHART_VERSION:-latest}
@@ -140,6 +141,7 @@ RADIUS_CHART_VERSION=${RADIUS_CHART_VERSION:-latest}
 EXTRA_HELM_INSTALL_ARGS=${EXTRA_HELM_INSTALL_ARGS:-}
 INTERNAL_EXTRA_HELM_INSTALL_ARGS=
 NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
+BBSIM_BASE_INDEX=${BBSIM_BASE_INDEX:-1}
 NUM_OF_WORKER_NODES=${NUM_OF_WORKER_NODES:-2}
 NUM_OF_CONTROLLER_NODES=${NUM_OF_CONTROLLER_NODES:-1}
 NUM_OF_OPENONU=${NUM_OF_OPENONU:-1}
@@ -352,6 +354,7 @@ ALL_YES_NO="\
     WITH_PPROF \
     WITH_INCREMENTAL_EVTO_UPDATE \
     JUST_K8S \
+    JUST_INFRA \
     DEPLOY_K8S \
     INSTALL_ONOS_APPS \
     INSTALL_KUBECTL \
@@ -593,50 +596,38 @@ TIMEOUT_SECONDS="$(parseDuration "$WAIT_TIMEOUT")"
 
 mkdir -p .voltha
 touch .voltha/ports
-HAVE="$(grep "$NAME" .voltha/ports)"
-if [ "$HAVE X" == " X" ]; then
-    # Find free port prefix
-    START=81
-    while true; do
-        if [ "$(grep -c $START .voltha/ports)" -eq 0 ]; then
-            break
-        fi
-        START="$((START + 1))"
-    done
-    DELTA="$((START - 81))"
-    ONOS_API_PORT=${ONOS_API_PORT:-${START}81}
-    ONOS_SSH_PORT=${ONOS_SSH_PORT:-${START}01}
-    VOLTHA_API_PORT=${VOLTHA_API_PORT:-5$((55 + DELTA))55}
-    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$((50 + DELTA))22}
-    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$((23 + DELTA))79}
-    VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
-    VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
-    OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
-    OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
-    ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$((92 + DELTA))00}
-    KIBANA_PORT=${KIBANA_PORT:-$((56 + DELTA))01}
-    TRACING_GUI_PORT=${TRACING_GUI_PORT:-1$((66 + DELTA))86}
-else
-    VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
-    ONOS_API_PORT=${ONOS_API_PORT:-$(echo "$VALUES" | cut -d, -f1)}
-    ONOS_SSH_PORT=${ONOS_SSH_PORT:-$(echo "$VALUES" | cut -d, -f2)}
-    VOLTHA_API_PORT=${VOLTHA_API_PORT:-$(echo "$VALUES" | cut -d, -f3)}
-    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$(echo "$VALUES" | cut -d, -f4)}
-    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$(echo "$VALUES" | cut -d, -f5)}
-    VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$(echo "$VALUES" | cut -d, -f6)}
-    VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f7)}
-    OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f8)}
-    OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$(echo "$VALUES" | cut -d, -f9)}
-    ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$(echo "$VALUES" | cut -d, -f10)}
-    KIBANA_PORT=${KIBANA_PORT:-$(echo "$VALUES" | cut -d, -f11)}
-    TRACING_GUI_PORT=${TRACING_GUI_PORT:-$(echo "$VALUES" | cut -d, -f12)}
 
-    # Some ports were added after the .voltha/ports files was created.
-    # Calculate the original DELTA from the VOLTHA_SSH_PORT so that it can
-    # be used to set up newer port-forwards.
-    DELTA="$((VOLTHA_SSH_PORT/100-50))"
+VOLTHA_API_PORT=55555
+START=$VOLTHA_API_PORT
 
-    if [ -z "$VOLTHA_KAFKA_PORT" ]; then
+# check if the stack deployed with $NAME already exists
+STACK_EXISTS=false
+if [ "$(grep -c "$NAME" .voltha/ports)" -eq 1 ]; then
+    STACK_EXISTS=true
+fi
+
+if [ "$STACK_EXISTS" == true ]; then
+  # if the stack was previously deployed reuse the ports
+  HAVE="$(grep "$NAME" .voltha/ports)"
+  VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
+  ONOS_API_PORT=$(echo "$VALUES" | cut -d, -f1)
+  ONOS_SSH_PORT=$(echo "$VALUES" | cut -d, -f2)
+  VOLTHA_API_PORT=$(echo "$VALUES" | cut -d, -f3)
+  VOLTHA_SSH_PORT=$(echo "$VALUES" | cut -d, -f4)
+  VOLTHA_ETCD_PORT=$(echo "$VALUES" | cut -d, -f5)
+  VOLTHA_KAFKA_PORT=$(echo "$VALUES" | cut -d, -f6)
+  VOLTHA_PPROF_PORT=$(echo "$VALUES" | cut -d, -f7)
+  OPENOLT_PPROF_PORT=$(echo "$VALUES" | cut -d, -f8)
+  OFAGENT_PPROF_PORT=$(echo "$VALUES" | cut -d, -f9)
+  ELASTICSEARCH_PORT=$(echo "$VALUES" | cut -d, -f10)
+  KIBANA_PORT=$(echo "$VALUES" | cut -d, -f11)
+  TRACING_GUI_PORT=$(echo "$VALUES" | cut -d, -f12)
+
+  # Some ports were added after the .voltha/ports files was created.
+  # Calculate the original DELTA from the VOLTHA_SSH_PORT so that it can
+  # be used to set up newer port-forwards.
+  DELTA="$((VOLTHA_SSH_PORT/100-50))"
+  if [ -z "$VOLTHA_KAFKA_PORT" ]; then
         VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
     fi
 
@@ -660,6 +651,30 @@ else
     if [ -z "$TRACING_GUI_PORT" ]; then
       TRACING_GUI_PORT=${TRACING_GUI_PORT:-1$((66 + DELTA))86}
     fi
+else
+  # Find free port prefix
+   START=81
+   while true; do
+       if [ "$(grep -c $START .voltha/ports)" -eq 0 ]; then
+           break
+       fi
+       START="$((START + 1))"
+   done
+
+   # create new ports starting from the first available
+   DELTA="$((START - 81))"
+   ONOS_API_PORT=${START}81
+   ONOS_SSH_PORT=${START}01
+   VOLTHA_API_PORT=5$((55 + DELTA))55
+   VOLTHA_SSH_PORT=$((50 + DELTA))22
+   VOLTHA_ETCD_PORT=$((23 + DELTA))79
+   VOLTHA_KAFKA_PORT=$((90 + DELTA))92
+   VOLTHA_PPROF_PORT=$((60 + DELTA))60
+   OPENOLT_PPROF_PORT=$((60 + DELTA))61
+   OFAGENT_PPROF_PORT=$((60 + DELTA))62
+   ELASTICSEARCH_PORT=$((92 + DELTA))00
+   KIBANA_PORT=$((56 + DELTA))01
+   TRACING_GUI_PORT=$((66 + DELTA))86
 fi
 
 PORTTMP="$(mktemp -u)"
@@ -800,6 +815,7 @@ if [ $# -ne 1 ] || ! is_in "$1" "up,down,dump,clean"; then
     >&2 echo "What wouild you like to do today:"
     >&2 echo "  up   - bring up voltha"
     >&2 echo "  down - tear down voltha"
+    >&2 echo "  clean - remove everything that kind-voltha created"
     >&2 echo "  dump - create a debug dump of running system"
     exit 1
 fi
@@ -1047,19 +1063,20 @@ port_forward() {
     local NS=$1; shift
     local SVC=$1; shift
     local PORTS="$*"
-    local TAG=$SVC-$NAME
+    local TAG=$SVC-$NS-$NAME
 
     (set -x; _TAG="$TAG" bash -c "while true; do kubectl port-forward --address $PF_ADDRESS -n $NS service/$SVC $PORTS; done" >>"$PFLOG" 2>&1 &) >>"$PFLOG" 2>&1
 }
 
 kill_port_forward() {
-    local TAG P_IDS PARENTS KIDS UNKNOWN PP_ID PF
+    local TAG P_IDS PARENTS KIDS UNKNOWN PP_ID PF NS
 
     while [ $# -gt 0 ]; do
+        NS=$1; shift
         PF=$1; shift
         TAG=
         if [ "$PF" != "__ALL__" ]; then
-            TAG="$PF"
+            TAG=$SVC-$NS-$NAME
         fi
         PARENTS=
         KIDS=
@@ -1121,47 +1138,53 @@ compare_versions() {
 }
 
 if [ "$1" == "down" ]; then
+    # NOTE ./voltha down tears down all the stacks, it should only remove components in the specified namespaces
     echo "Tearing down voltha cluster $NAME"
+
     LOG="down-$NAME.log"
     date -u +"%Y%m%dT%H%M%SZ" >"$LOG"
     HELM_MAJOR=$(helm version --client --short | sed -E -e 's/^.*v([0-9]+)\.[0-9]+\.[0-9]+.*$/\1/')
     if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         bspin "Remove port-forwards: onos-ui-$NAME"
-        kill_port_forward onos-ui
+        kill_port_forward "$INFRA_NS" onos-ui
         sspin "Remove port-forwards: onos-ssh-$NAME$CEOL"
-        kill_port_forward onos-ssh
+        kill_port_forward "$INFRA_NS" onos-ssh
         sspin "Remove port-forwards: onos-onos-classic-hs-$NAME$CEOL"
-        kill_port_forward onos-onos-classic-hs
+        kill_port_forward "$INFRA_NS" onos-onos-classic-hs
     fi
     sspin "Remove port-forwards: voltha-api-$NAME$CEOL"
-    kill_port_forward voltha-api voltha-voltha-api
+    kill_port_forward "$VOLTHA_NS" voltha-api
+    kill_port_forward "$VOLTHA_NS" voltha-voltha-api
     if is_in "$WITH_ETCD" "yes,external"; then
         sspin "Remove port-forwards: etcd-$NAME$CEOL"
-        kill_port_forward "etcd"
+        kill_port_forward "$INFRA_NS" "etcd"
     fi
     if is_in "$WITH_KAFKA" "yes,external"; then
         sspin "Remove port-forwards: kafka-$NAME$CEOL"
-        kill_port_forward "kafka"
+        kill_port_forward "$INFRA_NS" "kafka"
     fi
 
     if is_in "$WITH_BBSIM" "yes"; then
         sspin "Remove port-forwards: bbsim$CEOL"
-        kill_port_forward bbsim
+        kill_port_forward "$VOLTHA_NS" bbsim
     fi
 
     if [ "$WITH_PPROF" == "yes" ]; then
         sspin "Remove port-forwards: *-profiler$CEOL"
-        kill_port_forward voltha-rw-core-profiler voltha-voltha-rw-core-profiler
-        kill_port_forward voltha-of-agent-profiler voltha-voltha-of-agent-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-rw-core-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-voltha-rw-core-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-of-agent-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-voltha-of-agent-profiler
         if [ "$WITH_OPEN_ADAPTERS" == "yes" ]; then
-            kill_port_forward adapter-open-olt-profiler open-olt-adapter-open-olt-profiler
+            kill_port_forward "$VOLTHA_NS" adapter-open-olt-profiler
+            kill_port_forward "$VOLTHA_NS" open-olt-adapter-open-olt-profiler
         fi
     fi
 
     if [ "$WITH_TRACING" == "yes" ]; then
         sspin "Remove port-forwards: tracing-$NAME$CEOL"
         VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
-        kill_port_forward "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui"
+        kill_port_forward "$INFRA_NS" "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui"
     fi
 
     espin "$VERIFIED Remove port-forwards$CEOL"
@@ -1358,10 +1381,10 @@ for O in $ALL_OPTIONS; do
     fi
 done
 
-# Force remove any existing k8s port-forward processes. This will
-# remove them for all kind clusters.
+# Remove everything we created and set
 if [ "$1" == "clean" ]; then
-    kill_port_forward __ALL__
+    echo "Cleaning up the system"
+    kill_port_forward all-namespaces __ALL__
     exit
 fi
 
@@ -1494,6 +1517,8 @@ helm_install() {
     espin "$INDENT" "$VERIFIED"
 }
 
+bspin "Installing VOLTHA: $NAME $GEAR"
+espin "$VERIFIED"
 echo "INSTALL NAME: $NAME" >> "$LOG"
 
 STIME="$(date +%s)"
@@ -1823,7 +1848,6 @@ REPOS="onf|https://charts.opencord.org|ONF_VOLTHA \
     incubator|https://kubernetes-charts-incubator.storage.googleapis.com|Google_Incubator \
     onos|https://charts.onosproject.org|ONF_ONOS \
     atomix|https://charts.atomix.io|ONF_Atomix \
-    bbsim-sadis|https://ciena.github.io/bbsim-sadis-server/charts|Custom_BBSIM_SADIS_Server \
     elastic|https://helm.elastic.co|Elastic \
     kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch\
     bitnami|https://charts.bitnami.com/bitnami|Bitnami"
@@ -1947,7 +1971,7 @@ if [ "$WITH_CHAOS" == "yes" ]; then
 fi
 
 if [ "$JUST_K8S" == "yes" ]; then
-    echo "Environment deployed, not deploying VOLTHA artifacts as requested. Good bye."
+    echo "Environment deployed, not deploying VOLTHA artifacts as requested. Good bye." | tee -a "$LOG"
     echo ""
     echo "Please issue the following commands in your terminal to ensure that you" | tee -a "$LOG"
     echo "are accessing the correct Kubernetes/Kind cluster as well as have the  " | tee -a "$LOG"
@@ -1988,6 +2012,13 @@ if is_in "$WITH_ETCD" "yes,external"; then
     fi
 fi
 
+if [ "$WITH_ETCD" == "yes" ] && [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+    bspin - "Forward VOLTHA ETCD port $FORWARD"
+    kill_port_forward "$INFRA_NS" "etcd"
+    port_forward "$INFRA_NS" "etcd" "$VOLTHA_ETCD_PORT:2379"
+    espin - "$VERIFIED"
+fi
+
 if is_in "$WITH_KAFKA" "yes,external"; then
     _TMP="$(mktemp -u)"
     cat << EOC > "$_TMP"
@@ -2020,6 +2051,14 @@ EOC
         printtime $((NOW - STIME))
     fi
     rm -rf "$_TMP"
+
+fi
+
+if [ "$WITH_KAFKA" == "yes" ] && [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+  bspin - "Forward VOLTHA Kafka port $FORWARD"
+  kill_port_forward "$INFRA_NS" "kafka"
+  port_forward "$INFRA_NS" kafka "$VOLTHA_KAFKA_PORT:9092"
+  espin - "$VERIFIED"
 fi
 
 
@@ -2038,11 +2077,11 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
 
         if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
             bspin - "Forward ONOS API port $FORWARD"
-            kill_port_forward onos-ui
+            kill_port_forward "$INFRA_NS" onos-ui
             port_forward "$INFRA_NS" onos-ui "$ONOS_API_PORT:8181"
             espin - "$VERIFIED"
             bspin - "Forward ONOS SSH port $FORWARD"
-            kill_port_forward onos-ssh
+            kill_port_forward "$INFRA_NS" onos-ssh
             port_forward "$INFRA_NS" onos-ssh "$ONOS_SSH_PORT:8101"
             espin - "$VERIFIED"
             _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
@@ -2090,21 +2129,24 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             espin "$VERIFIED"
         fi
         wait_for_pods - "$INFRA_NS" $((NUM_OF_ONOS + NUM_OF_ATOMIX)) "includes" "Waiting for ONOS CLASSIC to start" "$NO_LABEL" "onos-.*"
-        if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
-            bspin - "Forward ONOS API port $FORWARD"
-            kill_port_forward onos-onos-classic-hs
-            port_forward "$INFRA_NS" onos-onos-classic-hs "$ONOS_API_PORT:8181" "$ONOS_SSH_PORT:8101"
-            espin - "$VERIFIED"
-            _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
-        else
-            _ONOS_API_EP="$(get_service_ep "$INFRA_NS" onos-onos-classic-hs)"
-        fi
     elif [ "$WITH_ONOS" == "micro" ]; then
         bspin "Verify micro-ONOS installed $BIRD"
         # We should never get here
         >&2 echo -e "${RED}${BOLD}${ERROR}ERROR:${NORMAL}${RED} Micro ONOS not currently supported${NORMAL}"
         exit 1
     fi
+
+    if is_in "$WITH_ONOS" "yes,classic" && [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+        bspin - "Forward ONOS API port $FORWARD"
+        SVC=
+        kill_port_forward "$INFRA_NS" onos-onos-classic-hs
+        port_forward "$INFRA_NS" onos-onos-classic-hs "$ONOS_API_PORT:8181" "$ONOS_SSH_PORT:8101"
+        espin - "$VERIFIED"
+        _ONOS_API_EP="127.0.0.1:$ONOS_API_PORT"
+    else
+        _ONOS_API_EP="$(get_service_ep "$INFRA_NS" onos-onos-classic-hs)"
+    fi
+
     bspin - "Verify or download ONOS configuration support files $DOWNLOAD"
     ONOS_FILES="olt-onos-enableExtraneousRules.json onos-aaa.json \
         onos-dhcpl2relay.json onos-sadis-sample.json"
@@ -2270,6 +2312,145 @@ if [ "$WITH_TIMINGS" == "yes" ]; then
     printtime $((NOW - STIME))
 fi
 
+if [ "$WITH_RADIUS" == "yes" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify RADIUS $LOCK"
+    bspin - "Verify RADIUS Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^radius\$")" -ne 1 ]; then
+        espin - "$NOT_VERIFIED"
+        helm_install - "$INFRA_NS" radius "$RADIUS_CHART" "$RADIUS_CHART_VERSION" "+radius" "$_HELM_DESC RADIUS"
+    else
+        espin - "$VERIFIED"
+    fi
+    wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for RADIUS to start" "$NO_LABEL" "radius-.*"
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
+if is_in "$WITH_ONOS" "yes,legacy,classic" && [ "$WITH_RADIUS" != "no" ]; then
+    SVC_NAME=radius
+    if kubectl get -n "$INFRA_NS" "svc/radius-freeradius" >/dev/null 2>&1; then
+        SVC_NAME="radius-freeradius"
+    fi
+    _HOST="$SVC_NAME.$INFRA_NS.svc"
+    _PORT=1812
+    if [ "$WITH_RADIUS" != "yes" ]; then
+        _HOST="$(echo "$WITH_RADIUS" | cut -d: -f1)"
+        _PORT="$(echo "$WITH_RADIUS" | cut -s -d: -f2)"
+        _PORT=${_PORT:-1812}
+    fi
+    bspin "Configure ONOS RADIUS Connection $GEAR"
+    (set -x; sed -e "s/:RADIUS_SVC:/$_HOST/g" -e "s/:RADIUS_PORT:/$_PORT/" onos-files/onos-aaa.json | curl --fail -sSL --user karaf:karaf -X POST "http://$_ONOS_API_EP/onos/v1/network/configuration/apps/org.opencord.aaa" -H Content-type:application/json -d@- >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin "$VERIFIED"
+fi
+
+if [ "$CONFIG_SADIS" == "external" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify BBSIM SADIS Service $PLUG"
+    bspin - "Verify required configmap"
+    (set -x; kubectl -n "$INFRA_NS" delete --ignore-not-found configmap kube-config >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    (set -x; kubectl -n "$INFRA_NS" create configmap kube-config "--from-file=kube_config=$KUBECONFIG" >>"$LOG" 2>&1) >>"$LOG" 2>&1
+    espin - "$VERIFIED"
+    bspin - "Verify BBSIM SADIS Service Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^bbsim-sadis-server\$")" -ne 1 ]; then
+        espin - "$NOT_VERIFIED"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS="$EXTRA_HELM_FLAGS" helm_install - "$INFRA_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" "+sadis" "$_HELM_DESC BBSIM SADIS Server"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
+    else
+        espin - "$VERIFIED"
+    fi
+    wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for BBSIM SADIS Server to start" "$NO_LABEL" "bbsim-sadis-server-.*"
+
+    if is_in "$WITH_ONOS" "yes,classic,legacy"; then
+        if kubectl get -n "$INFRA_NS" svc/bbsim-sadis-server-bbsim-sadis-server >/dev/null 2>&1; then
+            BBSIM_SADIS_SVC="bbsim-sadis-server-bbsim-sadis-server"
+        else
+            BBSIM_SADIS_SVC="bbsim-sadis-server"
+        fi
+        push_onos_config "json" \
+            "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
+            "network/configuration/apps/org.opencord.sadis" \
+            "$(cat <<EOJ | tr -d '[:space:]'
+{
+    "sadis": {
+        "integration": {
+            "url": "http://$BBSIM_SADIS_SVC.$INFRA_NS.svc:58080/subscribers/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    },
+    "bandwidthprofile": {
+        "integration": {
+            "url": "http://$BBSIM_SADIS_SVC.$INFRA_NS.svc:58080/profiles/%s",
+            "cache": {
+                "enabled": true,
+                "maxsize": 50,
+                "ttl": "PT1m"
+            }
+        }
+    }
+}
+EOJ
+)"
+    fi
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
+if [ "$WITH_EFK" == "yes" ]; then
+    STIME="$(date +%s)"
+    echo -e "Verify EFK $PLUG"
+    bspin - "Verify EFK Installed"
+    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^elasticsearch\$")" -ne 1 ] || [ "$(helm_is_deployed "$INFRA_NS" "^kibana\$")" -ne 1 ] || [ "$(helm_is_deployed "$INFRA_NS" "^fluentd\$")" -ne 1 ]; then
+          espin - "$NOT_VERIFIED"
+          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^elasticsearch\$")" -ne 1 ]; then
+              helm_install - "$INFRA_NS" elasticsearch "$ELASTICSEARCH_CHART" "$ELASTICSEARCH_CHART_VERSION" elasticsearch "$_HELM_DESC elasticsearch"
+          fi
+          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kibana\$")" -ne 1 ]; then
+              helm_install - "$INFRA_NS" kibana  "$KIBANA_CHART" "$KIBANA_CHART_VERSION" kibana "$_HELM_DESC kibana"
+          fi
+          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^fluentd\$")" -ne 1 ]; then
+              helm_install - "$INFRA_NS" fluentd  "$FLUENTD_ELASTICSEARCH_CHART" "$FLUENTD_ELASTICSEARCH_CHART_VERSION" fluentd-elasticsearch "$_HELM_DESC fluentd-elasticsearch"
+          fi
+    else
+            espin - "$VERIFIED"
+    fi
+    EXPECT=2 # for elastic and kibana
+    if [ "$TYPE" == "minimal" ]; then
+        EXPECT=$((EXPECT + 2)) # for fluentd on worker 2 worker nodes
+    else
+        EXPECT=$((EXPECT + 3)) # for fluentd on worker 3 worker nodes
+    fi
+    if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
+        EXPECT=$((EXPECT + 1)) # for fluentd on the control plan node
+    fi
+
+    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for EFK to start" "$NO_LABEL" "fluentd-* elasticsearch-* kibana-*"
+
+    if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+        bspin - "Forward EFK port $FORWARD"
+        kill_port_forward "$INFRA_NS" elasticsearch-master
+        kill_port_forward "$INFRA_NS" kibana-kibana
+        port_forward "$INFRA_NS" elasticsearch-master "$ELASTICSEARCH_PORT:9200"
+        port_forward "$INFRA_NS" kibana-kibana "$KIBANA_PORT:5601"
+        espin - "$VERIFIED"
+    fi
+
+    do_curl "" "POST" "" "" "http://localhost:$KIBANA_PORT/api/saved_objects/index-pattern/logst*" "json" '{"attributes":{"title":"logst*","timeFieldName":"@timestamp"}}' "Verify logging index in EFK" "409,200" "-H Content-type:application/json -H kbn-xsrf:true" "$GEAR"
+
+    if [ "$WITH_TIMINGS" == "yes" ]; then
+        NOW="$(date +%s)"
+        printtime $((NOW - STIME))
+    fi
+fi
+
 if [ "$WITH_TRACING" == "yes" ]; then
     STIME="$(date +%s)"
     echo -e "Verify Jaeger Tracing $PLUG"
@@ -2282,16 +2463,77 @@ if [ "$WITH_TRACING" == "yes" ]; then
         espin - "$VERIFIED"
     fi
     wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for Jaeger Tracing to start" "$NO_LABEL" "jaeger*"
+
+    if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
+      bspin - "Forward VOLTHA Tracing GUI port $FORWARD"
+      VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
+      kill_port_forward "$INFRA_NS" "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui"
+      port_forward "$INFRA_NS" "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui" "$TRACING_GUI_PORT:16686"
+      espin - "$VERIFIED"
+    fi
+
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
         printtime $((NOW - STIME))
     fi
 fi
 
+if [ "$JUST_INFRA" == "yes" ]; then
+  echo "Infrastructure deployed, not deploying VOLTHA artifacts as requested. Good bye." | tee -a "$LOG"
+  echo ""
+  echo "Please issue the following commands in your terminal to ensure that you" | tee -a "$LOG"
+  echo "are accessing the correct Kubernetes/Kind cluster as well as have the  " | tee -a "$LOG"
+  echo "tools required by VOLTHA in your command path.                         " | tee -a "$LOG"
+  echo "" | tee -a "$LOG"
+
+  echo -en "$BOLD"
+  if [ "$DEPLOY_K8S" == "yes" ]; then
+      echo "export KUBECONFIG=\"$HOME/.kube/kind-config-voltha-$NAME\"" | tee -a "$LOG"
+  fi
+  echo "export VOLTCONFIG=\"$HOME/.volt/config-$NAME\"" | tee -a "$LOG"
+  echo "export PATH=$GOPATH/bin:\$PATH" | tee -a "$LOG"
+  echo " "
+  echo -en "$NORMAL"
+  echo "To configure your VOLTHA stack to use this infrastructure please export these variables:" | tee -a "$LOG"
+  echo -en "$BOLD"
+  echo "  export INFRA_NS=$INFRA_NS"
+  echo "  export WITH_ETCD=etcd.$INFRA_NS.svc:2379"
+  echo "  export WITH_KAFKA=kafka.$INFRA_NS.svc:9092"
+  echo "  export WITH_ONOS=onos-onos-classic-hs.$INFRA_NS.svc:6653"
+  echo -en "$NORMAL"
+  echo " "
+  echo "Or use:"
+  echo " "
+  echo -en "$BOLD"
+  echo "  INFRA_NS=$INFRA_NS WITH_ETCD=etcd.$INFRA_NS.svc:2379 WITH_KAFKA=kafka.$INFRA_NS.svc:9092 WITH_ONOS=onos-onos-classic-hs.$INFRA_NS.svc:6653 ./voltha up"
+  echo -en "$NORMAL"
+  echo " "
+  echo "If you are deploying mutltiple VOLTHA stack, also remember to configure a different NAME, NAMESPACE and BBSIM_BASE_INDEX for each stack:"
+  echo -en "$BOLD"
+  echo "  export NAME=voltha1"
+  echo "  export VOLTHA_NS=voltha1"
+  echo "  export ADAPTER_NS=voltha1"
+  echo "  export BBSIM_NS=voltha1"
+  echo "  export BBSIM_BASE_INDEX=1"
+  echo -en "$NORMAL"
+  echo " "
+  echo "Or use:"
+  echo " "
+  echo -en "$BOLD"
+  echo "  INFRA_NS=$INFRA_NS WITH_ETCD=etcd.$INFRA_NS.svc:2379 WITH_KAFKA=kafka.$INFRA_NS.svc:9092 WITH_ONOS=onos-onos-classic-hs.$INFRA_NS.svc:6653" \
+    "NAME=voltha1 VOLTHA_NS=voltha1 ADAPTER_NS=voltha1 BBSIM_NS=voltha1 BBSIM_BASE_INDEX=1 ./voltha up"
+  echo -en "$NORMAL"
+  exit 0
+fi
+
 STIME="$(date +%s)"
 EXPECT=2
 # therecanbeonlyone set hardcoded to true for backward compatibility
 INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set therecanbeonlyone=true"
+
+# customize the topics in case of multiple stacks sharing the same kafka
+INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.topics.core_topic=$NAME-rwcore,defaults.kv_store_data_prefix=service/$NAME"
+
 case $WITH_ETCD in
     no)
         ;;
@@ -2380,6 +2622,7 @@ fi
 if [ "$WITH_ADAPTERS" == "yes" ]; then
     STIME="$(date +%s)"
     EXPECT=0
+    INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.topics.core_topic=$NAME-rwcore,defaults.topics.adapter_open_olt_topic=$NAME-openolt,defaults.topics.adapter_open_onu_topic=$NAME-brcm_openomci_onu,defaults.kv_store_data_prefix=service/$NAME"
     if is_in "$WITH_ETCD" "yes,external"; then
         _HOST=etcd.$INFRA_NS.svc
         _PORT=2379
@@ -2460,6 +2703,7 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     STIME="$(date +%s)"
     echo -e "Verify BBSIM $PLUG"
     bspin - "Verify BBSIM Installed"
+
     for instance in $(seq 0 $((NUM_OF_BBSIM-1))); do
 
         if [ "$LEGACY_BBSIM_INDEX" == "yes" ]; then
@@ -2483,8 +2727,7 @@ if [ "$WITH_BBSIM" == "yes" ]; then
               _TAG="$((900+instance))"
               BBSIM_TMP="$(mktemp -u)"
               sed -e "s/\":TAG:\"/$_TAG/g" "$BBSIM_CFG" > "$BBSIM_TMP"
-
-              INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$instance -f $BBSIM_TMP"
+              INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set olt_id=$BBSIM_BASE_INDEX$instance -f $BBSIM_TMP"
             else
               # these are older versio of BBSim
               S_TAG="$((900+instance))"
@@ -2522,7 +2765,7 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
       for instance in $(seq 0 $((NUM_OF_BBSIM-1))); do
           bspin - "Forward BBSIM DMI port $FORWARD"
-          kill_port_forward "bbsim"
+          kill_port_forward "$BBSIM_NS" "bbsim${instance}"
           _PORT=$((50075+instance))
           port_forward "$BBSIM_NS" "bbsim${instance}" "50075:$_PORT"
           espin - "$VERIFIED"
@@ -2535,120 +2778,11 @@ if [ "$WITH_BBSIM" == "yes" ]; then
     fi
 fi
 
-if [ "$WITH_EFK" == "yes" ]; then
-    STIME="$(date +%s)"
-    echo -e "Verify EFK $PLUG"
-    bspin - "Verify EFK Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^elasticsearch\$")" -ne 1 ] || [ "$(helm_is_deployed "$INFRA_NS" "^kibana\$")" -ne 1 ] || [ "$(helm_is_deployed "$INFRA_NS" "^fluentd\$")" -ne 1 ]; then
-          espin - "$NOT_VERIFIED"
-          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^elasticsearch\$")" -ne 1 ]; then
-              helm_install - "$INFRA_NS" elasticsearch "$ELASTICSEARCH_CHART" "$ELASTICSEARCH_CHART_VERSION" elasticsearch "$_HELM_DESC elasticsearch"
-          fi
-          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^kibana\$")" -ne 1 ]; then
-              helm_install - "$INFRA_NS" kibana  "$KIBANA_CHART" "$KIBANA_CHART_VERSION" kibana "$_HELM_DESC kibana"
-          fi
-          if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^fluentd\$")" -ne 1 ]; then
-              helm_install - "$INFRA_NS" fluentd  "$FLUENTD_ELASTICSEARCH_CHART" "$FLUENTD_ELASTICSEARCH_CHART_VERSION" fluentd-elasticsearch "$_HELM_DESC fluentd-elasticsearch"
-          fi
-    else
-            espin - "$VERIFIED"
-    fi
-    EXPECT=2 # for elastic and kibana
-    if [ "$TYPE" == "minimal" ]; then
-        EXPECT=$((EXPECT + 2)) # for fluentd on worker 2 worker nodes
-    else
-        EXPECT=$((EXPECT + 3)) # for fluentd on worker 3 worker nodes
-    fi
-    if [ "$SCHEDULE_ON_CONTROL_NODES" == "yes" ]; then
-        EXPECT=$((EXPECT + 1)) # for fluentd on the control plan node
-    fi
-
-    wait_for_pods - "$INFRA_NS" "$EXPECT" "includes" "Waiting for EFK to start" "$NO_LABEL" "fluentd-* elasticsearch-* kibana-*"
-    if [ "$WITH_TIMINGS" == "yes" ]; then
-        NOW="$(date +%s)"
-        printtime $((NOW - STIME))
-    fi
-fi
-
-if [ "$CONFIG_SADIS" == "external" ]; then
-    STIME="$(date +%s)"
-    echo -e "Verify BBSIM SADIS Service $PLUG"
-    bspin - "Verify required configmap"
-    (set -x; kubectl -n "$BBSIM_NS" delete --ignore-not-found configmap kube-config >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    (set -x; kubectl -n "$BBSIM_NS" create configmap kube-config "--from-file=kube_config=$KUBECONFIG" >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    espin - "$VERIFIED"
-    bspin - "Verify BBSIM SADIS Service Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$BBSIM_NS" "^bbsim-sadis-server\$")" -ne 1 ]; then
-        espin - "$NOT_VERIFIED"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS="$EXTRA_HELM_FLAGS" helm_install - "$BBSIM_NS" bbsim-sadis-server "$BBSIM_SADIS_SERVER_CHART" "$BBSIM_SADIS_SERVER_CHART_VERSION" "+sadis" "$_HELM_DESC BBSIM SADIS Server"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS=
-    else
-        espin - "$VERIFIED"
-    fi
-    wait_for_pods - "$BBSIM_NS" 1 "includes" "Waiting for BBSIM SADIS Server to start" "$NO_LABEL" "bbsim-sadis-server-.*"
-
-    if is_in "$WITH_ONOS" "yes,classic,legacy"; then
-        if kubectl get -n "$BBSIM_NS" svc/bbsim-sadis-server-bbsim-sadis-server >/dev/null 2>&1; then
-            BBSIM_SADIS_SVC="bbsim-sadis-server-bbsim-sadis-server"
-        else
-            BBSIM_SADIS_SVC="bbsim-sadis-server"
-        fi
-        push_onos_config "json" \
-            "[optional] Push ONOS configuration for custom SADIS and Bandwidth Profile servers" \
-            "network/configuration/apps/org.opencord.sadis" \
-            "$(cat <<EOJ | tr -d '[:space:]'
-{
-    "sadis": {
-        "integration": {
-            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/subscribers/%s",
-            "cache": {
-                "enabled": true,
-                "maxsize": 50,
-                "ttl": "PT1m"
-            }
-        }
-    },
-    "bandwidthprofile": {
-        "integration": {
-            "url": "http://$BBSIM_SADIS_SVC.$BBSIM_NS.svc:58080/profiles/%s",
-            "cache": {
-                "enabled": true,
-                "maxsize": 50,
-                "ttl": "PT1m"
-            }
-        }
-    }
-}
-EOJ
-)"
-    fi
-    if [ "$WITH_TIMINGS" == "yes" ]; then
-        NOW="$(date +%s)"
-        printtime $((NOW - STIME))
-    fi
-fi
-
-if [ "$WITH_RADIUS" == "yes" ]; then
-    STIME="$(date +%s)"
-    echo -e "Verify RADIUS $LOCK"
-    bspin - "Verify RADIUS Installed"
-    if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^radius\$")" -ne 1 ]; then
-        espin - "$NOT_VERIFIED"
-        helm_install - "$INFRA_NS" radius "$RADIUS_CHART" "$RADIUS_CHART_VERSION" "+radius" "$_HELM_DESC RADIUS"
-    else
-        espin - "$VERIFIED"
-    fi
-    wait_for_pods - "$INFRA_NS" 1 "includes" "Waiting for RADIUS to start" "$NO_LABEL" "radius-.*"
-    if [ "$WITH_TIMINGS" == "yes" ]; then
-        NOW="$(date +%s)"
-        printtime $((NOW - STIME))
-    fi
-fi
-
 if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
     STIME="$(date +%s)"
     bspin - "Forward VOLTHA API port $FORWARD"
-    kill_port_forward voltha-api voltha-voltha-api
+    kill_port_forward "$VOLTHA_NS" voltha-api
+    kill_port_forward "$VOLTHA_NS" voltha-voltha-api
     VOLTHA_PREFIX=
     if kubectl get -n "$VOLTHA_NS" "svc/voltha-voltha-api" >/dev/null 2>&1; then
         VOLTHA_PREFIX="voltha-"
@@ -2656,73 +2790,28 @@ if [ "$WITH_PORT_FORWARDS" == "yes" ]; then
 
     port_forward "$VOLTHA_NS"  "${VOLTHA_PREFIX}voltha-api" "$VOLTHA_API_PORT:55555"
     espin - "$VERIFIED"
-    if is_in "$WITH_ETCD" "yes,external"; then
-        bspin - "Forward VOLTHA ETCD port $FORWARD"
-        kill_port_forward "etcd"
-        port_forward "$INFRA_NS" "etcd" "$VOLTHA_ETCD_PORT:2379"
-        espin - "$VERIFIED"
-    fi
-    if is_in "$WITH_KAFKA" "yes,external"; then
-        bspin - "Forward VOLTHA Kafka port $FORWARD"
-        kill_port_forward "kafka"
-        port_forward "$INFRA_NS" kafka "$VOLTHA_KAFKA_PORT:9092"
-        espin - "$VERIFIED"
-    fi
-    if [ "$WITH_EFK" == "yes" ]; then
-        bspin - "Forward EFK port $FORWARD"
-        kill_port_forward elasticsearch-master
-        kill_port_forward kibana-kibana
-        port_forward "$INFRA_NS" elasticsearch-master "$ELASTICSEARCH_PORT:9200"
-        port_forward "$INFRA_NS" kibana-kibana "$KIBANA_PORT:5601"
-        espin - "$VERIFIED"
-    fi
+
     if [ "$WITH_PPROF" == "yes" ]; then
         VOLTHA_OPENOLT_PREFIX=
         if kubectl get -n "$ADAPTER_NS" "svc/open-olt-adapter-open-olt-profiler" >/dev/null 2>&1; then
             VOLTHA_OPENOLT_PREFIX="open-olt-"
         fi
         bspin - "Forward PProf ports port $FORWARD"
-        kill_port_forward voltha-rw-core-profiler voltha-voltha-rw-core-profiler
-        kill_port_forward adapter-open-olt-profiler open-olt-adapter-open-olt-profiler
-        kill_port_forward voltha-of-agent-profiler voltha-voltha-of-agent-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-rw-core-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-voltha-rw-core-profiler
+        kill_port_forward "$VOLTHA_NS" adapter-open-olt-profiler
+        kill_port_forward "$VOLTHA_NS" open-olt-adapter-open-olt-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-of-agent-profiler
+        kill_port_forward "$VOLTHA_NS" voltha-voltha-of-agent-profiler
         port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-rw-core-profiler" "$VOLTHA_PPROF_PORT:6060"
         port_forward "$ADAPTER_NS" "${VOLTHA_OPENOLT_PREFIX}adapter-open-olt-profiler" "$OPENOLT_PPROF_PORT:6060"
         port_forward "$VOLTHA_NS" "${VOLTHA_PREFIX}voltha-of-agent-profiler" "$OFAGENT_PPROF_PORT:6060"
-        espin - "$VERIFIED"
-    fi
-    if [ "$WITH_TRACING" == "yes" ]; then
-        bspin - "Forward VOLTHA Tracing GUI port $FORWARD"
-        VOLTHA_TRACING_CHART_NAME=$(resolve_chart_name "$VOLTHA_TRACING_CHART")
-        kill_port_forward "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui"
-        port_forward "$INFRA_NS" "tracing-${VOLTHA_TRACING_CHART_NAME}-jaeger-gui" "$TRACING_GUI_PORT:16686"
         espin - "$VERIFIED"
     fi
     if [ "$WITH_TIMINGS" == "yes" ]; then
         NOW="$(date +%s)"
         printtime $((NOW - STIME))
     fi
-fi
-
-if is_in "$WITH_ONOS" "yes,legacy,classic" && [ "$WITH_RADIUS" != "no" ]; then
-    SVC_NAME=radius
-    if kubectl get -n "$INFRA_NS" "svc/radius-freeradius" >/dev/null 2>&1; then
-        SVC_NAME="radius-freeradius"
-    fi
-    _HOST="$SVC_NAME.$INFRA_NS.svc"
-    _PORT=1812
-    if [ "$WITH_RADIUS" != "yes" ]; then
-        _HOST="$(echo "$WITH_RADIUS" | cut -d: -f1)"
-        _PORT="$(echo "$WITH_RADIUS" | cut -s -d: -f2)"
-        _PORT=${_PORT:-1812}
-    fi
-    bspin "Configure ONOS RADIUS Connection $GEAR"
-    (set -x; sed -e "s/:RADIUS_SVC:/$_HOST/g" -e "s/:RADIUS_PORT:/$_PORT/" onos-files/onos-aaa.json | curl --fail -sSL --user karaf:karaf -X POST "http://$_ONOS_API_EP/onos/v1/network/configuration/apps/org.opencord.aaa" -H Content-type:application/json -d@- >>"$LOG" 2>&1) >>"$LOG" 2>&1
-    espin "$VERIFIED"
-fi
-
-if [ "$WITH_EFK" == "yes" ]; then
-    do_curl "" "POST" "" "" "http://localhost:$KIBANA_PORT/api/saved_objects/index-pattern/logst*" "json" '{"attributes":{"title":"logst*","timeFieldName":"@timestamp"}}' "Verify logging index in EFK" "409,200" "-H Content-type:application/json -H kbn-xsrf:true" "$GEAR"
-#    fi
 fi
 
 if [ "$WITH_CHAOS" == "yes" ]; then
