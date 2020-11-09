@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b3a55a5f_896857a1",
+        "filename": "voltha",
+        "patchSetId": 5
+      },
+      "lineNbr": 1094,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2020-11-09T09:10:52Z",
+      "side": 1,
+      "message": "I\u0027m wondering if this could be done by namespace, given that each voltha stack will have it\u0027s own NS, teasing down by NS might prove an easy solution.",
+      "revId": "d1a9df5c86fdc9dc08b56a8b03f2f2c26508f6f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
