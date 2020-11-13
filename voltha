@@ -129,11 +129,11 @@ ONOS_CHART=${ONOS_CHART:-onf/onos}
 ONOS_CHART_VERSION=${ONOS_CHART_VERSION:-latest}
 ONOS_CLASSIC_CHART=${ONOS_CLASSIC_CHART:-onos/onos-classic}
 ONOS_CLASSIC_CHART_VERSION=${ONOS_CLASSIC_CHART_VERSION:-latest}
-KAFKA_CHART=${KAFKA_CHART:-incubator/kafka}
+KAFKA_CHART=${KAFKA_CHART:-bitnami/kafka}
 KAFKA_CHART_VERSION=${KAFKA_CHART_VERSION:=latest}
 BBSIM_SADIS_SERVER_CHART=${BBSIM_SADIS_SERVER_CHART:-bbsim-sadis/bbsim-sadis-server}
 BBSIM_SADIS_SERVER_CHART_VERSION=${BBSIM_SADIS_SERVER_CHART_VERSION:-latest}
-ETCD_CHART=${ETCD_CHART:-incubator/etcd}
+ETCD_CHART=${ETCD_CHART:-bitnami/etcd}
 ETCD_CHART_VERSION=${ETCD_CHART_VERSION:-latest}
 RADIUS_CHART=${RADIUS_CHART:-onf/freeradius}
 RADIUS_CHART_VERSION=${RADIUS_CHART_VERSION:-latest}
@@ -1825,7 +1825,8 @@ REPOS="onf|https://charts.opencord.org|ONF_VOLTHA \
     atomix|https://charts.atomix.io|ONF_Atomix \
     bbsim-sadis|https://ciena.github.io/bbsim-sadis-server/charts|Custom_BBSIM_SADIS_Server \
     elastic|https://helm.elastic.co|Elastic \
-    kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch"
+    kiwigrid|https://kiwigrid.github.io|Fluentd-ElasticSearch\
+    bitnami|https://charts.bitnami.com/bitnami|Bitnami"
 
 REPO_UPDATE_REQ="no"
 bspin - "Verify Helm Repository"
@@ -1975,7 +1976,7 @@ if is_in "$WITH_ETCD" "yes,external"; then
     EXPECT=$NUM_OF_ETCD
     if [ "$HELM_USE_UPGRADE" == "yes" ] || [ "$(helm_is_deployed "$INFRA_NS" "^etcd\$")" -ne 1 ]; then
         espin "$NOT_VERIFIED"
-        INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set replicas=$NUM_OF_ETCD" helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
+        INTERNAL_EXTRA_HELM_INSTALL_ARGS="--set auth.rbac.enabled=false,persistence.enabled=false,statefulset.replicaCount=$NUM_OF_ETCD" helm_install - "$INFRA_NS" etcd "$ETCD_CHART" "$ETCD_CHART_VERSION" etcd "$_HELM_DESC external ETCD cluster"
         INTERNAL_EXTRA_HELM_INSTALL_ARGS=
     else
         espin "$VERIFIED"
