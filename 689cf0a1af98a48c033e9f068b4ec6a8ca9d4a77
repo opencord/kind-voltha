@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3b65e117_fae188c0",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 605,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 1,
+      "message": "is this comment still valid?",
+      "range": {
+        "startLine": 603,
+        "startChar": 0,
+        "endLine": 605,
+        "endChar": 0
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b7cf9d6_de7a6fb6",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1114,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 1,
+      "message": "what does \"current installation\" mean when there are multiple stacks. it seems to me that \"voltha down\" should still remove everything. if we want to only tear down a stack then maybe \"voltha down \u003cstack-name\u003e\". This is sort of why I was going down the path of having multiple commands.\n\nvoltha env \u003cname\u003e up/down # or infra\nvoltha stack \u003cname\u003e up/down # for specific stack operations\n\nI worry that overloading the simply `voltha` command will confuse people.",
+      "range": {
+        "startLine": 1114,
+        "startChar": 0,
+        "endLine": 1114,
+        "endChar": 97
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "411cf992_1071b8f0",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 1,
+      "message": "why? that means if you start up the same stack you would get a new set of ports, but there is code above explicitly deal with reusing ports.",
+      "range": {
+        "startLine": 1119,
+        "startChar": 0,
+        "endLine": 1119,
+        "endChar": 71
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "095a4995_606f3aa4",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1361,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 1,
+      "message": "what happens if i do a clean and voltha is still running? then when i do voltha up again things may be confused as the ports file is gone.\n\nmaybe \"voltha clean forwards\", \"voltha clean ports\", \"voltha clean all\" and \"voltha clean\" defaults just to forwards to maintain compatibility?",
+      "range": {
+        "startLine": 1361,
+        "startChar": 0,
+        "endLine": 1361,
+        "endChar": 24
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3e10ffd_c4b09ab9",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 2286,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 1,
+      "message": "why moved?",
+      "range": {
+        "startLine": 2286,
+        "startChar": 7,
+        "endLine": 2286,
+        "endChar": 18
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e10deaf_fbce6974",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 2702,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 1,
+      "message": "looks like this is fixed already",
+      "range": {
+        "startLine": 2702,
+        "startChar": 0,
+        "endLine": 2702,
+        "endChar": 56
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}

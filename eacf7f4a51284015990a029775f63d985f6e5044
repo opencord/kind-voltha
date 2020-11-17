@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2cf6be40_8b723bb3",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 662,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-17T20:20:03Z",
+      "side": 0,
+      "message": "these were done for \"backward\" compatibility, i.e., if you have an older .ports file and then upgraded to a new kind-voltha as not all the ports may be found in the .ports file in that case. so removing these means some backward compatibility may be gone.",
+      "range": {
+        "startLine": 639,
+        "startChar": 1,
+        "endLine": 662,
+        "endChar": 6
+      },
+      "revId": "eacf7f4a51284015990a029775f63d985f6e5044",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
