@@ -22,6 +22,30 @@
       "revId": "eacf7f4a51284015990a029775f63d985f6e5044",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "94a87ec8_862b703a",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 662,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-23T19:55:30Z",
+      "side": 0,
+      "message": "Brought back in, I left it out as the chances that someone has a \"kind-voltha\" deployment that old is unlikely but won\u0027t harm to have it",
+      "parentUuid": "2cf6be40_8b723bb3",
+      "range": {
+        "startLine": 639,
+        "startChar": 1,
+        "endLine": 662,
+        "endChar": 6
+      },
+      "revId": "eacf7f4a51284015990a029775f63d985f6e5044",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
