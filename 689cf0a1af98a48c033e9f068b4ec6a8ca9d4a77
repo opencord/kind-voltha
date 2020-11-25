@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "52958906_82c5b865",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1114,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-25T00:31:25Z",
+      "side": 1,
+      "message": "So the argument is don\u0027t spend the cycles converting the `voltha` script to have \"infra\" and \"stack\" focused commands because we will be moving to helm centric? If so, doesn\u0027t the question become should we just do that now and skip this patch?",
+      "parentUuid": "0e5e0a03_3477c6d0",
+      "range": {
+        "startLine": 1114,
+        "startChar": 0,
+        "endLine": 1114,
+        "endChar": 97
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "411cf992_1071b8f0",
         "filename": "voltha",
         "patchSetId": 8
@@ -143,6 +167,30 @@
     },
     {
       "key": {
+        "uuid": "1b56a1cf_ff0bb4fe",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-25T00:31:25Z",
+      "side": 1,
+      "message": "So ports are reused if I do\nvoltha up\nvoltha up\n\nbut not if i do\nvoltha up\nvoltha down\nvoltha up\n\nif we are not going to reuse ports in some cases is it better never to reuse ports and remove the code above that attempts to reuse them? \n\nmy concern is that by using the .ports file in this way, i think, it is possible to have things become inconsistent where if we either never or always reuse there is less chance.",
+      "parentUuid": "7aab429b_d97bef35",
+      "range": {
+        "startLine": 1119,
+        "startChar": 0,
+        "endLine": 1119,
+        "endChar": 71
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "095a4995_606f3aa4",
         "filename": "voltha",
         "patchSetId": 8
@@ -178,6 +226,30 @@
       "side": 1,
       "message": "\"clean\" to me means: remove everything you created, to be honest this command should also remove the \"bin\" directory and the $NAME-[install|down].log files",
       "parentUuid": "095a4995_606f3aa4",
+      "range": {
+        "startLine": 1361,
+        "startChar": 0,
+        "endLine": 1361,
+        "endChar": 24
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c237e992_1426788c",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1361,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-11-25T00:31:25Z",
+      "side": 1,
+      "message": "i disagree that clean should remove all that, its not a build system and thus not like a Makefile.  this is a concern because is significantly changes behavior (similar to the port issue) for not a lot of value (imo) and some risks. So the use model is different and I am not seeing the value why. This leads to user confusion.",
+      "parentUuid": "52bfaf5a_760e73be",
       "range": {
         "startLine": 1361,
         "startChar": 0,
