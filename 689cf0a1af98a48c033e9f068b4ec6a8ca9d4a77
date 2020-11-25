@@ -191,6 +191,30 @@
     },
     {
       "key": {
+        "uuid": "46dea13f_50951a51",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1119,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-25T01:21:46Z",
+      "side": 1,
+      "message": "reverted not to remove entries from the file",
+      "parentUuid": "1b56a1cf_ff0bb4fe",
+      "range": {
+        "startLine": 1119,
+        "startChar": 0,
+        "endLine": 1119,
+        "endChar": 71
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "095a4995_606f3aa4",
         "filename": "voltha",
         "patchSetId": 8
@@ -259,6 +283,30 @@
       "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7a0f6668_e05e1b13",
+        "filename": "voltha",
+        "patchSetId": 8
+      },
+      "lineNbr": 1361,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2020-11-25T01:21:46Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c237e992_1426788c",
+      "range": {
+        "startLine": 1361,
+        "startChar": 0,
+        "endLine": 1361,
+        "endChar": 24
+      },
+      "revId": "689cf0a1af98a48c033e9f068b4ec6a8ca9d4a77",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
