@@ -14,6 +14,10 @@ export WITH_ONOS=classic
 export HELM_VERSION=v3.2.4
 export KIND_VERSION=v0.8.1
 
+# lock bbsim-sadis server to Ciena version
+export BBSIM_SADIS_SERVER_CHART=bbsim-sadis/bbsim-sadis-server
+export BBSIM_SADIS_SERVER_CHART_VERSION=1.1.0
+
 # defaults.image_tag=null will use the image tags in the Helm charts rather than
 # kind-voltha's default which is 'master'.
 # Also we need to specify the tag for voltha/voltha-onos image since this is
