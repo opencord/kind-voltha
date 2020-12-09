@@ -32,12 +32,12 @@ private_kafka_cluster: false
 # ------------------------------
 # There are currently two implementations of OPENONU-ADAPTER: the original
 # written in Python and the reimplementation written in Go. The variable
-# `use_openonu_adapter_go` can be used to optionally use the new Go
+# `use_openonu_adapter_go` can be set to false to optionally use the old Py
 # implementation. This is done by setting that value to `true`.
 #
 # Along with this change you will also may need to set the Docker image
 # information below (search for START_OPENONU_ADAPTER_GO).
-use_openonu_adapter_go: false
+use_openonu_adapter_go: true
 
 images:
   onos:
