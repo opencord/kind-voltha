@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: © 2020 kind-voltha contributors
+# SPDX-License-Identifier: Apache-2.0o
+#
+# Source this file before running ./voltha up to install the VOLTHA 2.5.0 release
+
+export VOLTHA_CHART_VERSION=2.7.2
+export VOLTHA_BBSIM_CHART_VERSION=4.1.5
+export VOLTHA_ADAPTER_OPEN_OLT_CHART_VERSION=2.7.1
+export VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION=2.7.0
+export ONOS_CLASSIC_CHART_VERSION=0.1.11
+export RADIUS_CHART_VERSION=1.0.2
+export VOLTCTL_VERSION=1.3.1
+export WITH_ONOS=classic
+export HELM_VERSION=v3.2.4
+export KIND_VERSION=v0.8.1
+
+# defaults.image_tag=null will use the image tags in the Helm charts rather than
+# kind-voltha's default which is 'master'.
+# Also we need to specify the tag for voltha/voltha-onos image since this is
+# not in the ONOS chart.
+# NOTE we are waiting for voltha-onos to be releases (needs an ONOS release)
+export EXTRA_HELM_FLAGS="--set defaults.image_tag=null,images.onos.tag=master "
