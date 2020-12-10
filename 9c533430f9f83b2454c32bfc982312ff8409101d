@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c1c98708_77f02e20",
+        "filename": "voltha",
+        "patchSetId": 1
+      },
+      "lineNbr": 666,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2020-12-10T17:57:54Z",
+      "side": 1,
+      "message": "Where is the environment variable passed from? If I check minimal-env.sh file, the port for ONOS_API_PORT is still 8181. Are you passing a different value (30115) from else where?",
+      "revId": "9c533430f9f83b2454c32bfc982312ff8409101d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
