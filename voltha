@@ -597,9 +597,6 @@ TIMEOUT_SECONDS="$(parseDuration "$WAIT_TIMEOUT")"
 mkdir -p .voltha
 touch .voltha/ports
 
-VOLTHA_API_PORT=55555
-START=$VOLTHA_API_PORT
-
 # check if the stack deployed with $NAME already exists
 STACK_EXISTS=false
 if [ "$(grep -c "$NAME" .voltha/ports)" -eq 1 ]; then
@@ -607,6 +604,7 @@ if [ "$(grep -c "$NAME" .voltha/ports)" -eq 1 ]; then
 fi
 
 if [ "$STACK_EXISTS" == true ]; then
+  echo "stack exists"
   # if the stack was previously deployed reuse the ports
   HAVE="$(grep "$NAME" .voltha/ports)"
   VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
@@ -653,28 +651,28 @@ if [ "$STACK_EXISTS" == true ]; then
     fi
 else
   # Find free port prefix
-   START=81
-   while true; do
-       if [ "$(grep -c $START .voltha/ports)" -eq 0 ]; then
-           break
-       fi
-       START="$((START + 1))"
-   done
+  START=81
+  while true; do
+     if [ "$(grep -c $START .voltha/ports)" -eq 0 ]; then
+         break
+     fi
+     START="$((START + 1))"
+  done
 
-   # create new ports starting from the first available
-   DELTA="$((START - 81))"
-    ONOS_API_PORT=${ONOS_API_PORT:-${START}81}
-    ONOS_SSH_PORT=${ONOS_SSH_PORT:-${START}01}
-    VOLTHA_API_PORT=${VOLTHA_API_PORT:-5$((55 + DELTA))55}
-    VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$((50 + DELTA))22}
-    VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$((23 + DELTA))79}
-    VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
-    VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
-    OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
-    OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
-    ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$((92 + DELTA))00}
-    KIBANA_PORT=${KIBANA_PORT:-$((56 + DELTA))01}
-    TRACING_GUI_PORT=${TRACING_GUI_PORT:-1$((66 + DELTA))86}
+  # create new ports starting from the first available
+  DELTA="$((START - 81))"
+  ONOS_API_PORT=${ONOS_API_PORT:-${START}81}
+  ONOS_SSH_PORT=${ONOS_SSH_PORT:-${START}01}
+  VOLTHA_API_PORT=${VOLTHA_API_PORT:-5$((55 + DELTA))55}
+  VOLTHA_SSH_PORT=${VOLTHA_SSH_PORT:-$((50 + DELTA))22}
+  VOLTHA_ETCD_PORT=${VOLTHA_ETCD_PORT:-$((23 + DELTA))79}
+  VOLTHA_KAFKA_PORT=${VOLTHA_KAFKA_PORT:-$((90 + DELTA))92}
+  VOLTHA_PPROF_PORT=${VOLTHA_PPROF_PORT:-$((60 + DELTA))60}
+  OPENOLT_PPROF_PORT=${OPENOLT_PPROF_PORT:-$((60 + DELTA))61}
+  OFAGENT_PPROF_PORT=${OFAGENT_PPROF_PORT:-$((60 + DELTA))62}
+  ELASTICSEARCH_PORT=${ELASTICSEARCH_PORT:-$((92 + DELTA))00}
+  KIBANA_PORT=${KIBANA_PORT:-$((56 + DELTA))01}
+  TRACING_GUI_PORT=${TRACING_GUI_PORT:-1$((66 + DELTA))86}
 fi
 
 PORTTMP="$(mktemp -u)"
