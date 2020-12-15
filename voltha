@@ -38,7 +38,7 @@ function ctrl_c() {
 
 HELM_VERSION=${HELM_VERSION:-v3.2.4}
 VOLTCTL_VERSION=${VOLTCTL_VERSION:-latest}
-KIND_VERSION=${KIND_VERSION:-v0.8.1}
+KIND_VERSION=${KIND_VERSION:-v0.9.0}
 VK_RELEASE=${VK_RELEASE:-master}
 EXTRA_TOOLS=
 
@@ -144,6 +144,7 @@ NUM_OF_BBSIM=${NUM_OF_BBSIM:-1}
 BBSIM_BASE_INDEX=${BBSIM_BASE_INDEX:-1}
 NUM_OF_WORKER_NODES=${NUM_OF_WORKER_NODES:-2}
 NUM_OF_CONTROLLER_NODES=${NUM_OF_CONTROLLER_NODES:-1}
+REGISTRY_MIRROR=${REGISTRY_MIRROR:-""}
 NUM_OF_OPENONU=${NUM_OF_OPENONU:-1}
 NUM_OF_KAFKA=${NUM_OF_KAFKA:-1}
 NUM_OF_ETCD=${NUM_OF_ETCD:-1}
@@ -392,6 +393,7 @@ ALL_OPTIONS="\
     NUM_OF_BBSIM \
     NUM_OF_WORKER_NODES \
     NUM_OF_CONTROLLER_NODES \
+    REGISTRY_MIRROR \
     NUM_OF_KAFKA \
     NUM_OF_ETCD \
     ELASTICSEARCH_CHART \
@@ -604,7 +606,6 @@ if [ "$(grep -c "$NAME" .voltha/ports)" -eq 1 ]; then
 fi
 
 if [ "$STACK_EXISTS" == true ]; then
-  echo "stack exists"
   # if the stack was previously deployed reuse the ports
   HAVE="$(grep "$NAME" .voltha/ports)"
   VALUES="$(echo "$HAVE" | sed -e 's/\s//g' | cut -d= -f2)"
@@ -1726,7 +1727,13 @@ if [ "$DEPLOY_K8S" == "yes" ]; then
             touch "$FILE"
 
             yq w -i "$FILE" kind Cluster
-            yq w -i "$FILE" apiVersion "kind.sigs.k8s.io/v1alpha3"
+            yq w -i "$FILE" apiVersion "kind.x-k8s.io/v1alpha4"
+
+
+            if [ "$REGISTRY_MIRROR" != "" ]; then
+              yq w -i "$FILE" "containerdConfigPatches[+]" "[plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"$REGISTRY_MIRROR\"]
+  endpoint = [\"http://$REGISTRY_MIRROR\"]"
+            fi
 
             if [ ! "$NUM_OF_CONTROLLER_NODES" -eq 0 ]; then
               for instance in $(seq 1 "$NUM_OF_CONTROLLER_NODES"); do
