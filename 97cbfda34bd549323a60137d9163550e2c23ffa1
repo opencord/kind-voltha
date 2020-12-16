@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "70c07304_3e10a20e",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-12-16T17:03:43Z",
+      "side": 1,
+      "message": "if you just don\u0027t define the var you get the same effect",
+      "range": {
+        "startLine": 147,
+        "startChar": 0,
+        "endLine": 147,
+        "endChar": 38
+      },
+      "revId": "97cbfda34bd549323a60137d9163550e2c23ffa1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "da953d5a_e20d5091",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 1733,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2020-12-16T17:03:43Z",
+      "side": 1,
+      "message": "if [ -z \"$REGISTRY_MIRROR\" ]; then",
+      "range": {
+        "startLine": 1733,
+        "startChar": 0,
+        "endLine": 1733,
+        "endChar": 49
+      },
+      "revId": "97cbfda34bd549323a60137d9163550e2c23ffa1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
