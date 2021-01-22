@@ -21,6 +21,10 @@
 # set "<VALUE>" to "master". Similarly, if you want to use the images
 # generated from the HEAD of the "voltha-2.1" git branches, then uncomment
 # this block and replace "<VALUE>" with "voltha-2.1".
+global:
+  image_tag: master
+  image_pullPolicy: Always
+# defaults is maintained for backward compatibility
 defaults:
   image_tag: master
   image_pullPolicy: Always

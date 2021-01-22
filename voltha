@@ -1415,7 +1415,8 @@ helm_values() {
             _HELM_ARGS="--create-namespace"
         fi
     fi
-    CMD=("helm $_HELM_COMMAND --debug --dry-run -f values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
+
+    CMD=("helm $_HELM_COMMAND --debug --dry-run -f values.yaml $CHART_ARGS $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --namespace $NAMESPACE $_HELM_ARGS  $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
    ${CMD[*]} 2>/dev/null | awk 'PRINT==1 {print}; /^USER-SUPPLIED VALUES:/ {PRINT = 1}; /^$/ {PRINT = 0}'
 }
 
@@ -1484,7 +1485,23 @@ helm_install() {
     if [ "$WITH_PPROF" == "yes" ]; then
         PPROF_ARG="--set profiler.enabled=true"
     fi
-    CMD=("helm $_HELM_COMMAND -f $VALUES_FILE $_HELM_ARGS $CHART_ARGS $PPROF_ARG $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set defaults.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
+
+    # older charts use "defaults", newer charts use "global"
+    KEY="global"
+
+    if [[ $CHART == "onf/voltha" ]] && [[ $(semver_lesser "$CHART_VERSION" "2.8.1") == "true" ]]; then
+      KEY="defaults"
+    fi
+
+    if [[ $CHART == "onf/voltha-adapter-openolt" ]] && [[ $(semver_lesser "$CHART_VERSION" "2.8.1") == "true" ]]; then
+      KEY="defaults"
+    fi
+
+    if [[ $CHART == "onf/voltha-adapter-openonu" ]] && [[ $(semver_lesser "$CHART_VERSION" "2.7.2") == "true" ]]; then
+      KEY="defaults"
+    fi
+
+    CMD=("helm $_HELM_COMMAND -f $VALUES_FILE $_HELM_ARGS $CHART_ARGS $PPROF_ARG $INTERNAL_EXTRA_HELM_INSTALL_ARGS $EXTRA_HELM_INSTALL_ARGS --set $KEY.log_level=$VOLTHA_LOG_LEVEL --namespace $NAMESPACE $CHART_VERSION $EXTRA_HELM_FLAGS $_HELM_NAME_ARG $CHART")
     (set -x; ${CMD[*]} >>"$LOG" 2>&1) >>"$LOG" 2>&1
     SUCCESS=$?
     while [ "$SUCCESS" -ne 0 ]; do
@@ -2100,14 +2117,14 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
             fi
             _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
             if [ -z "$_ONOS_TAG" ]; then
-                _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
+                _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - global.image_tag)"
             fi
             if [ -z "$_ONOS_TAG" ]; then
                 _ONOS_TAG="master"
             fi
             _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - images.onos.pullPolicy)"
             if [ -z "$_ONOS_PULL_POLICY" ]; then
-                _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - defaults.image_pullPolicy)"
+                _ONOS_PULL_POLICY="$(echo "$YAML_VALUES" | yq read - global.image_pullPolicy)"
             fi
             if [ -z "$_ONOS_PULL_POLICY" ]; then
                 _ONOS_PULL_POLICY="Always"
@@ -2119,7 +2136,7 @@ if is_in "$WITH_ONOS" "yes,legacy,classic"; then
         else
             _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - images.onos.tag)"
             if [ -z "$_ONOS_TAG" ]; then
-                _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - defaults.image_tag)"
+                _ONOS_TAG="$(echo "$YAML_VALUES" | yq read - global.image_tag)"
             fi
             if [ -z "$_ONOS_TAG" ]; then
                 _ONOS_TAG="master"
@@ -2533,6 +2550,10 @@ if [[ $(semver_greater "$VOLTHA_CHART_VERSION" "2.6.7") == "true" ]]; then
   # this is past voltha-2.5, we support multiple stacks
   # customize the topics in case of multiple stacks sharing the same kafka
   INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.topics.core_topic=$NAME-rwcore,defaults.kv_store_data_prefix=service/$NAME"
+elif [[ $(semver_greater "$VOLTHA_CHART_VERSION" "2.8.0") == "true" ]]; then
+  # this is past voltha-2.6, we introduced the voltha-stack chart and
+  # "defaults" is now "global"
+  INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set global.topics.core_topic=$NAME-rwcore,global.kv_store_data_prefix=service/$NAME"
 fi
 
 case $WITH_ETCD in
@@ -2626,6 +2647,9 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     if [[ $(semver_greater "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "2.5.0") == "true" ]]; then
       # this is past voltha-2.5, we support multiple stacks
       INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.topics.core_topic=$NAME-rwcore,defaults.topics.adapter_open_olt_topic=$NAME-openolt,defaults.topics.adapter_open_onu_topic=$NAME-brcm_openomci_onu,defaults.kv_store_data_prefix=service/$NAME"
+    elif [[ $(semver_greater "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "2.7.1") == "true" ]]; then
+      # this is past voltha-2.6, "defaults" is now "global"
+      INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set global.topics.core_topic=$NAME-rwcore,global.topics.adapter_open_olt_topic=$NAME-openolt,global.topics.adapter_open_onu_topic=$NAME-brcm_openomci_onu,global.kv_store_data_prefix=service/$NAME"
     fi
     if is_in "$WITH_ETCD" "yes,external"; then
         _HOST=etcd.$INFRA_NS.svc
@@ -2683,7 +2707,12 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
             _ORIGINAL_EXTRA_HELM_INSTALL_ARGS="$INTERNAL_EXTRA_HELM_INSTALL_ARGS"
             INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set replicas.adapter_open_onu=$NUM_OF_OPENONU"
             if [ "$WITH_INCREMENTAL_EVTO_UPDATE" == "yes" ]; then
+              if [[ $(semver_greater "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "2.7.1") == "true" ]]; then
+                # this is past voltha-2.6, "defaults" is now "global"
+                INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set global.incremental_evto_update=true"
+              else
                 INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.incremental_evto_update=true"
+              fi
             fi
             espin - "$NOT_VERIFIED"
             helm_install - "$ADAPTER_NS"  open-onu "$VOLTHA_ADAPTER_OPEN_ONU_CHART" "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "+open-onu" "$_HELM_DESC OpenONU Adapter"
