@@ -2647,10 +2647,14 @@ if [ "$WITH_ADAPTERS" == "yes" ]; then
     if [[ $(semver_greater "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "2.5.0") == "true" ]]; then
       # this is past voltha-2.5, we support multiple stacks
       INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set defaults.topics.core_topic=$NAME-rwcore,defaults.topics.adapter_open_olt_topic=$NAME-openolt,defaults.topics.adapter_open_onu_topic=$NAME-brcm_openomci_onu,defaults.kv_store_data_prefix=service/$NAME"
-    elif [[ $(semver_greater "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "2.7.1") == "true" ]]; then
-      # this is past voltha-2.6, "defaults" is now "global"
-      INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set global.topics.core_topic=$NAME-rwcore,global.topics.adapter_open_olt_topic=$NAME-openolt,global.topics.adapter_open_onu_topic=$NAME-brcm_openomci_onu,global.kv_store_data_prefix=service/$NAME"
     fi
+    if [[ $(semver_greater "$VOLTHA_ADAPTER_OPEN_ONU_CHART_VERSION" "2.7.1") == "true" ]]; then
+      # this is past voltha-2.6, "defaults" is now "global"
+      INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set adapter_open_olt.topics.core_topic=$NAME-rwcore,adapter_open_onu.topics.core_topic=$NAME-rwcore "
+      INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set adapter_open_olt.topics.adapter_open_olt_topic=$NAME-openolt,adapter_open_onu.topics.adapter_open_onu_topic=$NAME-brcm_openomci_onu "
+      INTERNAL_EXTRA_HELM_INSTALL_ARGS+=" --set adapter_open_onu.kv_store_data_prefix=service/$NAME,adapter_open_olt.kv_store_data_prefix=service/$NAME "
+    fi
+
     if is_in "$WITH_ETCD" "yes,external"; then
         _HOST=etcd.$INFRA_NS.svc
         _PORT=2379
