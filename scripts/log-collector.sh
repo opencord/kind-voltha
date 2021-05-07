@@ -45,7 +45,7 @@ while true; do
     WORK=$(mktemp -d)
 
     # All VOLTHA PODS + ONOS
-    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g')"
+    PODS="$(kubectl -n default get pod -o name | grep onos | sed -e 's/^/default:/g') $(kubectl get -n voltha pod -o name | sed -e 's/^/voltha:/g') $(kubectl -n infra get pod -o name | sed -e 's/^/default:/g')"
     if [ $? -ne 0 ]; then
         echo "Failed to get PODs from Kubernetes, will retry after sleep ..."
     else
