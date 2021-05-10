@@ -15,8 +15,8 @@ export WITH_ONOS=classic
 export HELM_VERSION=v3.2.4
 export KIND_VERSION=v0.8.1
 
-# defaults.image_tag=null will use the image tags in the Helm charts rather than
+# global.image_tag=null will use the image tags in the Helm charts rather than
 # kind-voltha's default which is 'master'.
 # Also we need to specify the tag for voltha/voltha-onos image since this is
 # not in the ONOS chart.
-export EXTRA_HELM_FLAGS="--set defaults.image_tag=null,images.onos.tag=4.3.1 "
+export EXTRA_HELM_FLAGS="--set global.image_tag=null,images.onos.tag=4.3.1 "
