@@ -66,7 +66,7 @@ if [ "$FANCY" -eq 1 ]; then
 fi
 
 NAME=${NAME:-minimal}
-
+IGNORE_WARNINGS=${IGNORE_WARNINGS:-no}
 ENABLE_ONOS_EXTRANEOUS_RULES=${ENABLE_ONOS_EXTRANEOUS_RULES:-no}
 INFRA_NS=${INFRA_NS:-default}
 VOLTHA_NS=${VOLTHA_NS:-voltha}
@@ -338,6 +338,7 @@ function verify_yes_no() {
 }
 
 ALL_YES_NO="\
+    IGNORE_WARNINGS \
     ENABLE_ONOS_EXTRANEOUS_RULES \
     WITH_TIMINGS \
     WITH_BBSIM \
@@ -460,6 +461,19 @@ done
 for VAR in $OPT_YES_NO; do
     eval "$VAR"="$(normalize_yes_no "$VAR")"
 done
+
+if [ "$IGNORE_WARNINGS" == "no" ]; then
+  echo -e "${RED}${BOLD}\nAfter the VOLTHA 2.7 release 'kind-voltha' is deprecated and unsupported in favor of helm-charts driven installation.${NORMAL}"
+  echo -e "${RED}${BOLD}To know more about the supported installation procedure please refer to https://github.com/opencord/voltha-helm-charts\n${NORMAL}"
+  while true; do
+      read -r -p "Do you wish to continue at your own risk? (y/n)" yn
+      case $yn in
+          [Yy]* ) break;;
+          [Nn]* ) exit;;
+          * ) echo "Please answer yes or no.";;
+      esac
+  done
+fi
 
 # check number (range) of bbsim, max bbsim must not exceed 10 instances!
 # note: instances will be numbered from 0 to 9

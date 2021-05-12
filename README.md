@@ -1,3 +1,10 @@
+# DEPRECATED
+
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+
+`VOLTHA 2.7` was the last release that officially supported `kind-voltha` as a deployment tool.
+From now on the deployment is driven via helm charts, please refer to [voltha-helm-charts](https://github.com/opencord/voltha-helm-charts) and [voltha-docs](docs.voltha.org) for more information.
+
 #  VOLTHA DEPLOYMENT TOOL
 Thie repository describes how to the the `voltha` script to install a
 VOLTHA deployment. `voltha` can be used to deploy an instance into an existing
