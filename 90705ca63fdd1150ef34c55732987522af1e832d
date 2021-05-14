@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1745ec59_4ee01c17",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-14T07:25:34Z",
+      "side": 1,
+      "message": "and to the [voltha-docs](docs.voltha.org)",
+      "revId": "90705ca63fdd1150ef34c55732987522af1e832d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f76e2f12_d6cf073c",
+        "filename": "voltha",
+        "patchSetId": 2
+      },
+      "lineNbr": 467,
+      "author": {
+        "id": 1000116
+      },
+      "writtenOn": "2021-05-14T07:25:34Z",
+      "side": 1,
+      "message": "https://github.com/opencord/voltha-helm-charts/README.md",
+      "revId": "90705ca63fdd1150ef34c55732987522af1e832d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
