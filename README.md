@@ -4,6 +4,7 @@
 
 `VOLTHA 2.7` was the last release that officially supported `kind-voltha` as a deployment tool.
 From now on the deployment is driven via helm charts, please refer to [voltha-helm-charts](https://github.com/opencord/voltha-helm-charts) and [voltha-docs](docs.voltha.org) for more information.
+This codebase is going to be removed after the VOLTHA 2.8 release LTS support ends in December 2022.
 
 #  VOLTHA DEPLOYMENT TOOL
 Thie repository describes how to the the `voltha` script to install a
